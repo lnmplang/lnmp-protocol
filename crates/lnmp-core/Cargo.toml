@@ -6,7 +6,7 @@ rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 description = "Core type definitions for LNMP (LLM Native Minimal Protocol)"
-repository = "https://github.com/lnmp/lnmp-protocol"
+repository = "https://github.com/lnmplang/lnmp"
 keywords = ["lnmp", "protocol", "llm", "data-format"]
 categories = ["encoding", "data-structures"]
 

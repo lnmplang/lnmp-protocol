@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["LNMP Contributors"]
 description = "LNMP-LLM Bridge Layer - Optimization layer for LLM prompt visibility and token efficiency"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/lnmp/lnmp-protocol"
+repository = "https://github.com/lnmplang/lnmp"
 keywords = ["lnmp", "llm", "serialization", "protocol"]
 categories = ["encoding", "parser-implementations"]
 

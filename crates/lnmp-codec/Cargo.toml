@@ -6,7 +6,7 @@ rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 description = "Parser and encoder for LNMP (LLM Native Minimal Protocol) text format"
-repository = "https://github.com/lnmp/lnmp-protocol"
+repository = "https://github.com/lnmplang/lnmp"
 keywords = ["lnmp", "protocol", "parser", "encoder", "codec"]
 categories = ["encoding", "parser-implementations"]
 
