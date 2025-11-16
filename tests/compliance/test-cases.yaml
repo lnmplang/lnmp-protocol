@@ -1,0 +1,759 @@
+# LNMP v0.3 Compliance Test Suite
+# Language-agnostic test cases for validating LNMP implementations
+# 
+# Test Case Format:
+# - name: Human-readable test name
+# - category: One of [structural, semantic, error-handling]
+# - description: Brief explanation of what is being tested
+# - input: LNMP-formatted string to parse
+# - expected: Expected parsed structure OR error
+# - config: Optional configuration for parser/encoder (checksums, strict mode, etc.)
+#
+# Expected Output Structure:
+# For successful parsing:
+#   expected:
+#     fields:
+#       - fid: <field_id>
+#         type: <type_name>
+#         value: <value>
+#         checksum: <optional_checksum_hex>
+#
+# For error cases:
+#   expected:
+#     error: <error_class>
+#     message: <error_message_pattern>
+#     line: <optional_line_number>
+#     column: <optional_column_number>
+
+version: "0.3.0"
+
+# ============================================================================
+# STRUCTURAL TESTS - Canonicalization and Nested Structures
+# ============================================================================
+
+structural_tests:
+  # Basic Canonicalization
+  - name: "Basic field ordering"
+    category: "structural"
+    description: "Fields must be sorted by FID in ascending order"
+    input: "F12=1;F7=2;F23=3"
+    expected:
+      fields:
+        - fid: 7
+          type: int
+          value: 2
+        - fid: 12
+          type: int
+          value: 1
+        - fid: 23
+          type: int
+          value: 3
+
+  - name: "Type hints preserved"
+    category: "structural"
+    description: "Type hints should be parsed and preserved"
+    input: "F12:i=14532;F7:b=1;F23:s=admin"
+    expected:
+      fields:
+        - fid: 12
+          type: int
+          value: 14532
+        - fid: 7
+          type: bool
+          value: true
+        - fid: 23
+          type: string
+          value: "admin"
+
+  - name: "String array basic"
+    category: "structural"
+    description: "String arrays should parse correctly"
+    input: "F23:sa=[admin,developer,user]"
+    expected:
+      fields:
+        - fid: 23
+          type: string_array
+          value: ["admin", "developer", "user"]
+
+  - name: "String array with quoted strings"
+    category: "structural"
+    description: "String arrays with quoted strings containing special characters"
+    input: 'F23:sa=["admin user","dev,ops","test;data"]'
+    expected:
+      fields:
+        - fid: 23
+          type: string_array
+          value: ["admin user", "dev,ops", "test;data"]
+
+  - name: "Empty string array"
+    category: "structural"
+    description: "Empty string arrays should be supported"
+    input: "F23:sa=[]"
+    expected:
+      fields:
+        - fid: 23
+          type: string_array
+          value: []
+
+  # Nested Record Tests
+  - name: "Nested record basic"
+    category: "structural"
+    description: "Basic nested record with multiple fields"
+    input: "F50={F12=1;F7=1}"
+    expected:
+      fields:
+        - fid: 50
+          type: nested_record
+          value:
+            fields:
+              - fid: 7
+                type: int
+                value: 1
+              - fid: 12
+                type: int
+                value: 1
+
+  - name: "Nested record with type hints"
+    category: "structural"
+    description: "Nested record preserving type hints"
+    input: "F50:r={F12:i=14532;F7:b=1;F23:s=admin}"
+    expected:
+      fields:
+        - fid: 50
+          type: nested_record
+          value:
+            fields:
+              - fid: 7
+                type: bool
+                value: true
+              - fid: 12
+                type: int
+                value: 14532
+              - fid: 23
+                type: string
+                value: "admin"
+
+  - name: "Nested record field ordering"
+    category: "structural"
+    description: "Fields within nested records must be sorted by FID"
+    input: "F50={F23=admin;F7=1;F12=14532}"
+    expected:
+      fields:
+        - fid: 50
+          type: nested_record
+          value:
+            fields:
+              - fid: 7
+                type: int
+                value: 1
+              - fid: 12
+                type: int
+                value: 14532
+              - fid: 23
+                type: string
+                value: "admin"
+
+  - name: "Deep nested record"
+    category: "structural"
+    description: "Multiple levels of nesting"
+    input: "F100={F1=user;F2={F10=nested;F11={F20=deep}}}"
+    expected:
+      fields:
+        - fid: 100
+          type: nested_record
+          value:
+            fields:
+              - fid: 1
+                type: string
+                value: "user"
+              - fid: 2
+                type: nested_record
+                value:
+                  fields:
+                    - fid: 10
+                      type: string
+                      value: "nested"
+                    - fid: 11
+                      type: nested_record
+                      value:
+                        fields:
+                          - fid: 20
+                            type: string
+                            value: "deep"
+
+  - name: "Nested record with string array"
+    category: "structural"
+    description: "Nested record containing a string array field"
+    input: "F50={F12=1;F23:sa=[admin,dev]}"
+    expected:
+      fields:
+        - fid: 50
+          type: nested_record
+          value:
+            fields:
+              - fid: 12
+                type: int
+                value: 1
+              - fid: 23
+                type: string_array
+                value: ["admin", "dev"]
+
+  # Nested Array Tests
+  - name: "Nested array basic"
+    category: "structural"
+    description: "Basic nested array with multiple records"
+    input: "F60:ra=[{F12=1},{F12=2},{F12=3}]"
+    expected:
+      fields:
+        - fid: 60
+          type: nested_array
+          value:
+            - fields:
+                - fid: 12
+                  type: int
+                  value: 1
+            - fields:
+                - fid: 12
+                  type: int
+                  value: 2
+            - fields:
+                - fid: 12
+                  type: int
+                  value: 3
+
+  - name: "Nested array with multiple fields per record"
+    category: "structural"
+    description: "Nested array where each record has multiple fields"
+    input: "F200:ra=[{F1=alice;F2=admin},{F1=bob;F2=user}]"
+    expected:
+      fields:
+        - fid: 200
+          type: nested_array
+          value:
+            - fields:
+                - fid: 1
+                  type: string
+                  value: "alice"
+                - fid: 2
+                  type: string
+                  value: "admin"
+            - fields:
+                - fid: 1
+                  type: string
+                  value: "bob"
+                - fid: 2
+                  type: string
+                  value: "user"
+
+  - name: "Empty nested array"
+    category: "structural"
+    description: "Empty nested array should be supported"
+    input: "F60:ra=[]"
+    expected:
+      fields:
+        - fid: 60
+          type: nested_array
+          value: []
+
+  - name: "Nested array with nested records"
+    category: "structural"
+    description: "Nested array containing records with nested structures"
+    input: "F300:ra=[{F1=user1;F2={F10=data1}},{F1=user2;F2={F10=data2}}]"
+    expected:
+      fields:
+        - fid: 300
+          type: nested_array
+          value:
+            - fields:
+                - fid: 1
+                  type: string
+                  value: "user1"
+                - fid: 2
+                  type: nested_record
+                  value:
+                    fields:
+                      - fid: 10
+                        type: string
+                        value: "data1"
+            - fields:
+                - fid: 1
+                  type: string
+                  value: "user2"
+                - fid: 2
+                  type: nested_record
+                  value:
+                    fields:
+                      - fid: 10
+                        type: string
+                        value: "data2"
+
+  # Whitespace Handling
+  - name: "Whitespace normalization"
+    category: "structural"
+    description: "Extra whitespace should be normalized"
+    input: "F12 = 1 ; F7 = 2"
+    expected:
+      fields:
+        - fid: 7
+          type: int
+          value: 2
+        - fid: 12
+          type: int
+          value: 1
+
+  - name: "Newline separators"
+    category: "structural"
+    description: "Newlines can be used as field separators"
+    input: |
+      F12=1
+      F7=2
+      F23=admin
+    expected:
+      fields:
+        - fid: 7
+          type: int
+          value: 2
+        - fid: 12
+          type: int
+          value: 1
+        - fid: 23
+          type: string
+          value: "admin"
+
+# ============================================================================
+# SEMANTIC TESTS - Type Fidelity and Checksums
+# ============================================================================
+
+semantic_tests:
+  # Type Fidelity
+  - name: "Integer type fidelity"
+    category: "semantic"
+    description: "Integer values should maintain precision"
+    input: "F12:i=9223372036854775807"
+    expected:
+      fields:
+        - fid: 12
+          type: int
+          value: 9223372036854775807
+
+  - name: "Negative integer"
+    category: "semantic"
+    description: "Negative integers should parse correctly"
+    input: "F12:i=-42"
+    expected:
+      fields:
+        - fid: 12
+          type: int
+          value: -42
+
+  - name: "Float type fidelity"
+    category: "semantic"
+    description: "Float values should maintain precision"
+    input: "F15:f=3.14159265359"
+    expected:
+      fields:
+        - fid: 15
+          type: float
+          value: 3.14159265359
+
+  - name: "Negative float"
+    category: "semantic"
+    description: "Negative floats should parse correctly"
+    input: "F15:f=-2.5"
+    expected:
+      fields:
+        - fid: 15
+          type: float
+          value: -2.5
+
+  - name: "Boolean true"
+    category: "semantic"
+    description: "Boolean true value"
+    input: "F7:b=1"
+    expected:
+      fields:
+        - fid: 7
+          type: bool
+          value: true
+
+  - name: "Boolean false"
+    category: "semantic"
+    description: "Boolean false value"
+    input: "F7:b=0"
+    expected:
+      fields:
+        - fid: 7
+          type: bool
+          value: false
+
+  - name: "String with special characters"
+    category: "semantic"
+    description: "Strings with special characters should be preserved"
+    input: 'F23:s="user@example.com"'
+    expected:
+      fields:
+        - fid: 23
+          type: string
+          value: "user@example.com"
+
+  - name: "String with escape sequences"
+    category: "semantic"
+    description: "Escape sequences should be processed correctly"
+    input: 'F23:s="line1\nline2\ttab"'
+    expected:
+      fields:
+        - fid: 23
+          type: string
+          value: "line1\nline2\ttab"
+
+  # Value Normalization
+  - name: "Float normalization - negative zero"
+    category: "semantic"
+    description: "Negative zero should normalize to positive zero"
+    input: "F15:f=-0.0"
+    config:
+      normalize_values: true
+    expected:
+      fields:
+        - fid: 15
+          type: float
+          value: 0.0
+
+  - name: "Float normalization - trailing zeros"
+    category: "semantic"
+    description: "Trailing zeros should be removed"
+    input: "F15:f=3.140000"
+    config:
+      normalize_values: true
+    expected:
+      fields:
+        - fid: 15
+          type: float
+          value: 3.14
+
+  - name: "Boolean normalization - text to numeric"
+    category: "semantic"
+    description: "Boolean text representations should normalize to 1/0"
+    input: "F7:b=true"
+    config:
+      normalize_values: true
+    expected:
+      fields:
+        - fid: 7
+          type: bool
+          value: true
+
+  # Semantic Checksums
+  - name: "Checksum validation - valid"
+    category: "semantic"
+    description: "Valid checksum should pass validation"
+    input: "F12:i=14532#6A93B3F1"
+    config:
+      validate_checksums: true
+    expected:
+      fields:
+        - fid: 12
+          type: int
+          value: 14532
+          checksum: "6A93B3F1"
+
+  - name: "Checksum validation - invalid"
+    category: "semantic"
+    description: "Invalid checksum should fail validation"
+    input: "F12:i=14532#DEADBEEF"
+    config:
+      validate_checksums: true
+    expected:
+      error: "ChecksumMismatch"
+      message: "Checksum mismatch for field 12"
+      field_id: 12
+
+  - name: "Multiple fields with checksums"
+    category: "semantic"
+    description: "Multiple fields can have checksums"
+    input: "F12:i=14532#6A93B3F1;F7:b=1#A1B2C3D4"
+    config:
+      validate_checksums: true
+    expected:
+      fields:
+        - fid: 7
+          type: bool
+          value: true
+          checksum: "A1B2C3D4"
+        - fid: 12
+          type: int
+          value: 14532
+          checksum: "6A93B3F1"
+
+  - name: "Checksum with nested record"
+    category: "semantic"
+    description: "Checksums can be applied to nested records"
+    input: "F50:r={F12=1;F7=1}#ABCD1234"
+    config:
+      validate_checksums: true
+    expected:
+      fields:
+        - fid: 50
+          type: nested_record
+          checksum: "ABCD1234"
+          value:
+            fields:
+              - fid: 7
+                type: int
+                value: 1
+              - fid: 12
+                type: int
+                value: 1
+
+  # Semantic Equivalence
+  - name: "Equivalence mapping - boolean synonyms"
+    category: "semantic"
+    description: "Boolean synonyms should map to canonical form"
+    input: "F7:b=yes"
+    config:
+      equivalence_mapping:
+        7:
+          yes: "1"
+          no: "0"
+    expected:
+      fields:
+        - fid: 7
+          type: bool
+          value: true
+
+  - name: "Equivalence mapping - string synonyms"
+    category: "semantic"
+    description: "String synonyms should map to canonical form"
+    input: "F23:s=admin"
+    config:
+      equivalence_mapping:
+        23:
+          admin: "administrator"
+          dev: "developer"
+    expected:
+      fields:
+        - fid: 23
+          type: string
+          value: "administrator"
+
+# ============================================================================
+# ERROR HANDLING TESTS
+# ============================================================================
+
+error_handling_tests:
+  # Lexical Errors
+  - name: "Invalid character in field ID"
+    category: "error-handling"
+    description: "Non-numeric characters in field ID should error"
+    input: "FXX=1"
+    expected:
+      error: "InvalidFieldId"
+      message: "Field ID must be numeric"
+
+  - name: "Unterminated string"
+    category: "error-handling"
+    description: "Unterminated quoted string should error"
+    input: 'F23:s="unterminated'
+    expected:
+      error: "UnterminatedString"
+      message: "Unterminated string literal"
+
+  - name: "Invalid escape sequence"
+    category: "error-handling"
+    description: "Invalid escape sequence should error"
+    input: 'F23:s="invalid\xescape"'
+    expected:
+      error: "InvalidEscapeSequence"
+      message: "Invalid escape sequence"
+
+  # Syntactic Errors
+  - name: "Missing equals sign"
+    category: "error-handling"
+    description: "Field assignment without equals sign should error"
+    input: "F12 1"
+    expected:
+      error: "UnexpectedToken"
+      message: "Expected '=' after field ID"
+
+  - name: "Missing field value"
+    category: "error-handling"
+    description: "Field without value should error"
+    input: "F12="
+    expected:
+      error: "UnexpectedToken"
+      message: "Expected value after '='"
+
+  - name: "Unclosed nested record"
+    category: "error-handling"
+    description: "Nested record without closing brace should error"
+    input: "F50={F12=1;F7=1"
+    expected:
+      error: "UnexpectedToken"
+      message: "Expected '}' to close nested record"
+
+  - name: "Unclosed nested array"
+    category: "error-handling"
+    description: "Nested array without closing bracket should error"
+    input: "F60=[{F12=1},{F12=2}"
+    expected:
+      error: "UnexpectedToken"
+      message: "Expected ']' to close nested array"
+
+  - name: "Invalid nested array element"
+    category: "error-handling"
+    description: "Nested array with non-record element should error"
+    input: "F60:ra=[{F12=1},invalid]"
+    expected:
+      error: "InvalidNestedStructure"
+      message: "Nested array must contain only records"
+
+  # Semantic Errors
+  - name: "Type hint mismatch - integer"
+    category: "error-handling"
+    description: "Value doesn't match type hint"
+    input: "F12:i=notanumber"
+    expected:
+      error: "TypeHintMismatch"
+      message: "Value 'notanumber' does not match type hint 'i'"
+      field_id: 12
+
+  - name: "Type hint mismatch - float"
+    category: "error-handling"
+    description: "Non-float value with float type hint"
+    input: "F15:f=notafloat"
+    expected:
+      error: "TypeHintMismatch"
+      message: "Value 'notafloat' does not match type hint 'f'"
+      field_id: 15
+
+  - name: "Type hint mismatch - boolean"
+    category: "error-handling"
+    description: "Invalid boolean value"
+    input: "F7:b=maybe"
+    expected:
+      error: "TypeHintMismatch"
+      message: "Value 'maybe' does not match type hint 'b'"
+      field_id: 7
+
+  - name: "Invalid checksum format"
+    category: "error-handling"
+    description: "Checksum with wrong number of hex digits"
+    input: "F12:i=14532#ABC"
+    expected:
+      error: "InvalidChecksum"
+      message: "Checksum must be 8 hexadecimal digits"
+
+  - name: "Invalid checksum characters"
+    category: "error-handling"
+    description: "Checksum with non-hex characters"
+    input: "F12:i=14532#GGGGGGGG"
+    expected:
+      error: "InvalidChecksum"
+      message: "Checksum must contain only hexadecimal digits"
+
+  # Structural Errors
+  - name: "Nesting too deep"
+    category: "error-handling"
+    description: "Exceeding maximum nesting depth"
+    input: "F1={F2={F3={F4={F5={F6={F7={F8={F9={F10={F11={F12=1}}}}}}}}}}}}"
+    config:
+      max_nesting_depth: 10
+    expected:
+      error: "NestingTooDeep"
+      message: "Maximum nesting depth exceeded"
+      max_depth: 10
+
+  - name: "Duplicate field ID"
+    category: "error-handling"
+    description: "Same field ID appears multiple times"
+    input: "F12=1;F12=2"
+    config:
+      strict_mode: true
+    expected:
+      error: "DuplicateFieldId"
+      message: "Field ID 12 appears multiple times"
+      field_id: 12
+
+  - name: "Fields not sorted in strict mode"
+    category: "error-handling"
+    description: "Fields not in ascending FID order in strict mode"
+    input: "F23=admin;F12=1;F7=2"
+    config:
+      strict_mode: true
+    expected:
+      error: "StrictModeViolation"
+      message: "Fields must be sorted by FID in strict mode"
+
+  - name: "Empty nested record"
+    category: "error-handling"
+    description: "Nested record with no fields should error"
+    input: "F50={}"
+    expected:
+      error: "InvalidNestedStructure"
+      message: "Nested record cannot be empty"
+
+  # Edge Cases
+  - name: "Field ID zero"
+    category: "error-handling"
+    description: "Field ID 0 should be valid"
+    input: "F0=value"
+    expected:
+      fields:
+        - fid: 0
+          type: string
+          value: "value"
+
+  - name: "Field ID maximum"
+    category: "error-handling"
+    description: "Field ID 65535 (max u16) should be valid"
+    input: "F65535=value"
+    expected:
+      fields:
+        - fid: 65535
+          type: string
+          value: "value"
+
+  - name: "Field ID overflow"
+    category: "error-handling"
+    description: "Field ID exceeding u16 max should error"
+    input: "F65536=value"
+    expected:
+      error: "InvalidFieldId"
+      message: "Field ID must be between 0 and 65535"
+
+# ============================================================================
+# ROUND-TRIP TESTS - Encode/Decode Consistency
+# ============================================================================
+
+round_trip_tests:
+  - name: "Round-trip basic fields"
+    category: "structural"
+    description: "Parse and re-encode should produce canonical form"
+    input: "F23=admin;F12=1;F7=2"
+    expected_canonical: "F7=2;F12=1;F23=admin"
+
+  - name: "Round-trip nested record"
+    category: "structural"
+    description: "Nested record should maintain structure"
+    input: "F50={F23=admin;F12=1}"
+    expected_canonical: "F50={F12=1;F23=admin}"
+
+  - name: "Round-trip nested array"
+    category: "structural"
+    description: "Nested array should maintain order and structure"
+    input: "F60=[{F12=1},{F12=2}]"
+    expected_canonical: "F60=[{F12=1},{F12=2}]"
+
+  - name: "Round-trip with checksums"
+    category: "semantic"
+    description: "Checksums should be preserved in round-trip"
+    input: "F12:i=14532#6A93B3F1"
+    config:
+      preserve_checksums: true
+    expected_canonical: "F12:i=14532#6A93B3F1"
+
+  - name: "Round-trip complex structure"
+    category: "structural"
+    description: "Complex nested structure with multiple types"
+    input: "F100={F1=user;F2={F10=nested;F11=[a,b,c]};F3=[{F20=1},{F20=2}]}"
+    expected_canonical: "F100={F1=user;F2={F10=nested;F11=[a,b,c]};F3=[{F20=1},{F20=2}]}"

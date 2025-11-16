@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/lnmp-core",
+    "crates/lnmp-codec",
+    "crates/lnmp-sfe",
+    "crates/lnmp-llb",
+    "examples",
+    "tests/compliance/rust",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70.0"
+authors = ["LNMP Contributors"]
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+lnmp-core = { path = "crates/lnmp-core" }

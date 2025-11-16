@@ -1,0 +1,23 @@
+[package]
+name = "lnmp-compliance-tests"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Compliance test suite for LNMP v0.3 Rust implementation"
+publish = false
+
+[dependencies]
+lnmp-core = { workspace = true }
+lnmp-codec = { path = "../../../crates/lnmp-codec" }
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+
+[lib]
+name = "lnmp_compliance_tests"
+path = "mod.rs"
+
+[[bin]]
+name = "lnmp-compliance-runner"
+path = "main.rs"

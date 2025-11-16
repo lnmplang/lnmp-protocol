@@ -1,0 +1,634 @@
+//! Binary encoder for converting LNMP text format to binary format.
+//!
+//! The BinaryEncoder converts LNMP records from text format (v0.3) to binary format (v0.4).
+//! It ensures canonical form by sorting fields by FID before encoding.
+
+use lnmp_core::LnmpRecord;
+use super::error::BinaryError;
+use super::frame::BinaryFrame;
+use crate::parser::Parser;
+
+/// Configuration for binary encoding
+#[derive(Debug, Clone)]
+pub struct EncoderConfig {
+    /// Whether to validate canonical form before encoding
+    pub validate_canonical: bool,
+    /// Whether to sort fields by FID (ensures canonical binary)
+    pub sort_fields: bool,
+    
+    // v0.5 fields
+    /// Whether to enable nested binary structure encoding (v0.5)
+    pub enable_nested_binary: bool,
+    /// Maximum nesting depth for nested structures (v0.5)
+    pub max_depth: usize,
+    /// Whether to enable streaming mode for large payloads (v0.5)
+    pub streaming_mode: bool,
+    /// Whether to enable delta encoding mode (v0.5)
+    pub delta_mode: bool,
+    /// Chunk size for streaming mode in bytes (v0.5)
+    pub chunk_size: usize,
+}
+
+impl Default for EncoderConfig {
+    fn default() -> Self {
+        Self {
+            validate_canonical: false,
+            sort_fields: true,
+            // v0.5 defaults
+            enable_nested_binary: false,
+            max_depth: 32,
+            streaming_mode: false,
+            delta_mode: false,
+            chunk_size: 4096,
+        }
+    }
+}
+
+impl EncoderConfig {
+    /// Creates a new encoder configuration with default settings
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets whether to validate canonical form before encoding
+    pub fn with_validate_canonical(mut self, validate: bool) -> Self {
+        self.validate_canonical = validate;
+        self.sort_fields = true;
+        self
+    }
+
+    /// Sets whether to sort fields by FID
+    pub fn with_sort_fields(mut self, sort: bool) -> Self {
+        self.sort_fields = sort;
+        self
+    }
+    
+    // v0.5 builder methods
+    
+    /// Enables nested binary structure encoding (v0.5)
+    pub fn with_nested_binary(mut self, enable: bool) -> Self {
+        self.enable_nested_binary = enable;
+        self
+    }
+    
+    /// Sets maximum nesting depth for nested structures (v0.5)
+    pub fn with_max_depth(mut self, depth: usize) -> Self {
+        self.max_depth = depth;
+        self
+    }
+    
+    /// Enables streaming mode for large payloads (v0.5)
+    pub fn with_streaming_mode(mut self, enable: bool) -> Self {
+        self.streaming_mode = enable;
+        self
+    }
+    
+    /// Enables delta encoding mode (v0.5)
+    pub fn with_delta_mode(mut self, enable: bool) -> Self {
+        self.delta_mode = enable;
+        self
+    }
+    
+    /// Sets chunk size for streaming mode in bytes (v0.5)
+    pub fn with_chunk_size(mut self, size: usize) -> Self {
+        self.chunk_size = size;
+        self
+    }
+
+    /// Configures the encoder for v0.4 compatibility mode
+    ///
+    /// This disables all v0.5 features (nested structures, streaming, delta encoding)
+    /// to ensure the output is compatible with v0.4 decoders.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lnmp_codec::binary::EncoderConfig;
+    ///
+    /// let config = EncoderConfig::new().with_v0_4_compatibility();
+    /// assert!(!config.enable_nested_binary);
+    /// assert!(!config.streaming_mode);
+    /// assert!(!config.delta_mode);
+    /// ```
+    pub fn with_v0_4_compatibility(mut self) -> Self {
+        self.enable_nested_binary = false;
+        self.streaming_mode = false;
+        self.delta_mode = false;
+        self
+    }
+}
+
+/// Binary encoder for LNMP v0.4
+///
+/// Converts LNMP records from text format (v0.3) to binary format (v0.4).
+/// The encoder ensures canonical form by sorting fields by FID before encoding.
+///
+/// # Examples
+///
+/// ```
+/// use lnmp_codec::binary::BinaryEncoder;
+/// use lnmp_core::{LnmpRecord, LnmpField, LnmpValue};
+///
+/// let mut record = LnmpRecord::new();
+/// record.add_field(LnmpField {
+///     fid: 7,
+///     value: LnmpValue::Bool(true),
+/// });
+/// record.add_field(LnmpField {
+///     fid: 12,
+///     value: LnmpValue::Int(14532),
+/// });
+///
+/// let encoder = BinaryEncoder::new();
+/// let binary = encoder.encode(&record).unwrap();
+/// ```
+#[derive(Debug)]
+pub struct BinaryEncoder {
+    config: EncoderConfig,
+}
+
+impl BinaryEncoder {
+    /// Creates a new binary encoder with default configuration
+    ///
+    /// Default configuration:
+    /// - `validate_canonical`: false
+    /// - `sort_fields`: true
+    pub fn new() -> Self {
+        Self {
+            config: EncoderConfig::default(),
+        }
+    }
+
+    /// Creates a binary encoder with custom configuration
+    pub fn with_config(config: EncoderConfig) -> Self {
+        Self { config }
+    }
+
+    /// Encodes an LnmpRecord to binary format
+    ///
+    /// The encoder will:
+    /// 1. Sort fields by FID (if sort_fields is enabled)
+    /// 2. Convert the record to a BinaryFrame
+    /// 3. Encode the frame to bytes
+    ///
+    /// # Arguments
+    ///
+    /// * `record` - The LNMP record to encode
+    ///
+    /// # Returns
+    ///
+    /// A vector of bytes representing the binary-encoded record
+    ///
+    /// # Errors
+    ///
+    /// Returns `BinaryError` if:
+    /// - The record contains nested structures when v0.4 compatibility is enabled
+    /// - Field conversion fails
+    pub fn encode(&self, record: &LnmpRecord) -> Result<Vec<u8>, BinaryError> {
+        // Check for v0.4 compatibility mode
+        if !self.config.enable_nested_binary {
+            // In v0.4 compatibility mode, validate that the record doesn't contain nested structures
+            self.validate_v0_4_compatibility(record)?;
+        }
+        
+        // Convert record to BinaryFrame (this automatically sorts by FID)
+        let frame = BinaryFrame::from_record(record)?;
+        
+        // Encode frame to bytes
+        Ok(frame.encode())
+    }
+
+    /// Validates that a record is compatible with v0.4 binary format
+    ///
+    /// This checks that the record doesn't contain any nested structures (NestedRecord or NestedArray),
+    /// which are not supported in v0.4.
+    ///
+    /// # Errors
+    ///
+    /// Returns `BinaryError::InvalidValue` if the record contains nested structures
+    fn validate_v0_4_compatibility(&self, record: &LnmpRecord) -> Result<(), BinaryError> {
+        use lnmp_core::LnmpValue;
+        
+        for field in record.fields() {
+            match &field.value {
+                LnmpValue::NestedRecord(_) => {
+                    return Err(BinaryError::InvalidValue {
+                        field_id: field.fid,
+                        type_tag: 0x06,
+                        reason: "Nested records not supported in v0.4 binary format. Use v0.5 with enable_nested_binary=true or convert to flat structure.".to_string(),
+                    });
+                }
+                LnmpValue::NestedArray(_) => {
+                    return Err(BinaryError::InvalidValue {
+                        field_id: field.fid,
+                        type_tag: 0x07,
+                        reason: "Nested arrays not supported in v0.4 binary format. Use v0.5 with enable_nested_binary=true or convert to flat structure.".to_string(),
+                    });
+                }
+                _ => {} // Other types are fine
+            }
+        }
+        
+        Ok(())
+    }
+
+    /// Encodes text format directly to binary
+    ///
+    /// This method:
+    /// 1. Parses the text using the v0.3 parser
+    /// 2. Converts the parsed record to binary format
+    /// 3. Ensures fields are sorted by FID
+    ///
+    /// # Arguments
+    ///
+    /// * `text` - LNMP text format string (v0.3)
+    ///
+    /// # Returns
+    ///
+    /// A vector of bytes representing the binary-encoded record
+    ///
+    /// # Errors
+    ///
+    /// Returns `BinaryError` if:
+    /// - Text parsing fails
+    /// - The record contains nested structures (not supported in v0.4)
+    /// - Field conversion fails
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lnmp_codec::binary::BinaryEncoder;
+    ///
+    /// let text = "F7=1;F12=14532;F23=[\"admin\",\"dev\"]";
+    /// let encoder = BinaryEncoder::new();
+    /// let binary = encoder.encode_text(text).unwrap();
+    /// ```
+    pub fn encode_text(&self, text: &str) -> Result<Vec<u8>, BinaryError> {
+        // Parse text using v0.3 parser
+        let mut parser = Parser::new(text)?;
+        let record = parser.parse_record()?;
+        
+        // Encode the parsed record
+        self.encode(&record)
+    }
+}
+
+impl Default for BinaryEncoder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lnmp_core::{LnmpField, LnmpValue};
+
+    #[test]
+    fn test_new_encoder() {
+        let encoder = BinaryEncoder::new();
+        assert!(encoder.config.sort_fields);
+        assert!(!encoder.config.validate_canonical);
+        // v0.5 defaults
+        assert!(!encoder.config.enable_nested_binary);
+        assert_eq!(encoder.config.max_depth, 32);
+        assert!(!encoder.config.streaming_mode);
+        assert!(!encoder.config.delta_mode);
+        assert_eq!(encoder.config.chunk_size, 4096);
+    }
+
+    #[test]
+    fn test_encoder_with_config() {
+        let config = EncoderConfig::new()
+            .with_validate_canonical(true)
+            .with_sort_fields(false);
+        
+        let encoder = BinaryEncoder::with_config(config);
+        assert!(!encoder.config.sort_fields);
+        assert!(encoder.config.validate_canonical);
+    }
+
+    #[test]
+    fn test_encode_empty_record() {
+        let record = LnmpRecord::new();
+        let encoder = BinaryEncoder::new();
+        let binary = encoder.encode(&record).unwrap();
+        
+        // Should have VERSION, FLAGS, and ENTRY_COUNT=0
+        assert_eq!(binary.len(), 3);
+        assert_eq!(binary[0], 0x04); // VERSION
+        assert_eq!(binary[1], 0x00); // FLAGS
+        assert_eq!(binary[2], 0x00); // ENTRY_COUNT=0
+    }
+
+    #[test]
+    fn test_encode_single_field() {
+        let mut record = LnmpRecord::new();
+        record.add_field(LnmpField {
+            fid: 7,
+            value: LnmpValue::Bool(true),
+        });
+        
+        let encoder = BinaryEncoder::new();
+        let binary = encoder.encode(&record).unwrap();
+        
+        // Should have VERSION, FLAGS, ENTRY_COUNT=1, and entry data
+        assert!(binary.len() > 3);
+        assert_eq!(binary[0], 0x04); // VERSION
+        assert_eq!(binary[1], 0x00); // FLAGS
+        assert_eq!(binary[2], 0x01); // ENTRY_COUNT=1
+    }
+
+    #[test]
+    fn test_encode_multiple_fields() {
+        let mut record = LnmpRecord::new();
+        record.add_field(LnmpField {
+            fid: 7,
+            value: LnmpValue::Bool(true),
+        });
+        record.add_field(LnmpField {
+            fid: 12,
+            value: LnmpValue::Int(14532),
+        });
+        record.add_field(LnmpField {
+            fid: 23,
+            value: LnmpValue::StringArray(vec!["admin".to_string(), "dev".to_string()]),
+        });
+        
+        let encoder = BinaryEncoder::new();
+        let binary = encoder.encode(&record).unwrap();
+        
+        assert_eq!(binary[0], 0x04); // VERSION
+        assert_eq!(binary[1], 0x00); // FLAGS
+        assert_eq!(binary[2], 0x03); // ENTRY_COUNT=3
+    }
+
+    #[test]
+    fn test_encode_sorts_fields() {
+        let mut record = LnmpRecord::new();
+        // Add fields in non-sorted order
+        record.add_field(LnmpField {
+            fid: 23,
+            value: LnmpValue::StringArray(vec!["admin".to_string()]),
+        });
+        record.add_field(LnmpField {
+            fid: 7,
+            value: LnmpValue::Bool(true),
+        });
+        record.add_field(LnmpField {
+            fid: 12,
+            value: LnmpValue::Int(14532),
+        });
+        
+        let encoder = BinaryEncoder::new();
+        let binary = encoder.encode(&record).unwrap();
+        
+        // Decode to verify field order
+        use super::super::frame::BinaryFrame;
+        let frame = BinaryFrame::decode(&binary).unwrap();
+        let decoded_record = frame.to_record();
+        
+        // Fields should be in sorted order: 7, 12, 23
+        let fields = decoded_record.fields();
+        assert_eq!(fields[0].fid, 7);
+        assert_eq!(fields[1].fid, 12);
+        assert_eq!(fields[2].fid, 23);
+    }
+
+    #[test]
+    fn test_encode_text_simple() {
+        let text = "F7=1";
+        let encoder = BinaryEncoder::new();
+        let binary = encoder.encode_text(text).unwrap();
+        
+        assert_eq!(binary[0], 0x04); // VERSION
+        assert_eq!(binary[1], 0x00); // FLAGS
+        assert_eq!(binary[2], 0x01); // ENTRY_COUNT=1
+    }
+
+    #[test]
+    fn test_encode_text_multiple_fields() {
+        let text = "F7=1;F12=14532;F23=[\"admin\",\"dev\"]";
+        let encoder = BinaryEncoder::new();
+        let binary = encoder.encode_text(text).unwrap();
+        
+        assert_eq!(binary[0], 0x04); // VERSION
+        assert_eq!(binary[1], 0x00); // FLAGS
+        assert_eq!(binary[2], 0x03); // ENTRY_COUNT=3
+    }
+
+    #[test]
+    fn test_encode_text_unsorted() {
+        let text = "F23=[\"admin\"];F7=1;F12=14532";
+        let encoder = BinaryEncoder::new();
+        let binary = encoder.encode_text(text).unwrap();
+        
+        // Decode to verify fields are sorted
+        use super::super::frame::BinaryFrame;
+        let frame = BinaryFrame::decode(&binary).unwrap();
+        let decoded_record = frame.to_record();
+        
+        let fields = decoded_record.fields();
+        assert_eq!(fields[0].fid, 7);
+        assert_eq!(fields[1].fid, 12);
+        assert_eq!(fields[2].fid, 23);
+    }
+
+    #[test]
+    fn test_encode_text_with_newlines() {
+        let text = "F7=1\nF12=14532\nF23=[\"admin\",\"dev\"]";
+        let encoder = BinaryEncoder::new();
+        let binary = encoder.encode_text(text).unwrap();
+        
+        assert_eq!(binary[0], 0x04); // VERSION
+        assert_eq!(binary[1], 0x00); // FLAGS
+        assert_eq!(binary[2], 0x03); // ENTRY_COUNT=3
+    }
+
+    #[test]
+    fn test_encode_text_all_types() {
+        let text = "F1=-42;F2=3.14;F3=0;F4=\"hello\";F5=[\"a\",\"b\"]";
+        let encoder = BinaryEncoder::new();
+        let binary = encoder.encode_text(text).unwrap();
+        
+        // Decode and verify all types
+        use super::super::frame::BinaryFrame;
+        let frame = BinaryFrame::decode(&binary).unwrap();
+        let decoded_record = frame.to_record();
+        
+        assert_eq!(decoded_record.get_field(1).unwrap().value, LnmpValue::Int(-42));
+        assert_eq!(decoded_record.get_field(2).unwrap().value, LnmpValue::Float(3.14));
+        assert_eq!(decoded_record.get_field(3).unwrap().value, LnmpValue::Bool(false));
+        assert_eq!(decoded_record.get_field(4).unwrap().value, LnmpValue::String("hello".to_string()));
+        assert_eq!(
+            decoded_record.get_field(5).unwrap().value,
+            LnmpValue::StringArray(vec!["a".to_string(), "b".to_string()])
+        );
+    }
+
+    #[test]
+    fn test_encode_text_invalid() {
+        let text = "INVALID";
+        let encoder = BinaryEncoder::new();
+        let result = encoder.encode_text(text);
+        
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_encode_text_empty() {
+        let text = "";
+        let encoder = BinaryEncoder::new();
+        let binary = encoder.encode_text(text).unwrap();
+        
+        // Empty text should produce empty record
+        assert_eq!(binary.len(), 3);
+        assert_eq!(binary[0], 0x04); // VERSION
+        assert_eq!(binary[1], 0x00); // FLAGS
+        assert_eq!(binary[2], 0x00); // ENTRY_COUNT=0
+    }
+
+    #[test]
+    fn test_encode_all_value_types() {
+        let mut record = LnmpRecord::new();
+        record.add_field(LnmpField {
+            fid: 1,
+            value: LnmpValue::Int(42),
+        });
+        record.add_field(LnmpField {
+            fid: 2,
+            value: LnmpValue::Float(2.718),
+        });
+        record.add_field(LnmpField {
+            fid: 3,
+            value: LnmpValue::Bool(false),
+        });
+        record.add_field(LnmpField {
+            fid: 4,
+            value: LnmpValue::String("world".to_string()),
+        });
+        record.add_field(LnmpField {
+            fid: 5,
+            value: LnmpValue::StringArray(vec!["x".to_string(), "y".to_string()]),
+        });
+        
+        let encoder = BinaryEncoder::new();
+        let binary = encoder.encode(&record).unwrap();
+        
+        // Decode and verify
+        use super::super::frame::BinaryFrame;
+        let frame = BinaryFrame::decode(&binary).unwrap();
+        let decoded_record = frame.to_record();
+        
+        assert_eq!(decoded_record.fields().len(), 5);
+        assert_eq!(decoded_record.get_field(1).unwrap().value, LnmpValue::Int(42));
+        assert_eq!(decoded_record.get_field(2).unwrap().value, LnmpValue::Float(2.718));
+        assert_eq!(decoded_record.get_field(3).unwrap().value, LnmpValue::Bool(false));
+        assert_eq!(decoded_record.get_field(4).unwrap().value, LnmpValue::String("world".to_string()));
+        assert_eq!(
+            decoded_record.get_field(5).unwrap().value,
+            LnmpValue::StringArray(vec!["x".to_string(), "y".to_string()])
+        );
+    }
+
+    #[test]
+    fn test_default_encoder() {
+        let encoder = BinaryEncoder::default();
+        assert!(encoder.config.sort_fields);
+        assert!(!encoder.config.validate_canonical);
+    }
+
+    #[test]
+    fn test_encoder_config_builder() {
+        let config = EncoderConfig::new()
+            .with_validate_canonical(true)
+            .with_sort_fields(true);
+        
+        assert!(config.validate_canonical);
+        assert!(config.sort_fields);
+    }
+    
+    #[test]
+    fn test_encoder_config_v05_fields() {
+        let config = EncoderConfig::new()
+            .with_nested_binary(true)
+            .with_max_depth(64)
+            .with_streaming_mode(true)
+            .with_delta_mode(true)
+            .with_chunk_size(8192);
+        
+        assert!(config.enable_nested_binary);
+        assert_eq!(config.max_depth, 64);
+        assert!(config.streaming_mode);
+        assert!(config.delta_mode);
+        assert_eq!(config.chunk_size, 8192);
+    }
+    
+    #[test]
+    fn test_encoder_config_v05_defaults() {
+        let config = EncoderConfig::default();
+        
+        assert!(!config.enable_nested_binary);
+        assert_eq!(config.max_depth, 32);
+        assert!(!config.streaming_mode);
+        assert!(!config.delta_mode);
+        assert_eq!(config.chunk_size, 4096);
+    }
+    
+    #[test]
+    fn test_encoder_config_backward_compatibility() {
+        // v0.4 configurations should work without any changes
+        let v04_config = EncoderConfig::new()
+            .with_validate_canonical(true)
+            .with_sort_fields(true);
+        
+        // v0.4 fields should work as before
+        assert!(v04_config.validate_canonical);
+        assert!(v04_config.sort_fields);
+        
+        // v0.5 fields should have safe defaults (disabled)
+        assert!(!v04_config.enable_nested_binary);
+        assert!(!v04_config.streaming_mode);
+        assert!(!v04_config.delta_mode);
+    }
+    
+    #[test]
+    fn test_encoder_config_mixed_v04_v05() {
+        // Test that v0.4 and v0.5 configurations can be mixed
+        let config = EncoderConfig::new()
+            .with_validate_canonical(true)  // v0.4
+            .with_nested_binary(true)       // v0.5
+            .with_sort_fields(true)         // v0.4
+            .with_streaming_mode(true);     // v0.5
+        
+        assert!(config.validate_canonical);
+        assert!(config.sort_fields);
+        assert!(config.enable_nested_binary);
+        assert!(config.streaming_mode);
+    }
+    
+    #[test]
+    fn test_encoder_v04_mode_encoding() {
+        // Test that encoder with v0.5 disabled behaves like v0.4
+        let config = EncoderConfig::new()
+            .with_nested_binary(false)
+            .with_streaming_mode(false)
+            .with_delta_mode(false);
+        
+        let encoder = BinaryEncoder::with_config(config);
+        
+        // Should encode a simple record just like v0.4
+        let mut record = LnmpRecord::new();
+        record.add_field(LnmpField {
+            fid: 7,
+            value: LnmpValue::Bool(true),
+        });
+        
+        let binary = encoder.encode(&record).unwrap();
+        
+        // Should produce v0.4 compatible output
+        assert_eq!(binary[0], 0x04); // VERSION
+        assert_eq!(binary[1], 0x00); // FLAGS
+        assert_eq!(binary[2], 0x01); // ENTRY_COUNT=1
+    }
+}

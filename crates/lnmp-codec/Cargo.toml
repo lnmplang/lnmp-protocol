@@ -1,0 +1,21 @@
+[package]
+name = "lnmp-codec"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Parser and encoder for LNMP (LLM Native Minimal Protocol) text format"
+repository = "https://github.com/lnmp/lnmp-protocol"
+keywords = ["lnmp", "protocol", "parser", "encoder", "codec"]
+categories = ["encoding", "parser-implementations"]
+
+[dependencies]
+lnmp-core = { workspace = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "v05_performance"
+harness = false

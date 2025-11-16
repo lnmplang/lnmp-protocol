@@ -1,0 +1,4 @@
+# LNMP v0.3 Python Compliance Test Runner Dependencies
+
+pytest>=7.0.0
+pyyaml>=6.0

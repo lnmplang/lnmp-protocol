@@ -1,0 +1,14 @@
+[package]
+name = "lnmp-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Core type definitions for LNMP (LLM Native Minimal Protocol)"
+repository = "https://github.com/lnmp/lnmp-protocol"
+keywords = ["lnmp", "protocol", "llm", "data-format"]
+categories = ["encoding", "data-structures"]
+
+[dependencies]
+crc32fast = "1.4"

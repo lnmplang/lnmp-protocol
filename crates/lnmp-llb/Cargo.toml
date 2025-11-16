@@ -1,0 +1,16 @@
+[package]
+name = "lnmp-llb"
+version = "0.3.0"
+edition = "2021"
+authors = ["LNMP Contributors"]
+description = "LNMP-LLM Bridge Layer - Optimization layer for LLM prompt visibility and token efficiency"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/lnmp/lnmp-protocol"
+keywords = ["lnmp", "llm", "serialization", "protocol"]
+categories = ["encoding", "parser-implementations"]
+
+[dependencies]
+lnmp-core = { path = "../lnmp-core" }
+lnmp-codec = { path = "../lnmp-codec" }
+
+[dev-dependencies]
