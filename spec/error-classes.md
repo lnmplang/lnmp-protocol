@@ -242,7 +242,7 @@ F12:i=not_a_number
 **Example**:
 ```
 F12:i=14532#DEADBEEF
-            ^^^^^^^^ Expected 6A93B3F1, found DEADBEEF
+            ^^^^^^^^ Expected 36AAE667, found DEADBEEF
 ```
 
 **Error Fields**:
@@ -422,7 +422,7 @@ Error: Checksum mismatch at line 2, column 15
   |
 1 | F7:b=1
 2 | F12:i=14532#DEADBEEF
-  |               ^^^^^^^^ expected 6A93B3F1, found DEADBEEF
+      |               ^^^^^^^^ expected 36AAE667, found DEADBEEF
 3 | F23:sa=[admin,dev]
   |
 ```

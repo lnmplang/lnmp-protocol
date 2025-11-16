@@ -298,10 +298,10 @@ assert!(is_valid);
 
 // Format as hex
 let hex = SemanticChecksum::format(checksum);
-println!("Checksum: {}", hex);  // "6A93B3F1"
+println!("Checksum: {}", hex);  // "36AAE667"
 
 // Parse from hex
-let parsed = SemanticChecksum::parse("6A93B3F1").unwrap();
+let parsed = SemanticChecksum::parse("36AAE667").unwrap();
 assert_eq!(parsed, checksum);
 ```
 
@@ -458,7 +458,7 @@ let config = EncoderConfig {
 };
 let encoder = Encoder::with_config(config);
 let output = encoder.encode(&record);
-println!("{}", output);  // F12=14532#6A93B3F1
+println!("{}", output);  // F12=14532#36AAE667
 ```
 
 ### Normalizer

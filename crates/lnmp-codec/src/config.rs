@@ -25,8 +25,12 @@ pub struct ParserConfig {
     pub mode: ParsingMode,
     /// Whether to validate checksums when present (v0.3 feature)
     pub validate_checksums: bool,
+    /// Whether to normalize text values into numeric/boolean types when possible
+    pub normalize_values: bool,
     /// Whether to require checksums on all fields (v0.3 feature)
     pub require_checksums: bool,
+    /// Optional maximum nesting depth; if None, no limit is enforced
+    pub max_nesting_depth: Option<usize>,
 }
 
 impl Default for ParserConfig {
@@ -34,7 +38,9 @@ impl Default for ParserConfig {
         Self {
             mode: ParsingMode::Loose,
             validate_checksums: false,
+            normalize_values: true,
             require_checksums: false,
+            max_nesting_depth: None,
         }
     }
 }
@@ -266,6 +272,7 @@ mod tests {
         assert_eq!(config.mode, ParsingMode::Loose);
         assert!(!config.validate_checksums);
         assert!(!config.require_checksums);
+        assert!(config.max_nesting_depth.is_none());
     }
 
     #[test]
@@ -273,7 +280,9 @@ mod tests {
         let config = ParserConfig {
             mode: ParsingMode::Strict,
             validate_checksums: true,
+            normalize_values: false,
             require_checksums: false,
+            max_nesting_depth: None,
         };
         assert_eq!(config.mode, ParsingMode::Strict);
         assert!(config.validate_checksums);
@@ -285,7 +294,9 @@ mod tests {
         let config = ParserConfig {
             mode: ParsingMode::Strict,
             validate_checksums: true,
+            normalize_values: false,
             require_checksums: true,
+            max_nesting_depth: None,
         };
         assert!(config.validate_checksums);
         assert!(config.require_checksums);

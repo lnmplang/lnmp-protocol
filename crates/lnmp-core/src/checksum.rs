@@ -23,7 +23,8 @@
 //! ```
 
 use crate::{FieldId, LnmpValue, TypeHint};
-use crc32fast::Hasher;
+use crc::Crc;
+use crc::CRC_32_ISO_HDLC;
 
 /// Semantic checksum computation and validation
 pub struct SemanticChecksum;
@@ -59,10 +60,11 @@ impl SemanticChecksum {
         // Serialize the field components into a canonical string
         let serialized = Self::serialize_for_checksum(fid, type_hint, value);
         
-        // Compute CRC32 hash
-        let mut hasher = Hasher::new();
-        hasher.update(serialized.as_bytes());
-        hasher.finalize()
+        // Compute CRC32/ISO-HDLC (zlib/IEEE) — canonical CRC32 variant
+        let crc = Crc::<u32>::new(&CRC_32_ISO_HDLC);
+        let mut digest = crc.digest();
+        digest.update(serialized.as_bytes());
+        digest.finalize()
     }
 
     /// Validates checksum against field
@@ -108,8 +110,8 @@ impl SemanticChecksum {
     /// ```
     /// use lnmp_core::checksum::SemanticChecksum;
     ///
-    /// let formatted = SemanticChecksum::format(0x6A93B3F1);
-    /// assert_eq!(formatted, "6A93B3F1");
+    /// let formatted = SemanticChecksum::format(0x36AAE667);
+    /// assert_eq!(formatted, "36AAE667");
     /// ```
     pub fn format(checksum: u32) -> String {
         format!("{:08X}", checksum)
@@ -130,12 +132,16 @@ impl SemanticChecksum {
     /// ```
     /// use lnmp_core::checksum::SemanticChecksum;
     ///
-    /// assert_eq!(SemanticChecksum::parse("6A93B3F1"), Some(0x6A93B3F1));
-    /// assert_eq!(SemanticChecksum::parse("0x6A93B3F1"), Some(0x6A93B3F1));
+    /// assert_eq!(SemanticChecksum::parse("36AAE667"), Some(0x36AAE667));
+    /// assert_eq!(SemanticChecksum::parse("0x36AAE667"), Some(0x36AAE667));
     /// assert_eq!(SemanticChecksum::parse("invalid"), None);
     /// ```
     pub fn parse(s: &str) -> Option<u32> {
         let s = s.strip_prefix("0x").unwrap_or(s);
+        // Require exactly 8 hex digits for SC32 checksum format
+        if s.len() != 8 {
+            return None;
+        }
         u32::from_str_radix(s, 16).ok()
     }
 
@@ -307,9 +313,9 @@ mod tests {
 
     #[test]
     fn test_format_checksum() {
-        let checksum = 0x6A93B3F1;
+        let checksum = 0x36AAE667;
         let formatted = SemanticChecksum::format(checksum);
-        assert_eq!(formatted, "6A93B3F1");
+        assert_eq!(formatted, "36AAE667");
         assert_eq!(formatted.len(), 8);
     }
 
@@ -323,8 +329,8 @@ mod tests {
 
     #[test]
     fn test_parse_checksum() {
-        assert_eq!(SemanticChecksum::parse("6A93B3F1"), Some(0x6A93B3F1));
-        assert_eq!(SemanticChecksum::parse("0x6A93B3F1"), Some(0x6A93B3F1));
+        assert_eq!(SemanticChecksum::parse("36AAE667"), Some(0x36AAE667));
+        assert_eq!(SemanticChecksum::parse("0x36AAE667"), Some(0x36AAE667));
         assert_eq!(SemanticChecksum::parse("00000001"), Some(0x00000001));
         assert_eq!(SemanticChecksum::parse("FFFFFFFF"), Some(0xFFFFFFFF));
     }
@@ -339,7 +345,7 @@ mod tests {
 
     #[test]
     fn test_parse_format_round_trip() {
-        let original = 0x6A93B3F1;
+        let original = 0x36AAE667;
         let formatted = SemanticChecksum::format(original);
         let parsed = SemanticChecksum::parse(&formatted);
         assert_eq!(parsed, Some(original));

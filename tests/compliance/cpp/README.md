@@ -189,7 +189,7 @@ Skipped: 0
 Failed Tests:
 --------------------------------------------------------------------------------
 ❌ Checksum validation - invalid
-   Checksum mismatch: expected 6A93B3F1, got DEADBEEF
+    Checksum mismatch: expected 36AAE667, got DEADBEEF
 ```
 
 ### Detailed Output (--verbose)
@@ -202,7 +202,7 @@ LNMP v0.3 Compliance Test Results (C++) - Detailed
 ✅ Type hints preserved
 ✅ String array basic
 ❌ Checksum validation - invalid
-   Checksum mismatch: expected 6A93B3F1, got DEADBEEF
+    Checksum mismatch: expected 36AAE667, got DEADBEEF
 ⏭️  Nested record with checksums
    C++ LNMP implementation not yet available
 ...

@@ -186,7 +186,7 @@ LNMP provides both text and binary formats with bidirectional conversion:
 
 Simple use cases remain simple (`F12=14532`), while complex scenarios are supported through optional features:
 - Type hints for validation (`:i`, `:f`, `:b`)
-- Checksums for integrity (`#6A93B3F1`)
+- Checksums for integrity (`#36AAE667`)
 - Nested structures for hierarchical data
 - String arrays for collections
 
@@ -305,15 +305,15 @@ Canonical: F7=1
 **Design Choices Influenced**:
 - Basic syntax is minimal: `F12=14532`
 - Type hints are optional: `F12:i=14532`
-- Checksums are optional: `F12=14532#6A93B3F1`
+- Checksums are optional: `F12=14532#36AAE667`
 - Nested structures use clear delimiters: `F50={F12=1;F7=1}`
 
 **Example Progression**:
 ```
 Simple:     F12=14532
 With hint:  F12:i=14532
-With check: F12:i=14532#6A93B3F1
-Nested:     F50={F12:i=14532#6A93B3F1;F7:b=1}
+With check: F12:i=14532#36AAE667
+Nested:     F50={F12:i=14532#36AAE667;F7:b=1}
 ```
 
 #### Principle 4: Dual-Format Architecture
@@ -353,7 +353,7 @@ Text:   F7=1
 {F1=a}      → Always nested record
 [{F1=a}]    → Always nested array
 [a,b]       → Always string array
-#6A93B3F1   → Always checksum (8 hex digits)
+#36AAE667   → Always checksum (8 hex digits)
 #comment    → Always comment (not 8 hex digits)
 ```
 
@@ -371,7 +371,7 @@ Text:   F7=1
 
 **Example Validation**:
 ```
-F12:i=14532#6A93B3F1  → Type hint validates integer, checksum validates value
+F12:i=14532#36AAE667  → Type hint validates integer, checksum validates value
 F7:b=2                → Error: boolean must be 0 or 1
 F1:s=123              → Valid: string "123", not integer 123
 ```
@@ -444,7 +444,7 @@ An optional annotation specifying the expected type of a field value. Format: `:
 The standardized, deterministic representation of a record. Canonical form requires fields sorted by FID in ascending order, normalized value formatting, and consistent whitespace. Two semantically identical records always have the same canonical form.
 
 **Checksum**  
-An optional 32-bit CRC32-based hash of a field's canonical value, used for integrity validation and semantic drift detection. Format: `#XXXXXXXX` (8 hexadecimal digits). Example: `F12=14532#6A93B3F1`
+An optional 32-bit CRC32-based hash of a field's canonical value, used for integrity validation and semantic drift detection. Format: `#XXXXXXXX` (8 hexadecimal digits). Example: `F12=14532#36AAE667`
 
 **VarInt (Variable-Length Integer)**  
 A space-efficient integer encoding using LEB128 (Little Endian Base 128). Small integers use fewer bytes: 0-127 use 1 byte, 128-16383 use 2 bytes, etc. Used in binary format for field IDs, counts, and integer values.
@@ -656,7 +656,7 @@ Components (in order):
 - Format: `#` followed by exactly 8 hexadecimal digits (uppercase or lowercase)
 - Computed over canonical representation of the value
 - Used for integrity validation and drift detection
-- Examples: `F12=14532#6A93B3F1`, `F1=alice#A1B2C3D4`
+ - Examples: `F12=14532#36AAE667`, `F1=alice#A1B2C3D4`
 - Not a checksum: `#ABC` (too short), `#comment` (not hex)
 
 #### Examples of Each Variation
@@ -680,7 +680,7 @@ Explicitly declares the value as an integer. Useful for validation and disambigu
 **Field with Checksum**
 
 ```
-F12=14532#6A93B3F1
+F12=14532#36AAE667
 ```
 
 Includes integrity hash. Parser can validate that the value matches the checksum.
@@ -688,7 +688,7 @@ Includes integrity hash. Parser can validate that the value matches the checksum
 **Field with Type Hint and Checksum**
 
 ```
-F12:i=14532#6A93B3F1
+F12:i=14532#36AAE667
 ```
 
 Complete field with all optional components. Provides maximum validation and integrity checking.
@@ -735,11 +735,11 @@ The `#` character can introduce either a checksum or a comment. Parsers MUST use
 **Examples:**
 
 ```
-F12=14532#6A93B3F1      # Checksum (8 hex digits)
+F12=14532#36AAE667      # Checksum (8 hex digits)
 F12=14532#ABCDEF01      # Checksum (8 hex digits)
 F12=14532#ABC           # Comment (not 8 hex digits)
 F12=14532#comment text  # Comment (not 8 hex digits)
-F12=14532 #6A93B3F1     # Comment (space before #)
+F12=14532 #36AAE667     # Comment (space before #)
 ```
 
 Note: Whitespace before `#` makes it a comment, not a checksum. Checksums must immediately follow the value with no intervening whitespace.
@@ -1302,10 +1302,10 @@ F12=14532
 
 F12=14532  # This is an inline comment
 
-F12=14532#6A93B3F1      # This is a checksum (8 hex digits)
+F12=14532#36AAE667      # This is a checksum (8 hex digits)
 F12=14532#ABC           # This is a comment (not 8 hex digits)
 F12=14532#comment text  # This is a comment (not hex)
-F12=14532 #6A93B3F1     # This is a comment (space before #)
+F12=14532 #36AAE667     # This is a comment (space before #)
 ```
 
 **Important**: Checksums must immediately follow the value with no whitespace. Any whitespace before `#` makes it a comment, not a checksum.
@@ -1362,8 +1362,8 @@ F23=["admin","dev"]
 ```
 F12=14532  # Comment with spaces before
 F12=14532# Comment with no space before
-F12=14532#6A93B3F1  # Checksum, then comment
-F12=14532#6A93B3F1# Another comment
+F12=14532#36AAE667  # Checksum, then comment
+F12=14532#36AAE667# Another comment
 ```
 
 All are valid. The parser:
@@ -3378,7 +3378,7 @@ def verify_stability(input_data):
 
 ```
 Input text with checksum:
-F12:i=14532#6A93B3F1
+F12:i=14532#36AAE667
 
 ↓ encode_text()
 
@@ -3388,7 +3388,7 @@ Binary (checksum not encoded in v0.4):
 ↓ decode_binary()
 
 Output text (checksum recomputed):
-F12:i=14532#6A93B3F1
+F12:i=14532#36AAE667
 ```
 
 **Note**: In v0.4, checksums are not encoded in binary format. When decoding binary to text, implementations MAY recompute checksums if configured to do so. The checksum will match the original because the canonical value is preserved.

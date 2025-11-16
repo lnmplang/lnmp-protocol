@@ -12,3 +12,5 @@ categories = ["encoding", "data-structures"]
 
 [dependencies]
 crc32fast = "1.4"
+crc = "2.1"
+crc-catalog = "1.1"

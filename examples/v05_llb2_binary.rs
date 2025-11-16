@@ -136,10 +136,10 @@ fn flatten_nested_binary() {
 
     println!("   Original: F10=Alice, F20={{F1=123 Main St, F2=Springfield}}");
 
-    // Encode to binary with nested support
-    let config = NestedEncoderConfig::new().with_nested_binary(true);
+    // Encode to binary with nested support (use explicit nested encoder config)
+    let config = NestedEncoderConfig::new().with_max_depth(32);
     let encoder = BinaryNestedEncoder::with_config(config);
-    let binary = encoder.encode(&user).unwrap();
+    let binary = encoder.encode_nested_record(&user).unwrap();
     println!("   Binary size: {} bytes", binary.len());
 
     // Flatten for LLM consumption
@@ -283,9 +283,9 @@ fn complete_workflow() {
     println!("     Metadata: F20={{F1=2024-01-15, F2=42}}");
 
     // Step 2: Encode to binary
-    let config = NestedEncoderConfig::new().with_nested_binary(true);
+    let config = NestedEncoderConfig::new().with_max_depth(32);
     let encoder = BinaryNestedEncoder::with_config(config);
-    let binary = encoder.encode(&user).unwrap();
+    let binary = encoder.encode_nested_record(&user).unwrap();
     println!("   Step 2: Encoded to binary ({} bytes)", binary.len());
 
     // Step 3: Flatten for LLM

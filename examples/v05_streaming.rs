@@ -214,7 +214,8 @@ fn checksum_validation_example() {
     
     // Corrupt the checksum (last 4 bytes before payload)
     if chunk_frame.len() > 10 {
-        chunk_frame[chunk_frame.len() - 5] ^= 0xFF; // Flip bits
+        let idx = chunk_frame.len() - 5;
+        chunk_frame[idx] ^= 0xFF; // Flip bits
         println!("   Corrupted checksum in chunk frame");
     }
     
@@ -234,7 +235,7 @@ fn backpressure_example() {
     println!("   Simulating backpressure flow control");
     
     // Create backpressure controller with 8KB window
-    let mut controller = BackpressureController::new(8192);
+    let mut controller = BackpressureController::with_window_size(8192);
     
     println!("   Window size: 8192 bytes");
     println!("   Initial state: can_send = {}", controller.can_send());

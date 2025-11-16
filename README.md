@@ -163,7 +163,7 @@ F7:b=1
 F23:sa=["admin","dev"]
 
 # With checksums (v0.3)
-F12:i=14532#6A93B3F1
+F12:i=14532#36AAE667
 F7:b=1#A3F2B1C4
 
 # Nested structures (v0.3)
@@ -208,7 +208,7 @@ let config = EncoderConfig {
 };
 let encoder = Encoder::with_config(config);
 let output = encoder.encode(&record);
-// Output: F12:i=14532#6A93B3F1
+// Output: F12:i=14532#36AAE667
 ```
 
 **Features:**

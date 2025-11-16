@@ -147,14 +147,15 @@ impl<'a> Lexer<'a> {
                 Ok(Token::Comma)
             }
             Some('F') => {
-                // Check if it's followed by a digit (field prefix)
-                if let Some(next) = self.peek_ahead(1) {
-                    if next.is_ascii_digit() {
+                // Treat 'F' as a field prefix only when followed by a digit (e.g., F12).
+                // Otherwise, it's an unquoted identifier (e.g., 'False').
+                if let Some(next_ch) = self.peek_ahead(1) {
+                    if next_ch.is_ascii_digit() {
                         self.advance(); // consume 'F'
                         return Ok(Token::FieldPrefix);
                     }
                 }
-                // Otherwise it's an unquoted string
+                // Not a field prefix: read as an unquoted string starting with 'F'
                 self.read_unquoted_string()
             }
             Some('"') => self.read_quoted_string(),
@@ -205,9 +206,9 @@ impl<'a> Lexer<'a> {
         loop {
             match self.peek() {
                 None => {
-                    return Err(LnmpError::UnexpectedEof {
-                        line: self.line,
-                        column: self.column,
+                    return Err(LnmpError::UnterminatedString {
+                        line: start_line,
+                        column: start_column,
                     });
                 }
                 Some('"') => {
@@ -245,9 +246,9 @@ impl<'a> Lexer<'a> {
                             });
                         }
                         None => {
-                            return Err(LnmpError::UnexpectedEof {
-                                line: self.line,
-                                column: self.column,
+                            return Err(LnmpError::UnterminatedString {
+                                line: start_line,
+                                column: start_column,
                             });
                         }
                     }

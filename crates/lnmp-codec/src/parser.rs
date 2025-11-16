@@ -11,6 +11,8 @@ pub struct Parser<'a> {
     lexer: Lexer<'a>,
     current_token: Token,
     config: ParserConfig,
+    // current nesting depth for nested records/arrays
+    nesting_depth: usize,
 }
 
 impl<'a> Parser<'a> {
@@ -36,6 +38,7 @@ impl<'a> Parser<'a> {
             lexer,
             current_token,
             config,
+            nesting_depth: 0,
         };
         
         // Check for comments in strict mode
@@ -121,7 +124,8 @@ impl<'a> Parser<'a> {
         self.expect(Token::FieldPrefix)?;
 
         // Expect number
-        if let Token::Number(num_str) = &self.current_token {
+        match &self.current_token {
+            Token::Number(num_str) => {
             let num_str = num_str.clone();
             self.advance()?;
 
@@ -134,17 +138,26 @@ impl<'a> Parser<'a> {
                     column,
                 }),
             }
-        } else {
-            Err(LnmpError::UnexpectedToken {
+            }
+            Token::UnquotedString(s) => {
+                // 'F' followed by non-numeric characters - invalid field id
+                return Err(LnmpError::InvalidFieldId {
+                    value: s.clone(),
+                    line,
+                    column,
+                });
+            }
+            _ => Err(LnmpError::UnexpectedToken {
                 expected: "field ID number".to_string(),
                 found: self.current_token.clone(),
                 line,
                 column,
-            })
+            }),
         }
     }
 
     /// Parses a value based on the current token
+    #[allow(dead_code)]
     fn parse_value(&mut self) -> Result<LnmpValue, LnmpError> {
         self.parse_value_with_hint(None)
     }
@@ -157,12 +170,29 @@ impl<'a> Parser<'a> {
             Token::Number(num_str) => {
                 let num_str = num_str.clone();
                 self.advance()?;
+                // If the type hint is a boolean, enforce boolean parsing for 0/1
+                if type_hint == Some(TypeHint::Bool) {
+                    if num_str == "0" {
+                        return Ok(LnmpValue::Bool(false));
+                    } else if num_str == "1" {
+                        return Ok(LnmpValue::Bool(true));
+                    } else {
+                        return Err(LnmpError::InvalidValue {
+                            field_id: 0,
+                            reason: format!("invalid boolean value: {}", num_str),
+                            line,
+                            column,
+                        });
+                    }
+                }
 
-                // Check if it's a boolean (0 or 1)
-                if num_str == "0" {
-                    return Ok(LnmpValue::Bool(false));
-                } else if num_str == "1" {
-                    return Ok(LnmpValue::Bool(true));
+                // If normalization is enabled, interpret 0/1 as booleans but do not reject other numbers
+                if self.config.normalize_values {
+                    if num_str == "0" {
+                        return Ok(LnmpValue::Bool(false));
+                    } else if num_str == "1" {
+                        return Ok(LnmpValue::Bool(true));
+                    }
                 }
 
                 // Try to parse as float if it contains a dot
@@ -197,6 +227,15 @@ impl<'a> Parser<'a> {
             Token::UnquotedString(s) => {
                 let s = s.clone();
                 self.advance()?;
+                // If a boolean type hint is present or normalization is enabled, allow
+                // text values 'true'/'false' or 'yes'/'no' to be interpreted as booleans.
+                if type_hint == Some(TypeHint::Bool) || self.config.normalize_values {
+                    match s.to_ascii_lowercase().as_str() {
+                        "true" | "yes" => return Ok(LnmpValue::Bool(true)),
+                        "false" | "no" => return Ok(LnmpValue::Bool(false)),
+                        _ => {}
+                    }
+                }
                 Ok(LnmpValue::String(s))
             }
             Token::LeftBracket => self.parse_string_array_or_nested_array_with_hint(type_hint),
@@ -211,6 +250,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parses either a string array [item1, item2, ...] or nested array [{...}, {...}]
+    #[allow(dead_code)]
     fn parse_string_array_or_nested_array(&mut self) -> Result<LnmpValue, LnmpError> {
         self.parse_string_array_or_nested_array_with_hint(None)
     }
@@ -293,97 +333,150 @@ impl<'a> Parser<'a> {
         let (line, column) = self.lexer.position();
         self.expect(Token::LeftBrace)?;
 
-        let mut record = LnmpRecord::new();
-
-        // Handle empty nested record
-        if self.current_token == Token::RightBrace {
-            self.advance()?;
-            return Ok(LnmpValue::NestedRecord(Box::new(record)));
+        // Increase nesting depth and enforce maximum if configured
+        self.nesting_depth += 1;
+        if let Some(max) = self.config.max_nesting_depth {
+            if self.nesting_depth > max {
+                let actual = self.nesting_depth;
+                self.nesting_depth = self.nesting_depth.saturating_sub(1);
+                return Err(LnmpError::NestingTooDeep {
+                    max_depth: max,
+                    actual_depth: actual,
+                    line,
+                    column,
+                });
+            }
         }
 
-        // Parse field assignments within the nested record
-        loop {
-            let field = self.parse_field_assignment()?;
-            record.add_field(field);
+        // Use a closure to ensure we can decrement nesting_depth on all return paths
+        let result = (|| -> Result<LnmpValue, LnmpError> {
+            let mut record = LnmpRecord::new();
 
-            // Check for separator or closing brace
-            match &self.current_token {
-                Token::Semicolon => {
-                    self.advance()?;
-                    // Check if we're at the end
-                    if self.current_token == Token::RightBrace {
-                        self.advance()?;
-                        break;
-                    }
-                    // Continue to next field
-                }
-                Token::RightBrace => {
-                    self.advance()?;
-                    break;
-                }
-                _ => {
-                    return Err(LnmpError::UnexpectedToken {
-                        expected: "semicolon or closing brace".to_string(),
-                        found: self.current_token.clone(),
+            // Handle empty nested record
+            if self.current_token == Token::RightBrace {
+                self.advance()?;
+                return Ok(LnmpValue::NestedRecord(Box::new(record)));
+            }
+
+            // Parse field assignments within the nested record
+            loop {
+                let field = self.parse_field_assignment()?;
+                // In strict mode, detect duplicate field IDs in nested records and error early
+                if self.config.mode == ParsingMode::Strict && record.get_field(field.fid).is_some() {
+                    let (line, column) = self.lexer.position();
+                    return Err(LnmpError::DuplicateFieldId {
+                        field_id: field.fid,
                         line,
                         column,
                     });
                 }
+                record.add_field(field);
+
+                // Check for separator or closing brace
+                match &self.current_token {
+                    Token::Semicolon => {
+                        self.advance()?;
+                        // Check if we're at the end
+                        if self.current_token == Token::RightBrace {
+                            self.advance()?;
+                            break;
+                        }
+                        // Continue to next field
+                    }
+                    Token::RightBrace => {
+                        self.advance()?;
+                        break;
+                    }
+                    _ => {
+                        return Err(LnmpError::UnexpectedToken {
+                            expected: "semicolon or closing brace".to_string(),
+                            found: self.current_token.clone(),
+                            line,
+                            column,
+                        });
+                    }
+                }
             }
-        }
 
-        // Sort fields by FID for canonical representation
-        let sorted_record = LnmpRecord::from_sorted_fields(record.sorted_fields());
+            // Sort fields by FID for canonical representation
+            let sorted_record = LnmpRecord::from_sorted_fields(record.sorted_fields());
 
-        Ok(LnmpValue::NestedRecord(Box::new(sorted_record)))
+            Ok(LnmpValue::NestedRecord(Box::new(sorted_record)))
+        })();
+
+        // Always decrement nesting depth before returning
+        self.nesting_depth = self.nesting_depth.saturating_sub(1);
+        result
     }
 
     /// Parses a nested array [{...}, {...}]
     fn parse_nested_array(&mut self) -> Result<LnmpValue, LnmpError> {
         let (line, column) = self.lexer.position();
-        let mut records = Vec::new();
 
-        loop {
-            // Parse nested record
-            if self.current_token != Token::LeftBrace {
-                return Err(LnmpError::UnexpectedToken {
-                    expected: "left brace for nested record".to_string(),
-                    found: self.current_token.clone(),
+        // Increase nesting depth for nested array
+        self.nesting_depth += 1;
+        if let Some(max) = self.config.max_nesting_depth {
+            if self.nesting_depth > max {
+                let actual = self.nesting_depth;
+                self.nesting_depth = self.nesting_depth.saturating_sub(1);
+                return Err(LnmpError::NestingTooDeep {
+                    max_depth: max,
+                    actual_depth: actual,
                     line,
                     column,
                 });
             }
+        }
 
-            // Parse the nested record value and extract the record
-            match self.parse_nested_record()? {
-                LnmpValue::NestedRecord(record) => {
-                    records.push(*record);
-                }
-                _ => unreachable!("parse_nested_record always returns NestedRecord"),
-            }
+        let result = (|| -> Result<LnmpValue, LnmpError> {
+            let mut records = Vec::new();
 
-            // Check for comma or closing bracket
-            match &self.current_token {
-                Token::Comma => {
-                    self.advance()?;
-                    // Continue to next record
-                }
-                Token::RightBracket => {
-                    self.advance()?;
-                    break;
-                }
-                _ => {
+            loop {
+                // Parse nested record
+                if self.current_token != Token::LeftBrace {
                     return Err(LnmpError::UnexpectedToken {
-                        expected: "comma or closing bracket".to_string(),
+                        expected: "left brace for nested record".to_string(),
                         found: self.current_token.clone(),
                         line,
                         column,
                     });
                 }
-            }
-        }
 
-        Ok(LnmpValue::NestedArray(records))
+                // Parse the nested record value and extract the record
+                match self.parse_nested_record()? {
+                    LnmpValue::NestedRecord(record) => {
+                        records.push(*record);
+                    }
+                    _ => unreachable!("parse_nested_record always returns NestedRecord"),
+                }
+
+                // Check for comma or closing bracket
+                match &self.current_token {
+                    Token::Comma => {
+                        self.advance()?;
+                        // Continue to next record
+                    }
+                    Token::RightBracket => {
+                        self.advance()?;
+                        break;
+                    }
+                    _ => {
+                        return Err(LnmpError::UnexpectedToken {
+                            expected: "comma or closing bracket".to_string(),
+                            found: self.current_token.clone(),
+                            line,
+                            column,
+                        });
+                    }
+                }
+            }
+
+            Ok(LnmpValue::NestedArray(records))
+        })();
+
+        // Leaving nesting: decrement depth
+        self.nesting_depth = self.nesting_depth.saturating_sub(1);
+        result
     }
 
     /// Parses a type hint (optional :type after field ID)
@@ -497,7 +590,7 @@ impl<'a> Parser<'a> {
 
         // Parse the checksum
         let provided_checksum = SemanticChecksum::parse(&checksum_str).ok_or_else(|| {
-            LnmpError::InvalidValue {
+            LnmpError::InvalidChecksum {
                 field_id: fid,
                 reason: format!("invalid checksum format: {}", checksum_str),
                 line,
@@ -541,6 +634,9 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
+    // Duplicate field IDs are now detected during parsing and a DuplicateFieldId
+    // error is emitted at parse time with an accurate lexer position.
+
     /// Validates separator (strict mode rejects semicolons)
     fn validate_separator(&self, is_semicolon: bool) -> Result<(), LnmpError> {
         if self.config.mode == ParsingMode::Strict && is_semicolon {
@@ -571,6 +667,15 @@ impl<'a> Parser<'a> {
         // Parse field assignments until EOF
         while self.current_token != Token::Eof {
             let field = self.parse_field_assignment()?;
+            // In strict mode, detect duplicate field IDs and error early
+            if self.config.mode == ParsingMode::Strict && record.get_field(field.fid).is_some() {
+                let (line, column) = self.lexer.position();
+                return Err(LnmpError::DuplicateFieldId {
+                    field_id: field.fid,
+                    line,
+                    column,
+                });
+            }
             record.add_field(field);
 
             // Handle separator (semicolon or newline)
@@ -604,7 +709,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        // Validate field order in strict mode
+        // Validate field order and duplicate field IDs in strict mode
         if self.config.mode == ParsingMode::Strict {
             self.validate_field_order(&record)?;
         }
@@ -651,6 +756,54 @@ mod tests {
         let mut parser = Parser::new("F3=0").unwrap();
         let record = parser.parse_record().unwrap();
         assert_eq!(record.get_field(3).unwrap().value, LnmpValue::Bool(false));
+    }
+
+    #[test]
+    fn test_duplicate_field_id_strict_mode_error() {
+        let mut parser = Parser::with_mode("F1=1\nF1=2", ParsingMode::Strict).unwrap();
+        let err = parser.parse_record().unwrap_err();
+        match err {
+            LnmpError::DuplicateFieldId { field_id, .. } => {
+                assert_eq!(field_id, 1);
+            }
+            _ => panic!("expected DuplicateFieldId error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_duplicate_field_id_loose_mode_allows() {
+        let mut parser = Parser::new("F1=1;F1=2").unwrap();
+        let record = parser.parse_record().unwrap();
+        let fields = record.fields();
+        assert_eq!(fields.len(), 2);
+        assert_eq!(fields[0].fid, 1);
+        assert_eq!(fields[1].fid, 1);
+    }
+
+    #[test]
+    fn test_duplicate_field_id_in_nested_record_strict_mode_error() {
+        let mut parser = Parser::with_mode("F50={F1=1;F1=2}", ParsingMode::Strict).unwrap();
+        let err = parser.parse_record().unwrap_err();
+        match err {
+            LnmpError::DuplicateFieldId { field_id, .. } => {
+                assert_eq!(field_id, 1);
+            }
+            _ => panic!("expected DuplicateFieldId error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_duplicate_field_id_in_nested_record_loose_mode_allows() {
+        let mut parser = Parser::new("F50={F1=1;F1=2}").unwrap();
+        let record = parser.parse_record().unwrap();
+        let nested = record.get_field(50).unwrap();
+        if let LnmpValue::NestedRecord(nested_record) = &nested.value {
+            assert_eq!(nested_record.fields().len(), 2);
+            assert_eq!(nested_record.fields()[0].fid, 1);
+            assert_eq!(nested_record.fields()[1].fid, 1);
+        } else {
+            panic!("expected nested record");
+        }
     }
 
     #[test]
@@ -1695,10 +1848,30 @@ F5:sa=[a,b]"#;
         }
     }
 
+    #[test]
+    fn test_nesting_too_deep_error() {
+        use crate::config::ParserConfig;
+
+        let input = "F1={F2={F3={F4={F5={F6={F7={F8={F9={F10={F11={F12=1}}}}}}}}}}}}";
+        let config = ParserConfig {
+            max_nesting_depth: Some(10),
+            ..Default::default()
+        };
+        let mut parser = Parser::with_config(input, config).unwrap();
+        let result = parser.parse_record();
+        assert!(result.is_err());
+        match result {
+            Err(LnmpError::NestingTooDeep { max_depth, actual_depth, .. }) => {
+                assert_eq!(max_depth, 10);
+                assert!(actual_depth > max_depth);
+            }
+            _ => panic!("Expected NestingTooDeep error"),
+        }
+    }
+
     // Checksum parsing tests
     #[test]
     fn test_parse_field_with_checksum_ignored() {
-        use crate::config::ParserConfig;
         use lnmp_core::checksum::SemanticChecksum;
 
         // Compute correct checksum

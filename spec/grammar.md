@@ -161,7 +161,7 @@ COMMENT = _{ "#" ~ (!NEWLINE ~ ANY)* }
 | `boolean` | `0\|1` | Boolean literal | `0`, `1` |
 | `unquoted_string` | `[A-Za-z0-9_.-]+` | Unquoted string | `admin`, `user_1` |
 | `quoted_string` | `"([^"\\]|\\[\\\"nrt])*"` | Quoted string | `"hello"`, `"line\n"` |
-| `checksum` | `#[0-9A-Fa-f]{8}` | Semantic checksum | `#6A93B3F1` |
+| `checksum` | `#[0-9A-Fa-f]{8}` | Semantic checksum | `#36AAE667` |
 | `separator` | `;\|\n` | Field separator | `;`, newline |
 
 ### Non-Terminal Tokens
@@ -257,7 +257,7 @@ F200=[{F1=dept;F2={F10=eng;F11=dev}}]
 
 **Examples**:
 ```
-F12:i=14532#6A93B3F1
+F12:i=14532#36AAE667
 F7:b=1#A3F2B1C4
 F23:sa=[admin,dev]#D4E5F6A7
 ```
@@ -273,8 +273,8 @@ F23:sa=[admin,dev]#D4E5F6A7
 ```
 Field: F12:i=14532
 Serialized: "12:i:14532"
-CRC32: 0x6A93B3F1
-Output: F12:i=14532#6A93B3F1
+CRC32: 0x36AAE667
+Output: F12:i=14532#36AAE667
 ```
 
 ## Escape Sequences
@@ -466,7 +466,7 @@ Implementations should validate against these test cases:
 1. **Basic Fields**: `F12=14532`, `F7:b=1`, `F1:s=hello`
 2. **Nested Records**: `F50={F12=1;F7=1}`, `F100={F1=a;F2={F10=b}}`
 3. **Nested Arrays**: `F60=[{F12=1},{F12=2}]`, `F200=[]`
-4. **Checksums**: `F12:i=14532#6A93B3F1`
+4. **Checksums**: `F12:i=14532#36AAE667`
 5. **Escape Sequences**: `F1="hello\nworld"`, `F2="path\\file"`
 6. **Comments**: `F12=1 # comment`, `F7=1#A3F2B1C4`
 7. **Whitespace**: `F12 = 1 ; F7 = 0`, `F12=1\nF7=0`

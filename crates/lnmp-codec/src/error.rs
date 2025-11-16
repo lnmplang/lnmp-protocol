@@ -108,6 +108,17 @@ pub enum LnmpError {
         /// Column number where the error occurred
         column: usize,
     },
+    /// Invalid checksum (wrong format or characters)
+    InvalidChecksum {
+        /// The field ID where the error occurred
+        field_id: u16,
+        /// Reason for invalid checksum
+        reason: String,
+        /// Line number where the error occurred
+        line: usize,
+        /// Column number where the error occurred
+        column: usize,
+    },
     /// Unexpected end of file
     UnexpectedEof {
         /// Line number where EOF was encountered
@@ -188,6 +199,15 @@ pub enum LnmpError {
         /// Column number where the error occurred
         column: usize,
     },
+    /// Duplicate field ID in strict mode
+    DuplicateFieldId {
+        /// The duplicated field ID
+        field_id: u16,
+        /// Line number where duplicate was detected
+        line: usize,
+        /// Column number where duplicate was detected
+        column: usize,
+    },
     /// Unclosed nested structure (v0.3)
     UnclosedNestedStructure {
         /// Type of structure ("record" or "array")
@@ -256,8 +276,10 @@ impl LnmpError {
             LnmpError::TypeHintMismatch { line, column, .. } => (*line, *column),
             LnmpError::InvalidTypeHint { line, column, .. } => (*line, *column),
             LnmpError::ChecksumMismatch { line, column, .. } => (*line, *column),
+            LnmpError::InvalidChecksum { line, column, .. } => (*line, *column),
             LnmpError::NestingTooDeep { line, column, .. } => (*line, *column),
             LnmpError::InvalidNestedStructure { line, column, .. } => (*line, *column),
+            LnmpError::DuplicateFieldId { line, column, .. } => (*line, *column),
             LnmpError::UnclosedNestedStructure { line, column, .. } => (*line, *column),
         }
     }
@@ -362,7 +384,7 @@ impl std::fmt::Display for LnmpError {
                 column,
             } => write!(
                 f,
-                "Nesting too deep at line {}, column {}: maximum depth is {}, but reached {}",
+                "Maximum nesting depth exceeded at line {}, column {}: maximum depth is {}, but reached {}",
                 line, column, max_depth, actual_depth
             ),
             LnmpError::InvalidNestedStructure {
@@ -374,6 +396,11 @@ impl std::fmt::Display for LnmpError {
                 "Invalid nested structure at line {}, column {}: {}",
                 line, column, reason
             ),
+            LnmpError::InvalidChecksum { field_id, reason, line, column } => write!(
+                f,
+                "Invalid checksum for field {} at line {}, column {}: {}",
+                field_id, line, column, reason
+            ),
             LnmpError::UnclosedNestedStructure {
                 structure_type,
                 opened_at_line,
@@ -384,6 +411,11 @@ impl std::fmt::Display for LnmpError {
                 f,
                 "Unclosed {} at line {}, column {} (opened at line {}, column {})",
                 structure_type, line, column, opened_at_line, opened_at_column
+            ),
+            LnmpError::DuplicateFieldId { field_id, line, column } => write!(
+                f,
+                "Field ID {} appears multiple times at line {}, column {}",
+                field_id, line, column
             ),
         }
     }
@@ -514,7 +546,7 @@ mod tests {
     fn test_checksum_mismatch_display() {
         let error = LnmpError::ChecksumMismatch {
             field_id: 12,
-            expected: "6A93B3F1".to_string(),
+            expected: "36AAE667".to_string(),
             found: "DEADBEEF".to_string(),
             line: 2,
             column: 15,
@@ -523,7 +555,7 @@ mod tests {
         assert!(msg.contains("field 12"));
         assert!(msg.contains("line 2"));
         assert!(msg.contains("column 15"));
-        assert!(msg.contains("6A93B3F1"));
+        assert!(msg.contains("36AAE667"));
         assert!(msg.contains("DEADBEEF"));
     }
 
@@ -578,7 +610,7 @@ mod tests {
         let source = "F7:b=1\nF12:i=14532#DEADBEEF\nF23:sa=[admin,dev]";
         let error = LnmpError::ChecksumMismatch {
             field_id: 12,
-            expected: "6A93B3F1".to_string(),
+            expected: "36AAE667".to_string(),
             found: "DEADBEEF".to_string(),
             line: 2,
             column: 15,

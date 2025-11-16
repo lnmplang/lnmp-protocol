@@ -14,6 +14,7 @@ impl Encoder {
     /// Creates a new encoder with default settings (canonical format)
     pub fn new() -> Self {
         Self {
+            // Canonical format uses newlines between top-level fields
             use_semicolons: false,
             config: EncoderConfig::default(),
         }
@@ -22,7 +23,8 @@ impl Encoder {
     /// Creates a new encoder with custom configuration
     pub fn with_config(config: EncoderConfig) -> Self {
         Self {
-            use_semicolons: false,
+            // If canonical is enabled, prefer newlines; otherwise use semicolons for inline format
+            use_semicolons: !config.canonical,
             config,
         }
     }

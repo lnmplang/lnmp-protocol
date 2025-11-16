@@ -89,7 +89,7 @@ Demonstrates semantic checksums (SC32) for preventing LLM input drift.
 - SC32 = 32-bit semantic checksum
 - Computed from: Field ID + Type Hint + Normalized Value
 - Prevents LLM hallucination and input drift
-- Format: `F12:i=14532#6A93B3F1`
+- Format: `F12:i=14532#36AAE667`
 
 ### v0.3 Features - Structural Extensibility Layer (SEL)
 

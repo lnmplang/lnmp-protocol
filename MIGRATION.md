@@ -563,7 +563,7 @@ match &field.value {
 - `SemanticChecksum` module in `lnmp-core`
 - `enable_checksums` option in `EncoderConfig`
 - `validate_checksums` option in `ParserConfig`
-- Checksum syntax: `F12:i=14532#6A93B3F1`
+- Checksum syntax: `F12:i=14532#36AAE667`
 
 **Usage:**
 ```rust
@@ -576,7 +576,7 @@ let config = EncoderConfig {
 };
 let encoder = Encoder::with_config(config);
 let output = encoder.encode(&record);
-// Output: F12:i=14532#6A93B3F1
+// Output: F12:i=14532#36AAE667
 
 // Parsing with checksum validation
 let config = ParserConfig {

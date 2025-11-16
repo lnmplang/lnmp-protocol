@@ -67,14 +67,15 @@ fn simple_field_update() {
 
     // Create updated record (only F12 changed)
     let mut updated = base.clone();
-    if let Some(field) = updated.get_field_mut(12) {
-        field.value = LnmpValue::Int(99999);
+    if updated.get_field(12).is_some() {
+        updated.remove_field(12);
+        updated.add_field(LnmpField { fid: 12, value: LnmpValue::Int(99999) });
     }
 
     println!("   Updated record: F7=1, F12=99999, F23=admin");
 
     // Compute delta
-    let config = DeltaConfig::new().with_delta_enabled(true);
+    let config = DeltaConfig::new().with_enable_delta(true);
     let delta_encoder = DeltaEncoder::with_config(config);
     let delta_ops = delta_encoder.compute_delta(&base, &updated).unwrap();
 
@@ -123,20 +124,23 @@ fn multiple_field_changes() {
 
     // Update 3 fields
     let mut updated = base.clone();
-    if let Some(field) = updated.get_field_mut(2) {
-        field.value = LnmpValue::Int(999);
+    if updated.get_field(2).is_some() {
+        updated.remove_field(2);
+        updated.add_field(LnmpField { fid: 2, value: LnmpValue::Int(999) });
     }
-    if let Some(field) = updated.get_field_mut(5) {
-        field.value = LnmpValue::Int(888);
+    if updated.get_field(5).is_some() {
+        updated.remove_field(5);
+        updated.add_field(LnmpField { fid: 5, value: LnmpValue::Int(888) });
     }
-    if let Some(field) = updated.get_field_mut(8) {
-        field.value = LnmpValue::Int(777);
+    if updated.get_field(8).is_some() {
+        updated.remove_field(8);
+        updated.add_field(LnmpField { fid: 8, value: LnmpValue::Int(777) });
     }
 
     println!("   Updated: F2, F5, F8 changed");
 
     // Compute and encode delta
-    let config = DeltaConfig::new().with_delta_enabled(true);
+    let config = DeltaConfig::new().with_enable_delta(true);
     let delta_encoder = DeltaEncoder::with_config(config);
     let delta_ops = delta_encoder.compute_delta(&base, &updated).unwrap();
     let delta_binary = delta_encoder.encode_delta(&delta_ops).unwrap();
@@ -185,7 +189,7 @@ fn field_deletion_example() {
     println!("   Updated record: F7, F23 (F12 deleted)");
 
     // Compute delta
-    let config = DeltaConfig::new().with_delta_enabled(true);
+    let config = DeltaConfig::new().with_enable_delta(true);
     let delta_encoder = DeltaEncoder::with_config(config);
     let delta_ops = delta_encoder.compute_delta(&base, &updated).unwrap();
 
@@ -262,7 +266,7 @@ fn nested_record_merge() {
     println!("   Updated: F10=outer, F20={{F1=new_value, F2=200, F3=1}}");
 
     // Compute delta
-    let config = DeltaConfig::new().with_delta_enabled(true);
+    let config = DeltaConfig::new().with_enable_delta(true);
     let delta_encoder = DeltaEncoder::with_config(config);
     let delta_ops = delta_encoder.compute_delta(&base, &updated).unwrap();
 
@@ -301,8 +305,9 @@ fn bandwidth_savings_example() {
     // Update only 5 fields
     let mut updated = base.clone();
     for i in [5, 15, 25, 35, 45] {
-        if let Some(field) = updated.get_field_mut(i) {
-            field.value = LnmpValue::String(format!("Updated field {}", i));
+        if updated.get_field(i).is_some() {
+            updated.remove_field(i);
+            updated.add_field(LnmpField { fid: i, value: LnmpValue::Int(1) });
         }
     }
 
@@ -315,7 +320,7 @@ fn bandwidth_savings_example() {
     println!("   Full encoding: {} bytes", full_binary.len());
 
     // Measure delta encoding
-    let config = DeltaConfig::new().with_delta_enabled(true);
+    let config = DeltaConfig::new().with_enable_delta(true);
     let delta_encoder = DeltaEncoder::with_config(config);
     let delta_ops = delta_encoder.compute_delta(&base, &updated).unwrap();
     let delta_binary = delta_encoder.encode_delta(&delta_ops).unwrap();
@@ -340,14 +345,15 @@ fn incremental_updates_example() {
 
     println!("   Initial state: F1=0, F2=initial");
 
-    let config = DeltaConfig::new().with_delta_enabled(true);
+    let config = DeltaConfig::new().with_enable_delta(true);
     let delta_encoder = DeltaEncoder::with_config(config);
     let delta_decoder = DeltaDecoder::new();
 
     // Update 1: Increment counter
     let mut update1 = current.clone();
-    if let Some(field) = update1.get_field_mut(1) {
-        field.value = LnmpValue::Int(1);
+    if update1.get_field(1).is_some() {
+        update1.remove_field(1);
+        update1.add_field(LnmpField { fid: 1, value: LnmpValue::Int(1) });
     }
 
     let delta1 = delta_encoder.compute_delta(&current, &update1).unwrap();
@@ -359,8 +365,9 @@ fn incremental_updates_example() {
 
     // Update 2: Increment counter again
     let mut update2 = current.clone();
-    if let Some(field) = update2.get_field_mut(1) {
-        field.value = LnmpValue::Int(2);
+    if update2.get_field(1).is_some() {
+        update2.remove_field(1);
+        update2.add_field(LnmpField { fid: 1, value: LnmpValue::Int(2) });
     }
 
     let delta2 = delta_encoder.compute_delta(&current, &update2).unwrap();
@@ -372,8 +379,9 @@ fn incremental_updates_example() {
 
     // Update 3: Change string
     let mut update3 = current.clone();
-    if let Some(field) = update3.get_field_mut(2) {
-        field.value = LnmpValue::String("updated".to_string());
+    if update3.get_field(2).is_some() {
+        update3.remove_field(2);
+        update3.add_field(LnmpField { fid: 2, value: LnmpValue::String("updated".to_string()) });
     }
 
     let delta3 = delta_encoder.compute_delta(&current, &update3).unwrap();

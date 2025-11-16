@@ -182,7 +182,7 @@ let is_valid = SemanticChecksum::validate(
 );
 
 // Format as hex string
-let hex = SemanticChecksum::format(checksum);  // "6A93B3F1"
+let hex = SemanticChecksum::format(checksum);  // "36AAE667"
 ```
 
 ## v0.3 Features

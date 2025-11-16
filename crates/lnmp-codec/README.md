@@ -86,7 +86,7 @@ let config = EncoderConfig {
 };
 let encoder = Encoder::with_config(config);
 let output = encoder.encode(&record);
-// Output: F12=14532#6A93B3F1  (with checksum)
+// Output: F12=14532#36AAE667  (with checksum)
 ```
 
 ## LNMP v0.2 Features
@@ -178,7 +178,7 @@ let config = EncoderConfig {
 };
 let encoder = Encoder::with_config(config);
 let output = encoder.encode(&record);
-// Output: F12:i=14532#6A93B3F1
+// Output: F12:i=14532#36AAE667
 
 // Parse and validate checksums
 use lnmp_codec::{Parser, ParserConfig};
