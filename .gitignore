@@ -1,1 +1,14 @@
 .kiro/
+target/
+*.log
+*.tmp
+.DS_Store
+node_modules/
+dist/
+build/
+.env
+.vscode/
+.idea/
+*.swp
+*.bak
+*.old
