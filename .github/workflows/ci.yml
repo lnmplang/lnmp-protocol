@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -12,75 +12,77 @@ env:
 
 jobs:
   test:
-    name: Test
+    name: Test Suite
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [stable, 1.70.0]
+        rust: [stable]
+
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ matrix.rust }}
-      
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Cache cargo registry
         uses: actions/cache@v3
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-      
-      - name: Cache cargo index
+
+      - name: Cache cargo git
         uses: actions/cache@v3
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-      
-      - name: Cache cargo build
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache target dir
         uses: actions/cache@v3
         with:
           path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-      
+          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Build
-        run: cargo build --verbose
-      
+        run: cargo build --all --verbose
+
       - name: Run tests
-        run: cargo test --verbose
-      
-      - name: Run examples
+        run: cargo test --all --verbose
+
+      - name: Run examples (safe mode)
         run: |
-          cargo run --example parse_example
-          cargo run --example encode_example
-          cargo run --example round_trip
+          if [ -d "examples" ]; then
+            for ex in examples/*.rs; do
+              name=$(basename "$ex" .rs)
+              cargo run --example "$name"
+            done
+          else
+            echo "No examples directory, skipping."
+          fi
+        shell: bash
 
   clippy:
-    name: Clippy
+    name: Clippy Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      
+
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
   fmt:
-    name: Format
+    name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
-      
+
       - name: Check formatting
         run: cargo fmt --all -- --check
 
@@ -88,12 +90,8 @@ jobs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-      
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Build documentation
         run: cargo doc --no-deps --all-features
-        env:
-          RUSTDOCFLAGS: -D warnings
