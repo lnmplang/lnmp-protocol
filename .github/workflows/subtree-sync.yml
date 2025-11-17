@@ -1,0 +1,36 @@
+name: Subtree Sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *' # Daily at 03:00 UTC
+
+jobs:
+  pull-subtrees:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Run subtree sync for remotes
+      run: |
+        chmod +x scripts/subtree-sync.sh
+        # pull each subtree (using --squash to keep the monorepo history small)
+        scripts/subtree-sync.sh pull lnmplang/lnmp-examples examples main squash || true
+        scripts/subtree-sync.sh pull lnmplang/lnmp-sdk-go sdk/go main squash || true
+        scripts/subtree-sync.sh pull lnmplang/lnmp-sdk-js sdk/js main squash || true
+        scripts/subtree-sync.sh pull lnmplang/lnmp-sdk-rust sdk/rust main squash || true
+        scripts/subtree-sync.sh pull lnmplang/lnmp-sdk-python sdk/python main squash || true
+        scripts/subtree-sync.sh pull lnmplang/lnmp-cli tools/cli main squash || true
+        scripts/subtree-sync.sh pull lnmplang/lnmp-mcp tools/mcp main squash || true
+    - name: Check for changes
+      run: |
+        if [ -n "$(git status --porcelain)" ]; then
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: sync subtrees (automated)" || echo "No changes to commit"
+          git push origin main || echo "Push failed — PR may be required"
+        else
+          echo "No updates"
+        fi
