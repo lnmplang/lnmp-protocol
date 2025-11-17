@@ -1,3 +1,12 @@
+# lnmp-protocol (lnmplang)
+
+This repository contains the canonical LNMP Rust implementation and aggregates
+the official SDKs and examples via git subtrees for convenient local testing
+and CI. See `MIGRATION_NOTICE.md` for instructions to update local clones and
+rename local folder names after the repository cleanup.
+
+See `REPO-STRUCTURE.md` for more details on workspace layout and subtree
+workflow.
 # LNMP Protocol Implementation
 
 LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID-based data format designed for data exchange with large language models (LLMs).
