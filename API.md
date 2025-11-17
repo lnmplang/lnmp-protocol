@@ -131,7 +131,7 @@ assert_eq!(hint.as_str(), "i");
 assert!(hint.validates(&LnmpValue::Int(42)));
 assert!(!hint.validates(&LnmpValue::String("test".to_string())));
 
-let hint = TypeHint::from_str("sa").unwrap();
+let hint = TypeHint::parse("sa").unwrap();
 assert_eq!(hint, TypeHint::StringArray);
 ```
 

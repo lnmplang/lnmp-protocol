@@ -538,7 +538,7 @@ impl DeltaDecoder {
                 DeltaOperation::MergeRecord => {
                     // Get existing nested record
                     let existing_field = base.get_field(op.target_fid)
-                        .ok_or_else(|| DeltaError::InvalidTargetFid {
+                        .ok_or(DeltaError::InvalidTargetFid {
                             fid: op.target_fid,
                         })?;
                     

@@ -29,12 +29,12 @@ use super::error::BinaryError;
 #[inline]
 pub fn encode(value: i64) -> Vec<u8> {
     // Fast path for single-byte encoding: [-64, 63]
-    if value >= -64 && value <= 63 {
+    if (-64..=63).contains(&value) {
         return vec![(value & 0x7F) as u8];
     }
     
     // Fast path for two-byte encoding: [-8192, 8191]
-    if value >= -8192 && value <= 8191 {
+    if (-8192..=8191).contains(&value) {
         let byte1 = ((value & 0x7F) | 0x80) as u8;
         let byte2 = ((value >> 7) & 0x7F) as u8;
         return vec![byte1, byte2];

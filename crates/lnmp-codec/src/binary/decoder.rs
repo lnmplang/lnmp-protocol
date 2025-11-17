@@ -248,7 +248,7 @@ impl BinaryDecoder {
         let mut offset = 0;
         
         // VERSION (1 byte)
-        if bytes.len() < 1 {
+        if bytes.is_empty() {
             return Err(BinaryError::UnexpectedEof {
                 expected: 1,
                 found: bytes.len(),

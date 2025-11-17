@@ -1,6 +1,7 @@
 //! Core type definitions for LNMP values and field identifiers.
 
 use crate::LnmpRecord;
+use std::str::FromStr;
 
 /// Field identifier type (0-65535)
 pub type FieldId = u16;
@@ -116,7 +117,7 @@ impl TypeHint {
     }
 
     /// Parses a type hint from string
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "i" => Some(TypeHint::Int),
             "f" => Some(TypeHint::Float),
@@ -131,15 +132,33 @@ impl TypeHint {
 
     /// Validates that a value matches this type hint
     pub fn validates(&self, value: &LnmpValue) -> bool {
-        match (self, value) {
-            (TypeHint::Int, LnmpValue::Int(_)) => true,
-            (TypeHint::Float, LnmpValue::Float(_)) => true,
-            (TypeHint::Bool, LnmpValue::Bool(_)) => true,
-            (TypeHint::String, LnmpValue::String(_)) => true,
-            (TypeHint::StringArray, LnmpValue::StringArray(_)) => true,
-            (TypeHint::Record, LnmpValue::NestedRecord(_)) => true,
-            (TypeHint::RecordArray, LnmpValue::NestedArray(_)) => true,
-            _ => false,
+        matches!((self, value),
+            (TypeHint::Int, LnmpValue::Int(_)) |
+            (TypeHint::Float, LnmpValue::Float(_)) |
+            (TypeHint::Bool, LnmpValue::Bool(_)) |
+            (TypeHint::String, LnmpValue::String(_)) |
+            (TypeHint::StringArray, LnmpValue::StringArray(_)) |
+            (TypeHint::Record, LnmpValue::NestedRecord(_)) |
+            (TypeHint::RecordArray, LnmpValue::NestedArray(_))
+        )
+    }
+
+}
+
+/// Implement std::str::FromStr for TypeHint so callers can use `str::parse::<TypeHint>()`.
+impl FromStr for TypeHint {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "i" => Ok(TypeHint::Int),
+            "f" => Ok(TypeHint::Float),
+            "b" => Ok(TypeHint::Bool),
+            "s" => Ok(TypeHint::String),
+            "sa" => Ok(TypeHint::StringArray),
+            "r" => Ok(TypeHint::Record),
+            "ra" => Ok(TypeHint::RecordArray),
+            _ => Err(()),
         }
     }
 }
@@ -161,15 +180,15 @@ mod tests {
 
     #[test]
     fn test_type_hint_from_str() {
-        assert_eq!(TypeHint::from_str("i"), Some(TypeHint::Int));
-        assert_eq!(TypeHint::from_str("f"), Some(TypeHint::Float));
-        assert_eq!(TypeHint::from_str("b"), Some(TypeHint::Bool));
-        assert_eq!(TypeHint::from_str("s"), Some(TypeHint::String));
-        assert_eq!(TypeHint::from_str("sa"), Some(TypeHint::StringArray));
-        assert_eq!(TypeHint::from_str("r"), Some(TypeHint::Record));
-        assert_eq!(TypeHint::from_str("ra"), Some(TypeHint::RecordArray));
-        assert_eq!(TypeHint::from_str("invalid"), None);
-        assert_eq!(TypeHint::from_str(""), None);
+        assert_eq!(TypeHint::parse("i"), Some(TypeHint::Int));
+        assert_eq!(TypeHint::parse("f"), Some(TypeHint::Float));
+        assert_eq!(TypeHint::parse("b"), Some(TypeHint::Bool));
+        assert_eq!(TypeHint::parse("s"), Some(TypeHint::String));
+        assert_eq!(TypeHint::parse("sa"), Some(TypeHint::StringArray));
+        assert_eq!(TypeHint::parse("r"), Some(TypeHint::Record));
+        assert_eq!(TypeHint::parse("ra"), Some(TypeHint::RecordArray));
+        assert_eq!(TypeHint::parse("invalid"), None);
+        assert_eq!(TypeHint::parse(""), None);
     }
 
     #[test]
@@ -245,7 +264,7 @@ mod tests {
 
         for hint in hints {
             let str_repr = hint.as_str();
-            let parsed = TypeHint::from_str(str_repr);
+            let parsed = TypeHint::parse(str_repr);
             assert_eq!(parsed, Some(hint));
         }
     }

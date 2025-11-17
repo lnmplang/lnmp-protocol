@@ -141,7 +141,7 @@ impl SemanticDictionary {
     pub fn add_equivalence(&mut self, fid: FieldId, from: String, to: String) {
         self.equivalences
             .entry(fid)
-            .or_insert_with(HashMap::new)
+            .or_default()
             .insert(from, to);
     }
 

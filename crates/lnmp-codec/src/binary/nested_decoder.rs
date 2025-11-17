@@ -120,7 +120,7 @@ impl BinaryNestedDecoder {
         let mut offset = 0;
 
         // Read and validate TAG byte (0x06)
-        if bytes.len() < 1 {
+        if bytes.is_empty() {
             return Err(BinaryError::UnexpectedEof {
                 expected: 1,
                 found: bytes.len(),
@@ -191,7 +191,7 @@ impl BinaryNestedDecoder {
         let mut offset = 0;
 
         // Read type tag
-        if bytes.len() < 1 {
+        if bytes.is_empty() {
             return Err(BinaryError::UnexpectedEof {
                 expected: 1,
                 found: bytes.len(),
@@ -381,7 +381,7 @@ impl BinaryNestedDecoder {
         let mut offset = 0;
 
         // Read and validate TAG byte (0x07)
-        if bytes.len() < 1 {
+        if bytes.is_empty() {
             return Err(BinaryError::UnexpectedEof {
                 expected: 1,
                 found: bytes.len(),

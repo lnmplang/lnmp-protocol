@@ -4,19 +4,16 @@ use crate::equivalence::EquivalenceMapper;
 use crate::normalizer::NormalizationConfig;
 
 /// Parsing mode configuration
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ParsingMode {
     /// Strict mode: only accepts canonical LNMP format
     Strict,
     /// Loose mode: tolerates formatting variations (default)
+    #[default]
     Loose,
 }
 
-impl Default for ParsingMode {
-    fn default() -> Self {
-        ParsingMode::Loose
-    }
-}
+// Default implementation derived via #[derive(Default)] on the enum
 
 /// Parser configuration
 #[derive(Debug, Clone, Copy)]
@@ -46,7 +43,7 @@ impl Default for ParserConfig {
 }
 
 /// Prompt optimization configuration for LLM-optimized encoding
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct PromptOptimizationConfig {
     /// Whether to minimize symbols for better tokenization
     pub minimize_symbols: bool,
@@ -56,15 +53,7 @@ pub struct PromptOptimizationConfig {
     pub optimize_arrays: bool,
 }
 
-impl Default for PromptOptimizationConfig {
-    fn default() -> Self {
-        Self {
-            minimize_symbols: false,
-            align_token_boundaries: false,
-            optimize_arrays: false,
-        }
-    }
-}
+// Default implementation derived via #[derive(Default)] on the struct
 
 /// Encoder configuration
 #[derive(Debug, Clone)]

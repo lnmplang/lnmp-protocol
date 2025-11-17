@@ -9,21 +9,18 @@
 use lnmp_core::LnmpValue;
 
 /// String case transformation rules
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum StringCaseRule {
     /// Convert to lowercase
     Lower,
     /// Convert to uppercase
     Upper,
     /// No case transformation
+    #[default]
     None,
 }
 
-impl Default for StringCaseRule {
-    fn default() -> Self {
-        StringCaseRule::None
-    }
-}
+// Default implementation derived via #[derive(Default)]
 
 /// Configuration for value normalization
 #[derive(Debug, Clone)]
@@ -55,11 +52,6 @@ impl ValueNormalizer {
     /// Creates a new normalizer with the given configuration
     pub fn new(config: NormalizationConfig) -> Self {
         Self { config }
-    }
-
-    /// Creates a normalizer with default configuration
-    pub fn default() -> Self {
-        Self::new(NormalizationConfig::default())
     }
 
     /// Normalizes a value to its canonical form
@@ -142,6 +134,12 @@ impl ValueNormalizer {
         // Remove trailing zeros after decimal point
         let trimmed = s.trim_end_matches('0').trim_end_matches('.');
         trimmed.to_string()
+    }
+}
+
+impl Default for ValueNormalizer {
+    fn default() -> Self {
+        Self::new(NormalizationConfig::default())
     }
 }
 

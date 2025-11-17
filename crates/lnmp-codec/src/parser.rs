@@ -141,11 +141,11 @@ impl<'a> Parser<'a> {
             }
             Token::UnquotedString(s) => {
                 // 'F' followed by non-numeric characters - invalid field id
-                return Err(LnmpError::InvalidFieldId {
+                Err(LnmpError::InvalidFieldId {
                     value: s.clone(),
                     line,
                     column,
-                });
+                })
             }
             _ => Err(LnmpError::UnexpectedToken {
                 expected: "field ID number".to_string(),
@@ -485,7 +485,7 @@ impl<'a> Parser<'a> {
             let hint_str = hint_str.clone();
             self.advance()?;
 
-            match TypeHint::from_str(&hint_str) {
+            match TypeHint::parse(&hint_str) {
                 Some(hint) => Ok(Some(hint)),
                 None => {
                     let (line, column) = self.lexer.position();

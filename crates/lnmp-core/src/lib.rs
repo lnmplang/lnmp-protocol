@@ -52,7 +52,7 @@
 //! use lnmp_core::{TypeHint, LnmpValue};
 //!
 //! // Parse type hint from string
-//! let hint = TypeHint::from_str("i").unwrap();
+//! let hint = TypeHint::parse("i").unwrap();
 //! assert_eq!(hint.as_str(), "i");
 //!
 //! // Validate value matches type hint

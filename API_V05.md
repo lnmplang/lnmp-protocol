@@ -48,6 +48,16 @@ let binary = encoder.encode(&nested_record)?;
 
 ### BinaryNestedDecoder
 
+Delta gating and behavior
+-------------------------
+
+- The delta feature is gated behind `DeltaConfig::enable_delta`. This means:
+    - `DeltaEncoder::compute_delta`, `DeltaDecoder::decode_delta`, and `DeltaDecoder::apply_delta` will return an error when `enable_delta` is false.
+    - To compute or apply delta operations, create encoders/decoders configured with `DeltaConfig::new().with_enable_delta(true)` or 
+        call `DeltaEncoder::with_config(...)` and `DeltaDecoder::with_config(...)` with `enable_delta=true`.
+- When using `BinaryEncoder::encode_delta_from`, the encoder's `EncoderConfig`'s `delta_mode` is merged with the `DeltaConfig` provided to the
+    method and delta is enabled if either are true. This provides a convenience where enabling delta on the `BinaryEncoder` lets callers pass
+    no delta config and still compute the delta.
 Decodes binary format with nested structures back to LNMP records.
 
 ```rust
@@ -426,7 +436,7 @@ impl DeltaEncoder {
 ```rust
 use lnmp_codec::binary::{DeltaEncoder, DeltaConfig};
 
-let config = DeltaConfig::new().with_delta_enabled(true);
+let config = DeltaConfig::new().with_enable_delta(true);
 let encoder = DeltaEncoder::with_config(config);
 
 // Compute delta

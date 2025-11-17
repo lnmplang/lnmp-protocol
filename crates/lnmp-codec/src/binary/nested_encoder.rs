@@ -231,13 +231,11 @@ impl BinaryNestedEncoder {
         current_depth: usize,
     ) -> Result<Vec<u8>, BinaryError> {
         // Validate depth for nested structures
-        if current_depth >= self.config.max_depth {
-            if matches!(value, LnmpValue::NestedRecord(_) | LnmpValue::NestedArray(_)) {
-                return Err(BinaryError::NestingDepthExceeded {
-                    depth: current_depth,
-                    max: self.config.max_depth,
-                });
-            }
+        if current_depth >= self.config.max_depth && matches!(value, LnmpValue::NestedRecord(_) | LnmpValue::NestedArray(_)) {
+            return Err(BinaryError::NestingDepthExceeded {
+                depth: current_depth,
+                max: self.config.max_depth,
+            });
         }
 
         match value {

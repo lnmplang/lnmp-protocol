@@ -284,8 +284,12 @@ impl BinaryEncoder {
         updated: &LnmpRecord,
         delta_config: Option<DeltaConfig>,
     ) -> Result<Vec<u8>, BinaryError> {
-        // Determine config to use
-        let config = delta_config.unwrap_or_else(|| DeltaConfig::new());
+        // Determine config to use. Merge encoder config delta_mode into the provided delta_config
+        let mut config = delta_config.unwrap_or_default();
+        // If encoder's delta_mode is enabled, also enable delta in the delta config
+        if self.config.delta_mode {
+            config.enable_delta = true;
+        }
 
         // Validate that delta is enabled in either encoder config or provided delta config
         if !self.config.delta_mode && !config.enable_delta {
@@ -465,6 +469,26 @@ mod tests {
 
         // After applying delta, result should equal updated
         assert_eq!(result.fields(), updated.fields());
+    }
+
+    #[test]
+    fn test_encode_delta_from_encoder_config_enabled() {
+        use crate::binary::{EncoderConfig};
+        use lnmp_core::{LnmpField, LnmpValue};
+
+        let mut base = LnmpRecord::new();
+        base.add_field(LnmpField { fid: 1, value: LnmpValue::Int(1) });
+        base.add_field(LnmpField { fid: 2, value: LnmpValue::String("v1".to_string()) });
+
+        let mut updated = base.clone();
+        updated.remove_field(1);
+        updated.add_field(LnmpField { fid: 1, value: LnmpValue::Int(2) });
+
+        // BinaryEncoder with delta mode enabled should succeed when using encode_delta_from and None delta_config
+        let config = EncoderConfig::new().with_delta_mode(true);
+        let encoder = BinaryEncoder::with_config(config);
+        let bytes = encoder.encode_delta_from(&base, &updated, None).unwrap();
+        assert_eq!(bytes[0], crate::binary::DELTA_TAG);
     }
 
     #[test]

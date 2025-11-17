@@ -262,7 +262,7 @@ fn canonicalize_value(value: &LnmpValue) -> LnmpValue {
         LnmpValue::NestedArray(arr) => {
             let canonical_arr: Vec<LnmpRecord> = arr
                 .iter()
-                .map(|record| canonicalize_record(record))
+                .map(canonicalize_record)
                 .collect();
             LnmpValue::NestedArray(canonical_arr)
         }

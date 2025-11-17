@@ -77,7 +77,7 @@ impl EquivalenceMapper {
     pub fn add_mapping(&mut self, fid: FieldId, from: String, to: String) {
         self.mappings
             .entry(fid)
-            .or_insert_with(HashMap::new)
+            .or_default()
             .insert(from, to);
     }
 
@@ -91,7 +91,7 @@ impl EquivalenceMapper {
     where
         I: IntoIterator<Item = (String, String)>,
     {
-        let field_mappings = self.mappings.entry(fid).or_insert_with(HashMap::new);
+        let field_mappings = self.mappings.entry(fid).or_default();
         for (from, to) in mappings {
             field_mappings.insert(from, to);
         }

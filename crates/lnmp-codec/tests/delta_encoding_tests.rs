@@ -1,6 +1,6 @@
 //! Tests for Delta Encoding & Partial Update Layer (DPL)
 
-use lnmp_codec::binary::{DeltaConfig, DeltaDecoder, DeltaEncoder, DeltaOperation};
+use lnmp_codec::binary::{DeltaConfig, DeltaDecoder, DeltaEncoder, DeltaError, DeltaOperation};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 
 #[test]
@@ -441,6 +441,56 @@ fn test_delta_no_changes() {
 
     // No changes should result in no operations
     assert_eq!(ops.len(), 0);
+}
+
+#[test]
+fn test_compute_delta_disabled_errors() {
+    let mut old_record = LnmpRecord::new();
+    old_record.add_field(LnmpField { fid: 1, value: LnmpValue::Int(1) });
+
+    let mut new_record = old_record.clone();
+    new_record.remove_field(1);
+
+    // Default DeltaEncoder has delta disabled; compute_delta should return DeltaApplicationFailed
+    let encoder = DeltaEncoder::new();
+    let err = encoder.compute_delta(&old_record, &new_record).unwrap_err();
+    assert!(matches!(err, DeltaError::DeltaApplicationFailed { .. }));
+}
+
+#[test]
+fn test_decode_delta_disabled_errors() {
+    let mut old_record = LnmpRecord::new();
+    old_record.add_field(LnmpField { fid: 1, value: LnmpValue::Int(1) });
+
+    let mut new_record = old_record.clone();
+    new_record.add_field(LnmpField { fid: 2, value: LnmpValue::Int(2) });
+
+    // Use an enabled encoder to compute bytes
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
+    let ops = encoder.compute_delta(&old_record, &new_record).unwrap();
+    let encoded = encoder.encode_delta(&ops).unwrap();
+
+    // Default DeltaDecoder has delta disabled; decode_delta should fail
+    let decoder = DeltaDecoder::new();
+    let err = decoder.decode_delta(&encoded).unwrap_err();
+    assert!(matches!(err, DeltaError::DeltaApplicationFailed { .. }));
+}
+
+#[test]
+fn test_apply_delta_disabled_errors() {
+    let mut base_record = LnmpRecord::new();
+    base_record.add_field(LnmpField { fid: 1, value: LnmpValue::Int(1) });
+
+    let mut new_record = base_record.clone();
+    new_record.add_field(LnmpField { fid: 2, value: LnmpValue::Int(2) });
+
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
+    let ops = encoder.compute_delta(&base_record, &new_record).unwrap();
+
+    // Default DeltaDecoder has delta disabled; apply_delta should fail
+    let decoder = DeltaDecoder::new();
+    let err = decoder.apply_delta(&mut base_record, &ops).unwrap_err();
+    assert!(matches!(err, DeltaError::DeltaApplicationFailed { .. }));
 }
 
 #[test]
