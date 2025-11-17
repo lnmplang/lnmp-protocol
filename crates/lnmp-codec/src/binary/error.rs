@@ -99,6 +99,11 @@ pub enum BinaryError {
         /// Reason why the structure is invalid
         reason: String,
     },
+    /// Delta encoder/decoder related failure
+    DeltaError {
+        /// Reason describing the delta error
+        reason: String,
+    },
 }
 
 impl std::fmt::Display for BinaryError {
@@ -170,6 +175,9 @@ impl std::fmt::Display for BinaryError {
             BinaryError::InvalidNestedStructure { reason } => {
                 write!(f, "Invalid nested structure: {}", reason)
             }
+            BinaryError::DeltaError { reason } => {
+                write!(f, "Delta error: {}", reason)
+            }
         }
     }
 }
@@ -179,5 +187,11 @@ impl std::error::Error for BinaryError {}
 impl From<LnmpError> for BinaryError {
     fn from(err: LnmpError) -> Self {
         BinaryError::TextFormatError { source: err }
+    }
+}
+
+impl From<crate::binary::delta::DeltaError> for BinaryError {
+    fn from(err: crate::binary::delta::DeltaError) -> Self {
+        BinaryError::DeltaError { reason: format!("{}", err) }
     }
 }

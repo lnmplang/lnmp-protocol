@@ -458,7 +458,7 @@ impl DeltaDecoder {
 ```rust
 use lnmp_codec::binary::DeltaDecoder;
 
-let decoder = DeltaDecoder::new();
+let decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
 
 // Decode delta
 let ops = decoder.decode_delta(&delta_binary)?;

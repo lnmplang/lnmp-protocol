@@ -25,7 +25,7 @@ fn test_compute_delta_simple_field_change() {
         value: LnmpValue::String("new".to_string()),
     });
 
-    let encoder = DeltaEncoder::new();
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
     let ops = encoder.compute_delta(&old_record, &new_record).unwrap();
 
     // Should have one UPDATE_FIELD operation for field 2
@@ -52,7 +52,7 @@ fn test_compute_delta_field_added() {
         value: LnmpValue::String("added".to_string()),
     });
 
-    let encoder = DeltaEncoder::new();
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
     let ops = encoder.compute_delta(&old_record, &new_record).unwrap();
 
     // Should have one SET_FIELD operation for field 2
@@ -79,7 +79,7 @@ fn test_compute_delta_field_deleted() {
         value: LnmpValue::Int(42),
     });
 
-    let encoder = DeltaEncoder::new();
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
     let ops = encoder.compute_delta(&old_record, &new_record).unwrap();
 
     // Should have one DELETE_FIELD operation for field 2
@@ -114,7 +114,7 @@ fn test_compute_delta_nested_changes() {
         value: LnmpValue::NestedRecord(Box::new(inner_new)),
     });
 
-    let encoder = DeltaEncoder::new();
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
     let ops = encoder.compute_delta(&old_record, &new_record).unwrap();
 
     // Should have one MERGE_RECORD operation for field 5
@@ -131,8 +131,8 @@ fn test_apply_set_field_operation() {
         value: LnmpValue::Int(42),
     });
 
-    let encoder = DeltaEncoder::new();
-    let decoder = DeltaDecoder::new();
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
+    let decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
 
     // Create a new record with an additional field
     let mut new_record = LnmpRecord::new();
@@ -171,8 +171,8 @@ fn test_apply_delete_field_operation() {
         value: LnmpValue::String("delete_me".to_string()),
     });
 
-    let encoder = DeltaEncoder::new();
-    let decoder = DeltaDecoder::new();
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
+    let decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
 
     // Create a new record without field 2
     let mut new_record = LnmpRecord::new();
@@ -200,8 +200,8 @@ fn test_apply_update_field_operation() {
         value: LnmpValue::String("old".to_string()),
     });
 
-    let encoder = DeltaEncoder::new();
-    let decoder = DeltaDecoder::new();
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
+    let decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
 
     // Create a new record with updated field
     let mut new_record = LnmpRecord::new();
@@ -241,8 +241,8 @@ fn test_apply_merge_record_operation() {
         value: LnmpValue::NestedRecord(Box::new(inner_old)),
     });
 
-    let encoder = DeltaEncoder::new();
-    let decoder = DeltaDecoder::new();
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
+    let decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
 
     // Create a new record with updated nested field
     let mut inner_new = LnmpRecord::new();
@@ -306,8 +306,8 @@ fn test_delta_round_trip_stability() {
         value: LnmpValue::Bool(true),
     });
 
-    let encoder = DeltaEncoder::new();
-    let decoder = DeltaDecoder::new();
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
+    let decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
 
     // Compute delta
     let ops = encoder.compute_delta(&old_record, &new_record).unwrap();
@@ -340,8 +340,8 @@ fn test_delta_semantic_equivalence() {
         value: LnmpValue::Int(200),
     });
 
-    let encoder = DeltaEncoder::new();
-    let decoder = DeltaDecoder::new();
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
+    let decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
 
     // Compute and encode delta
     let ops = encoder.compute_delta(&old_record, &new_record).unwrap();
@@ -378,8 +378,8 @@ fn test_encode_decode_delta_packet() {
         value: LnmpValue::String("added".to_string()),
     });
 
-    let encoder = DeltaEncoder::new();
-    let decoder = DeltaDecoder::new();
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
+    let decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
 
     // Compute delta
     let ops = encoder.compute_delta(&old_record, &new_record).unwrap();
@@ -436,7 +436,7 @@ fn test_delta_no_changes() {
         value: LnmpValue::Int(42),
     });
 
-    let encoder = DeltaEncoder::new();
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
     let ops = encoder.compute_delta(&record, &record).unwrap();
 
     // No changes should result in no operations
@@ -471,8 +471,8 @@ fn test_delta_multiple_changes() {
                                             // Field 2 deleted
                                             // Field 3 deleted
 
-    let encoder = DeltaEncoder::new();
-    let decoder = DeltaDecoder::new();
+    let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
+    let decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
 
     let ops = encoder.compute_delta(&old_record, &new_record).unwrap();
 

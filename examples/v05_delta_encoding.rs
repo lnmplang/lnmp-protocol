@@ -97,7 +97,7 @@ fn simple_field_update() {
              (1.0 - delta_binary.len() as f64 / full_binary.len() as f64) * 100.0);
 
     // Apply delta
-    let delta_decoder = DeltaDecoder::new();
+    let delta_decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
     let decoded_ops = delta_decoder.decode_delta(&delta_binary).unwrap();
     let mut result = base.clone();
     delta_decoder.apply_delta(&mut result, &decoded_ops).unwrap();
@@ -149,7 +149,7 @@ fn multiple_field_changes() {
     println!("   Delta size: {} bytes", delta_binary.len());
 
     // Apply delta
-    let delta_decoder = DeltaDecoder::new();
+    let delta_decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
     let decoded_ops = delta_decoder.decode_delta(&delta_binary).unwrap();
     let mut result = base.clone();
     delta_decoder.apply_delta(&mut result, &decoded_ops).unwrap();
@@ -205,7 +205,7 @@ fn field_deletion_example() {
 
     // Encode and apply delta
     let delta_binary = delta_encoder.encode_delta(&delta_ops).unwrap();
-    let delta_decoder = DeltaDecoder::new();
+    let delta_decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
     let decoded_ops = delta_decoder.decode_delta(&delta_binary).unwrap();
     let mut result = base.clone();
     delta_decoder.apply_delta(&mut result, &decoded_ops).unwrap();
@@ -284,7 +284,7 @@ fn nested_record_merge() {
 
     // Apply delta
     let delta_binary = delta_encoder.encode_delta(&delta_ops).unwrap();
-    let delta_decoder = DeltaDecoder::new();
+    let delta_decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
     let decoded_ops = delta_decoder.decode_delta(&delta_binary).unwrap();
     let mut result = base.clone();
     delta_decoder.apply_delta(&mut result, &decoded_ops).unwrap();
@@ -347,7 +347,7 @@ fn incremental_updates_example() {
 
     let config = DeltaConfig::new().with_enable_delta(true);
     let delta_encoder = DeltaEncoder::with_config(config);
-    let delta_decoder = DeltaDecoder::new();
+    let delta_decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
 
     // Update 1: Increment counter
     let mut update1 = current.clone();

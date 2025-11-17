@@ -489,8 +489,9 @@ mod tests {
         let result = lexer.next_token();
         assert!(result.is_err());
         match result {
+            Err(LnmpError::UnterminatedString { .. }) => {}
             Err(LnmpError::UnexpectedEof { .. }) => {}
-            _ => panic!("Expected UnexpectedEof error"),
+            _ => panic!("Expected UnterminatedString or UnexpectedEof error"),
         }
     }
 

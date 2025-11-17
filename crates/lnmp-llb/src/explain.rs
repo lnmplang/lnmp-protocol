@@ -261,7 +261,7 @@ impl ExplainEncoder {
         }
 
         let fields: Vec<String> = record
-            .fields()
+            .sorted_fields()
             .iter()
             .map(|field| self.encode_field(field))
             .collect();
@@ -612,7 +612,6 @@ mod tests {
         let dict = SemanticDictionary::from_pairs(vec![(50, "user_data")]);
         let encoder = ExplainEncoder::new(dict);
         let output = encoder.encode_with_explanation(&outer_record);
-
         assert!(output.contains("F50:r="));
         assert!(output.contains("{F7:b=1;F12:i=1}"));
         assert!(output.contains("# user_data"));

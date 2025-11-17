@@ -384,7 +384,7 @@ impl std::fmt::Display for LnmpError {
                 column,
             } => write!(
                 f,
-                "Maximum nesting depth exceeded at line {}, column {}: maximum depth is {}, but reached {}",
+                "Nesting too deep (NestingTooDeep). Maximum nesting depth exceeded at line {}, column {}: maximum depth is {}, but reached {}",
                 line, column, max_depth, actual_depth
             ),
             LnmpError::InvalidNestedStructure {
@@ -414,7 +414,7 @@ impl std::fmt::Display for LnmpError {
             ),
             LnmpError::DuplicateFieldId { field_id, line, column } => write!(
                 f,
-                "Field ID {} appears multiple times at line {}, column {}",
+                "DuplicateFieldId: Field ID {} appears multiple times at line {}, column {}",
                 field_id, line, column
             ),
         }

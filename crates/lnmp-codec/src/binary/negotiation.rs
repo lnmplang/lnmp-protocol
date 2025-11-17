@@ -665,6 +665,21 @@ impl SchemaNegotiator {
             }
         }
 
+        // Ensure deterministic ordering of mismatches by sorting by fid.
+        // HashMap iteration order is not stable across runs, so tests that
+        // depend on the ordering of returned mismatches would be flaky.
+        mismatches.sort_by(|a, b| {
+            let fid_a = match a {
+                NegotiationError::TypeMismatch { fid, .. } => *fid,
+                _ => 0,
+            };
+            let fid_b = match b {
+                NegotiationError::TypeMismatch { fid, .. } => *fid,
+                _ => 0,
+            };
+            fid_a.cmp(&fid_b)
+        });
+
         mismatches
     }
 }

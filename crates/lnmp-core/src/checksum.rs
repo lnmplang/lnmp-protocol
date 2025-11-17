@@ -340,7 +340,21 @@ mod tests {
         assert_eq!(SemanticChecksum::parse("invalid"), None);
         assert_eq!(SemanticChecksum::parse(""), None);
         assert_eq!(SemanticChecksum::parse("GGGGGGGG"), None);
-        assert_eq!(SemanticChecksum::parse("123"), Some(0x123)); // Valid but short
+        // Short hex strings are no longer valid; SC32 requires exactly 8 hex
+        // digits per the canonical format.
+        assert_eq!(SemanticChecksum::parse("123"), None);
+    }
+
+    #[test]
+    fn test_parse_checksum_strict_enforcement() {
+        // Must be exactly 8 hex digits (with or without 0x prefix)
+        assert_eq!(SemanticChecksum::parse("0x123"), None);
+        assert_eq!(SemanticChecksum::parse("123"), None);
+        assert_eq!(SemanticChecksum::parse("0x1A2B3C4"), None);
+        assert_eq!(SemanticChecksum::parse("1A2B3C4"), None);
+        // Valid forms
+        assert_eq!(SemanticChecksum::parse("0x36AAE667"), Some(0x36AAE667));
+        assert_eq!(SemanticChecksum::parse("36AAE667"), Some(0x36AAE667));
     }
 
     #[test]

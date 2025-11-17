@@ -193,6 +193,12 @@ impl DeltaEncoder {
     ///
     /// A vector of delta operations representing the changes
     pub fn compute_delta(&self, old: &LnmpRecord, new: &LnmpRecord) -> Result<Vec<DeltaOp>, DeltaError> {
+        // If delta is not enabled in the config, we return an error.
+        
+        if !self.config.enable_delta {
+            return Err(DeltaError::DeltaApplicationFailed { reason: "Delta is disabled in configuration".to_string() });
+        }
+
         self.diff_records(old, new)
     }
 
@@ -320,6 +326,7 @@ impl DeltaEncoder {
     pub fn encode_delta(&self, ops: &[DeltaOp]) -> Result<Vec<u8>, DeltaError> {
         use super::varint;
         
+        
         let mut result = Vec::new();
         
         // Write DELTA_TAG
@@ -388,6 +395,9 @@ impl DeltaDecoder {
     ///
     /// Returns `DeltaError` if the packet is malformed
     pub fn decode_delta(&self, bytes: &[u8]) -> Result<Vec<DeltaOp>, DeltaError> {
+        if !self.config.enable_delta {
+            return Err(DeltaError::DeltaApplicationFailed { reason: "Delta is disabled in configuration".to_string() });
+        }
         use super::varint;
         
         if bytes.is_empty() {
@@ -482,6 +492,9 @@ impl DeltaDecoder {
     /// - An operation cannot be applied
     /// - A merge conflict occurs
     pub fn apply_delta(&self, base: &mut LnmpRecord, ops: &[DeltaOp]) -> Result<(), DeltaError> {
+        if !self.config.enable_delta {
+            return Err(DeltaError::DeltaApplicationFailed { reason: "Delta is disabled in configuration".to_string() });
+        }
         use lnmp_core::LnmpField;
         
         for op in ops {
@@ -750,6 +763,26 @@ mod tests {
             .with_track_changes(true);
         assert!(config.enable_delta);
         assert!(config.track_changes);
+    }
+
+    #[test]
+    fn test_compute_delta_with_enable_flag() {
+        use lnmp_core::{LnmpField, LnmpValue};
+
+        let mut base = LnmpRecord::new();
+        base.add_field(LnmpField { fid: 1, value: LnmpValue::Int(1) });
+        base.add_field(LnmpField { fid: 2, value: LnmpValue::String("a".to_string()) });
+
+        let mut updated = base.clone();
+        updated.remove_field(1);
+        updated.add_field(LnmpField { fid: 1, value: LnmpValue::Int(2) });
+
+        let config = DeltaConfig::new().with_enable_delta(true);
+        let encoder = DeltaEncoder::with_config(config);
+        let ops = encoder.compute_delta(&base, &updated).unwrap();
+        assert_eq!(ops.len(), 1);
+        assert_eq!(ops[0].target_fid, 1);
+        assert_eq!(ops[0].operation, DeltaOperation::UpdateField);
     }
 
     #[test]

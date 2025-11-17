@@ -5,6 +5,7 @@
 
 use lnmp_core::LnmpRecord;
 use super::error::BinaryError;
+use super::delta::{DeltaEncoder, DeltaConfig};
 use super::frame::BinaryFrame;
 use crate::parser::Parser;
 
@@ -271,6 +272,44 @@ impl BinaryEncoder {
         // Encode the parsed record
         self.encode(&record)
     }
+
+    /// Encodes delta packet (binary) from a base record and updated record.
+    ///
+    /// If the encoder config has `delta_mode=true` or a non-None `delta_config` is provided,
+    /// this method computes a delta using `DeltaEncoder` and returns the encoded delta bytes.
+    /// Otherwise it returns an error.
+    pub fn encode_delta_from(
+        &self,
+        base: &LnmpRecord,
+        updated: &LnmpRecord,
+        delta_config: Option<DeltaConfig>,
+    ) -> Result<Vec<u8>, BinaryError> {
+        // Determine config to use
+        let config = delta_config.unwrap_or_else(|| DeltaConfig::new());
+
+        // Validate that delta is enabled in either encoder config or provided delta config
+        if !self.config.delta_mode && !config.enable_delta {
+            return Err(BinaryError::DeltaError {
+                reason: "Delta mode not enabled in encoder or provided delta config".to_string(),
+            });
+        }
+
+        // Check configs
+
+        let delta_encoder = DeltaEncoder::with_config(config);
+        let compute_result = delta_encoder.compute_delta(base, updated);
+        match compute_result {
+            Ok(ops) => {
+                match delta_encoder.encode_delta(&ops) {
+                    Ok(bytes) => Ok(bytes),
+                    Err(e) => Err(BinaryError::DeltaError { reason: format!("encode_delta failed: {}", e) })
+                }
+            }
+            Err(e) => {
+                Err(BinaryError::DeltaError { reason: format!("compute_delta failed: {}", e) })
+            },
+        }
+    }
 }
 
 impl Default for BinaryEncoder {
@@ -393,6 +432,39 @@ mod tests {
         assert_eq!(fields[0].fid, 7);
         assert_eq!(fields[1].fid, 12);
         assert_eq!(fields[2].fid, 23);
+    }
+
+    #[test]
+    fn test_encode_delta_integration() {
+        use crate::binary::{DeltaConfig, DeltaDecoder};
+        use lnmp_core::{LnmpField, LnmpValue};
+
+        let mut base = LnmpRecord::new();
+        base.add_field(LnmpField { fid: 1, value: LnmpValue::Int(1) });
+        base.add_field(LnmpField { fid: 2, value: LnmpValue::String("v1".to_string()) });
+
+        let mut updated = base.clone();
+        updated.remove_field(1);
+        updated.add_field(LnmpField { fid: 1, value: LnmpValue::Int(2) });
+
+        // BinaryEncoder delta_mode disabled should return DeltaError
+        let encoder = BinaryEncoder::new();
+        let err = encoder.encode_delta_from(&base, &updated, None).unwrap_err();
+        assert!(matches!(err, BinaryError::DeltaError { .. }));
+
+        // Provide delta config to enable delta
+        let config = DeltaConfig::new().with_enable_delta(true);
+        let bytes = encoder.encode_delta_from(&base, &updated, Some(config)).unwrap();
+        assert_eq!(bytes[0], crate::binary::DELTA_TAG);
+
+        // Use delta decoder to decode and apply
+        let delta_decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
+        let ops = delta_decoder.decode_delta(&bytes).unwrap();
+        let mut result = base.clone();
+        delta_decoder.apply_delta(&mut result, &ops).unwrap();
+
+        // After applying delta, result should equal updated
+        assert_eq!(result.fields(), updated.fields());
     }
 
     #[test]

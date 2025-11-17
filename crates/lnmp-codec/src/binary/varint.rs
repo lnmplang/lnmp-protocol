@@ -22,9 +22,9 @@ use super::error::BinaryError;
 /// ```
 /// # use lnmp_codec::binary::varint;
 /// assert_eq!(varint::encode(0), vec![0x00]);
-/// assert_eq!(varint::encode(127), vec![0x7F]);
+/// assert_eq!(varint::encode(127), vec![0xFF, 0x00]);
 /// assert_eq!(varint::encode(128), vec![0x80, 0x01]);
-/// assert_eq!(varint::encode(14532), vec![0xE4, 0xE3, 0x00]);
+/// assert_eq!(varint::encode(14532), vec![0xC4, 0xF1, 0x00]);
 /// ```
 #[inline]
 pub fn encode(value: i64) -> Vec<u8> {
@@ -96,9 +96,9 @@ fn encode_general(value: i64) -> Vec<u8> {
 /// ```
 /// # use lnmp_codec::binary::varint;
 /// assert_eq!(varint::decode(&[0x00]).unwrap(), (0, 1));
-/// assert_eq!(varint::decode(&[0x7F]).unwrap(), (127, 1));
+/// assert_eq!(varint::decode(&[0xFF, 0x00]).unwrap(), (127, 2));
 /// assert_eq!(varint::decode(&[0x80, 0x01]).unwrap(), (128, 2));
-/// assert_eq!(varint::decode(&[0xE4, 0xE3, 0x00]).unwrap(), (14532, 3));
+/// assert_eq!(varint::decode(&[0xC4, 0xF1, 0x00]).unwrap(), (14532, 3));
 /// ```
 #[inline]
 pub fn decode(bytes: &[u8]) -> Result<(i64, usize), BinaryError> {
