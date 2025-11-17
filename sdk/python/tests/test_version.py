@@ -1,0 +1,5 @@
+from lnmp_sdk_python import version
+
+
+def test_version():
+    assert version() == '0.1.0'
