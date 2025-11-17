@@ -6,7 +6,7 @@ rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 description = "Semantic Fidelity Engine for LNMP (LLM Native Minimal Protocol)"
-repository = "https://github.com/lnmplang/lnmp"
+repository = "https://github.com/lnmplang/lnmp-protocol"
 keywords = ["lnmp", "protocol", "semantic", "dictionary"]
 categories = ["encoding", "data-structures"]
 

@@ -7,7 +7,7 @@ set -euo pipefail
 # desired account and organization membership.
 
 REPOS=(
-  "lnmplang/lnmp" 
+  "lnmplang/lnmp-protocol" 
   "lnmplang/lnmp-examples"
   "lnmplang/lnmp-sdk-go"
   "lnmplang/lnmp-sdk-js"

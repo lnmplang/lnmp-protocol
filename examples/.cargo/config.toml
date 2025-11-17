@@ -4,7 +4,8 @@
 # `lnmp-examples` (sibling folder) so `path` dependencies work for local dev
 # without having to publish crates. If your local checkout is named
 # `lnpm-protocol` (older name), uncomment the alternative lines below.
-[patch."https://github.com/lnmplang/lnmp.git"]
+# Patch to redirect git dependencies to local path for development.
+[patch."https://github.com/lnmplang/lnmp-protocol.git"]
 lnmp-core = { path = "../lnpm-protocol/crates/lnmp-core" }
 lnmp-codec = { path = "../lnpm-protocol/crates/lnmp-codec" }
 lnmp-llb = { path = "../lnpm-protocol/crates/lnmp-llb" }

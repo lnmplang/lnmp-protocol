@@ -73,6 +73,6 @@ path = "v05_llb2_binary.rs"
 # upstream protocol repository as a dependency source. By default we use the
 # `main` branch; for a consistent release experience change `branch` to a
 # released tag (eg. `tag = "v0.5.0"`).
-lnmp-core = { git = "https://github.com/lnmplang/lnmp.git", branch = "main", package = "lnmp-core" }
-lnmp-codec = { git = "https://github.com/lnmplang/lnmp.git", branch = "main", package = "lnmp-codec" }
-lnmp-llb = { git = "https://github.com/lnmplang/lnmp.git", branch = "main", package = "lnmp-llb" }
+lnmp-core = { git = "https://github.com/lnmplang/lnmp-protocol.git", branch = "main", package = "lnmp-core" }
+lnmp-codec = { git = "https://github.com/lnmplang/lnmp-protocol.git", branch = "main", package = "lnmp-codec" }
+lnmp-llb = { git = "https://github.com/lnmplang/lnmp-protocol.git", branch = "main", package = "lnmp-llb" }

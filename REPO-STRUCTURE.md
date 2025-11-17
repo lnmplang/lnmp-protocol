@@ -11,6 +11,15 @@ Primary guidelines
   the core repo smaller and language-agnostic.
 - Language SDKs (Go/JS/Python/Rust) and CLI utilities should exist in their
   own repositories: `lnmp-sdk-go`, `lnmp-sdk-js`, `lnmo-sdk-python`, `lnmp-sdk-rust`, `lnmp-cli`.
+ - The repo imports SDKs/examples/CLI/MCP via `git subtree` for developer
+   convenience, so the mono-repo contains them in these locations:
+     - `examples/` (lnmp-examples)
+     - `sdk/go/` (lnmp-sdk-go)
+     - `sdk/js/` (lnmp-sdk-js)
+     - `sdk/python/` (lnmp-sdk-python)
+     - `sdk/rust/` (lnmp-sdk-rust)
+     - `tools/cli/` (lnmp-cli)
+     - `tools/mcp/` (lnmp-mcp)
 
 Development workflows
 1. Local development with a sibling workspace: clone `lnmp` and `lnmp-examples`
@@ -19,9 +28,12 @@ Development workflows
   dependencies to local path dependencies. Alternatively, enable the local
   path patch by creating `.cargo/config.toml` in `lnmp-examples` that
   redirects git sources to the local path:
+   If you use this mono-repo, the SDKs and examples are available in `sdk/` and
+   `examples/` thanks to subtrees. Keep in mind the official source of
+   truth for SDKs is still the independent repo.
 
 ```toml
-[patch."https://github.com/lnmplang/lnmp.git"]
+[patch."https://github.com/lnmplang/lnmp-protocol.git"]
 lnmp-core = { path = "../lnpm-protocol/crates/lnmp-core" }
 lnmp-codec = { path = "../lnpm-protocol/crates/lnmp-codec" }
 lnmp-llb = { path = "../lnpm-protocol/crates/lnmp-llb" }
