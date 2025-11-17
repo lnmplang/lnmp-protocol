@@ -9,8 +9,8 @@ Primary guidelines
   `crates/` (eg. `lnmp-core`, `lnmp-codec`, `lnmp-llb`, `lnmp-sfe`).
 - Examples should live in separate repositories (`lnmp-examples`) to make
   the core repo smaller and language-agnostic.
-- Language SDKs (Go/JS/Python/Rust) and CLI utilities should exist in their
-  own repositories: `lnmp-sdk-go`, `lnmp-sdk-js`, `lnmo-sdk-python`, `lnmp-sdk-rust`, `lnmp-cli`.
+ - Language SDKs (Go/JS/Python/Rust) and CLI utilities should exist in their
+  own repositories: `lnmp-sdk-go`, `lnmp-sdk-js`, `lnmp-sdk-python`, `lnmp-sdk-rust`, `lnmp-cli`.
  - The repo imports SDKs/examples/CLI/MCP via `git subtree` for developer
    convenience, so the mono-repo contains them in these locations:
      - `examples/` (lnmp-examples)

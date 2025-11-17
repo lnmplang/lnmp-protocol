@@ -56,3 +56,15 @@ Developer Guidance
   contact the repository owner.
 - If you make changes in the monorepo and want them in the source repo, use
   `git subtree push --prefix=<prefix> <remote> main` (or target branch).
+
+- We provide a small helper script at `scripts/subtree-sync.sh` to simplify
+  common subtree operations. Example usage:
+
+```
+# add
+./scripts/subtree-sync.sh add lnmplang/lnmp-examples examples main
+# pull
+./scripts/subtree-sync.sh pull lnmplang/lnmp-examples examples main
+# push
+./scripts/subtree-sync.sh push lnmplang/lnmp-examples examples main
+```

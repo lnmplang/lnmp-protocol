@@ -12,9 +12,9 @@ REPOS=(
   "lnmplang/lnmp-sdk-go"
   "lnmplang/lnmp-sdk-js"
   "lnmplang/lnmp-sdk-rust"
-  "lnmplang/lnmo-sdk-python"
+  "lnmplang/lnmp-sdk-python"
   "lnmplang/lnmp-cli"
-  "lnmplang/lnpm-mcp"
+  "lnmplang/lnmp-mcp"
 )
 
 for REPO in "${REPOS[@]}"; do
