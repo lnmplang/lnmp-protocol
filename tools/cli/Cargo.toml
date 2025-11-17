@@ -1,0 +1,8 @@
+[package]
+name = "lnmp-cli"
+version = "0.1.0"
+edition = "2021"
+authors = ["LNMP Contributors"]
+
+[dependencies]
+lnmp-core = { path = "../lnpm-protocol/crates/lnmp-core" }
