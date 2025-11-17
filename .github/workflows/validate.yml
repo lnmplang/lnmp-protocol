@@ -1,0 +1,24 @@
+name: Validate repo
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  repo-name-check:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Run validation checks
+      run: |
+        chmod +x scripts/checks/validate-repo-names.sh
+        scripts/checks/validate-repo-names.sh
+    - name: Check for build artifacts
+      run: |
+        if git ls-files | grep -E "(^|/)target(/|$)|(^|/)node_modules(/|$)|(^|/)dist(/|$)|(^|/)build(/|$)|\.egg-info(/|$)"; then
+          echo "Build artifacts are tracked — remove them before committing" >&2
+          exit 1
+        fi
