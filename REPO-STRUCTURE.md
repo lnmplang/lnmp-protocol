@@ -32,6 +32,12 @@ Development workflows
    `examples/` thanks to subtrees. Keep in mind the official source of
    truth for SDKs is still the independent repo.
 
+  Note: some local folder names used in this workspace historically use the
+  `lnpm-` prefix (eg. `lnpm-protocol`) due to earlier typos. For clarity and
+  consistency prefer the canonical remote repo name `lnmplang/lnmp-protocol` in
+  docs and scripts, but feel free to keep your local folder name as-is — the
+  helper scripts in `scripts/` tolerate both local path names.
+
 ```toml
 [patch."https://github.com/lnmplang/lnmp-protocol.git"]
 lnmp-core = { path = "../lnpm-protocol/crates/lnmp-core" }
