@@ -1,0 +1,11 @@
+# Rust
+target/
+**/target/
+**/Cargo.lock
+.cargo/
+
+# Editor
+.vscode/
+
+# OS
+.DS_Store
