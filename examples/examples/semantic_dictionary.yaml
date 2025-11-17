@@ -1,0 +1,46 @@
+# Example semantic dictionary for LNMP v0.3
+# This file demonstrates the YAML format for semantic dictionaries
+
+fields:
+  # User identification
+  12:
+    name: user_id
+    type: integer
+  
+  # User status
+  7:
+    name: is_active
+    type: boolean
+    equivalences:
+      yes: "1"
+      true: "1"
+      no: "0"
+      false: "0"
+  
+  # User roles
+  23:
+    name: roles
+    type: string_array
+    equivalences:
+      admin: administrator
+      dev: developer
+      qa: quality_assurance
+  
+  # User name
+  1:
+    name: username
+    type: string
+  
+  # Email address
+  2:
+    name: email
+    type: string
+  
+  # Account type
+  50:
+    name: account_type
+    type: string
+    equivalences:
+      free: basic
+      premium: pro
+      enterprise: business

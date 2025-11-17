@@ -1,0 +1,78 @@
+[package]
+name = "lnmp-examples"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[example]]
+name = "type_hints"
+path = "type_hints.rs"
+
+[[example]]
+name = "strict_vs_loose"
+path = "strict_vs_loose.rs"
+
+[[example]]
+name = "deterministic_serialization"
+path = "deterministic_serialization.rs"
+
+[[example]]
+name = "semantic_checksums"
+path = "semantic_checksums.rs"
+
+[[example]]
+name = "nested_structures"
+path = "nested_structures.rs"
+
+[[example]]
+name = "structural_canonicalization"
+path = "structural_canonicalization.rs"
+
+[[example]]
+name = "explain_mode"
+path = "explain_mode.rs"
+
+[[example]]
+name = "shortform"
+path = "shortform.rs"
+
+[[example]]
+name = "binary_encoding"
+path = "binary_encoding.rs"
+
+[[example]]
+name = "binary_roundtrip"
+path = "binary_roundtrip.rs"
+
+[[example]]
+name = "llb2_demo"
+path = "llb2_demo.rs"
+
+[[example]]
+name = "v05_nested_binary"
+path = "v05_nested_binary.rs"
+
+[[example]]
+name = "v05_streaming"
+path = "v05_streaming.rs"
+
+[[example]]
+name = "v05_schema_negotiation"
+path = "v05_schema_negotiation.rs"
+
+[[example]]
+name = "v05_delta_encoding"
+path = "v05_delta_encoding.rs"
+
+[[example]]
+name = "v05_llb2_binary"
+path = "v05_llb2_binary.rs"
+
+[dependencies]
+# When `lnmp-examples` is checked out as a separate repository, use the
+# upstream protocol repository as a dependency source. By default we use the
+# `main` branch; for a consistent release experience change `branch` to a
+# released tag (eg. `tag = "v0.5.0"`).
+lnmp-core = { git = "https://github.com/lnmplang/lnmp.git", branch = "main", package = "lnmp-core" }
+lnmp-codec = { git = "https://github.com/lnmplang/lnmp.git", branch = "main", package = "lnmp-codec" }
+lnmp-llb = { git = "https://github.com/lnmplang/lnmp.git", branch = "main", package = "lnmp-llb" }
