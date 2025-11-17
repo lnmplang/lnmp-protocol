@@ -6,6 +6,7 @@ Available scripts:
 - `create-github-repos.sh` - uses `gh repo create` to create the `lnmplang` repos.
 - `push-to-github.sh` - initialize local git repo, commit, and push to provided slug.
 - `bootstrap-workspace.sh` - run quick local build/test across sibling repos.
+ - `subtree-sync.sh` - helper to add/pull/push external subtrees and simplify subtree sync workflow.
 
 Examples:
 
