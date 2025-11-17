@@ -10,16 +10,16 @@ if [ "${1:-}" = "--yes" ]; then
   DRY_RUN=0
 fi
 
-declare -A renames
-renames=(
-  ["lnpm-protocol"]="lnmp-protocol"
-  ["lnpm-mcp"]="lnmp-mcp"
-  ["lnmo-sdk-python"]="lnmp-sdk-python"
+RENAME_PAIRS=(
+  "lnpm-protocol:lnmp-protocol"
+  "lnpm-mcp:lnmp-mcp"
+  "lnmo-sdk-python:lnmp-sdk-python"
 )
 
 echo "Local rename operations (dry-run=${DRY_RUN}):"
-for old in "${!renames[@]}"; do
-  new=${renames[$old]}
+for pair in "${RENAME_PAIRS[@]}"; do
+  old=${pair%%:*}
+  new=${pair##*:}
   if [ -d "../$old" ] && [ ! -d "../$new" ]; then
     echo "Rename: ../$old -> ../$new"
     if [ "$DRY_RUN" -eq 0 ]; then

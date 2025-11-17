@@ -4,9 +4,12 @@ set -euo pipefail
 # Thin wrapper for `push-to-github.sh` at the top-level repo; it defaults to
 # pushing the `lnmplang/lnmp-examples` repo if not provided a slug.
 
-TOP_SCRIPT="../lnpm-protocol/scripts/push-to-github.sh"
-if [ ! -f "$TOP_SCRIPT" ]; then
-  echo "Top-level repo script $TOP_SCRIPT not found"
+if [ -f "../lnmp-protocol/scripts/push-to-github.sh" ]; then
+  TOP_SCRIPT="../lnmp-protocol/scripts/push-to-github.sh"
+elif [ -f "../lnpm-protocol/scripts/push-to-github.sh" ]; then
+  TOP_SCRIPT="../lnpm-protocol/scripts/push-to-github.sh"
+else
+  echo "Top-level repo script scripts/push-to-github.sh not found in ../lnmp-protocol or ../lnpm-protocol"
   exit 1
 fi
 

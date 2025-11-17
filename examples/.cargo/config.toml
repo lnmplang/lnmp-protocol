@@ -6,13 +6,13 @@
 # `lnpm-protocol` (older name), uncomment the alternative lines below.
 # Patch to redirect git dependencies to local path for development.
 [patch."https://github.com/lnmplang/lnmp-protocol.git"]
-lnmp-core = { path = "../lnpm-protocol/crates/lnmp-core" }
-lnmp-codec = { path = "../lnpm-protocol/crates/lnmp-codec" }
-lnmp-llb = { path = "../lnpm-protocol/crates/lnmp-llb" }
+lnmp-core = { path = "../lnmp-protocol/crates/lnmp-core" }
+lnmp-codec = { path = "../lnmp-protocol/crates/lnmp-codec" }
+lnmp-llb = { path = "../lnmp-protocol/crates/lnmp-llb" }
 
 # Alternate paths (if the local checkout uses the older folder name):
 # lnmp-core = { path = "../lnpm-protocol/crates/lnmp-core" }
-# lnmp-codec = { path = "../lnpm-protocol/crates/lnmp-codec" }
+# lnmp-codec = { path = "../lnmp-protocol/crates/lnmp-codec" }
 # lnmp-llb = { path = "../lnpm-protocol/crates/lnmp-llb" }
 
 # Example for CI: if using crates.io or git dependency you can remove this

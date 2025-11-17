@@ -40,9 +40,13 @@ Development workflows
 
 ```toml
 [patch."https://github.com/lnmplang/lnmp-protocol.git"]
-lnmp-core = { path = "../lnpm-protocol/crates/lnmp-core" }
-lnmp-codec = { path = "../lnpm-protocol/crates/lnmp-codec" }
-lnmp-llb = { path = "../lnpm-protocol/crates/lnmp-llb" }
+lnmp-core = { path = "../lnmp-protocol/crates/lnmp-core" }
+lnmp-codec = { path = "../lnmp-protocol/crates/lnmp-codec" }
+lnmp-llb = { path = "../lnmp-protocol/crates/lnmp-llb" }
+# If your local workspace still uses the older folder name, use:
+# lnmp-core = { path = "../lnpm-protocol/crates/lnmp-core" }
+# lnmp-codec = { path = "../lnpm-protocol/crates/lnmp-codec" }
+# lnmp-llb = { path = "../lnpm-protocol/crates/lnmp-llb" }
 ```
 2. CI should always use git or published crate dependencies. Prefer `tag` for
    reproducibility (eg. `v0.5.0`) instead of branch references.
