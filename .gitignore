@@ -1,3 +1,19 @@
+# Rust
+target/
+**/target/
+**/Cargo.lock
+**/Cargo.lock.old
+.cargo/
+**/*.rs.bk
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
 .kiro/
 target/
 *.log
