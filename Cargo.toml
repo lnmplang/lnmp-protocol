@@ -1,0 +1,12 @@
+[package]
+name = "lnmp-sdk-rust"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "lnmp_sdk_rust"
+path = "src/lib.rs"
+
+[dependencies]
+lnmp-core = { path = "../lnpm-protocol/crates/lnmp-core" }
