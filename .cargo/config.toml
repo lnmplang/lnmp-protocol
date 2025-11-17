@@ -1,0 +1,18 @@
+[patch.crates-io]
+# Local development override:
+# Use this file only if you have the `lnmp` repo checked out adjacent to
+# `lnmp-examples` (sibling folder) so `path` dependencies work for local dev
+# without having to publish crates. If your local checkout is named
+# `lnpm-protocol` (older name), uncomment the alternative lines below.
+[patch."https://github.com/lnmplang/lnmp.git"]
+lnmp-core = { path = "../lnpm-protocol/crates/lnmp-core" }
+lnmp-codec = { path = "../lnpm-protocol/crates/lnmp-codec" }
+lnmp-llb = { path = "../lnpm-protocol/crates/lnmp-llb" }
+
+# Alternate paths (if the local checkout uses the older folder name):
+# lnmp-core = { path = "../lnpm-protocol/crates/lnmp-core" }
+# lnmp-codec = { path = "../lnpm-protocol/crates/lnmp-codec" }
+# lnmp-llb = { path = "../lnpm-protocol/crates/lnmp-llb" }
+
+# Example for CI: if using crates.io or git dependency you can remove this
+# file or omit it in CI by not copying it.
