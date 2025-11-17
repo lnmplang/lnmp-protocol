@@ -1,3 +1,29 @@
+# Contributing to lnmp-protocol
+
+Thanks for your interest in contributing! This document highlights the
+important workflows and links to migration notes if you are upgrading from an
+older local workspace or have a copy with older folder names.
+
+Key links
+- `MIGRATION_NOTICE.md` — migration instructions and re-clone steps if the
+  repository history was rewritten or you have outdated folder names.
+- `REPO-STRUCTURE.md` — describes the mono-repo subtree layout and local dev
+  tips (how to use `scripts/use-local.sh`, .cargo patch, etc.)
+
+Development
+- Use `./scripts/bootstrap-workspace.sh` to run a basic build and test of the
+  repository and sibling SDKs.
+- To use the new pre-commit hook,
+  - install it with `ln -sf ../../scripts/pre-commit.sh .git/hooks/pre-commit` or configure `pre-commit` if you use that tool.
+
+Subtrees
+- Subtrees are maintained independently and imported into this monorepo for
+  convenience; maintainers should push releases from the upstream SDKs.
+- To update subtrees in this monorepo, use `scripts/subtree-sync.sh` or the
+  `Subtree Sync` GitHub Action which can be run manually.
+
+If you run into any problems, open an issue and include the steps you took and
+the error messages.
 # Contributing to lnmp
 
 Thanks for contributing! Below are the guidelines for contribution and daily
