@@ -40,10 +40,7 @@ impl PromptOptimizer {
     }
 
     /// Creates a new prompt optimizer with default configuration
-    pub fn default() -> Self {
-        Self::new(PromptOptConfig::default())
-    }
-
+    /// This is available through the `Default` trait implementation.
     /// Optimizes field encoding for tokenization efficiency
     ///
     /// This method applies various optimization strategies based on the configuration:
@@ -160,6 +157,12 @@ impl PromptOptimizer {
     }
 }
 
+impl Default for PromptOptimizer {
+    fn default() -> Self {
+        Self::new(PromptOptConfig::default())
+    }
+}
+
 /// Checks if a string needs quotes in LNMP format
 ///
 /// A string needs quotes if it:
@@ -209,7 +212,7 @@ fn escape_string(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lnmp_core::FieldId;
+    // FieldId import removed - not required in these tests
 
     #[test]
     fn test_optimize_field_int() {

@@ -1,4 +1,5 @@
 //! Rust compliance test runner for LNMP v0.3
+#![allow(dead_code)]
 //!
 //! This module loads test cases from `test-cases.yaml` and executes them
 //! against the Rust LNMP implementation, reporting pass/fail with detailed
@@ -13,7 +14,7 @@ use std::fs;
 use std::path::Path;
 
 /// Test case configuration options
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct TestConfig {
     #[serde(default)]
     pub normalize_values: bool,
@@ -29,18 +30,7 @@ pub struct TestConfig {
     pub equivalence_mapping: Option<HashMap<u16, HashMap<String, String>>>,
 }
 
-impl Default for TestConfig {
-    fn default() -> Self {
-        Self {
-            normalize_values: false,
-            validate_checksums: false,
-            strict_mode: false,
-            preserve_checksums: false,
-            max_nesting_depth: None,
-            equivalence_mapping: None,
-        }
-    }
-}
+// Default is derived via `Default` trait derived on struct
 
 /// Expected field structure in test cases
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -227,7 +217,7 @@ impl TestRunner {
             let mut mapper = EquivalenceMapper::new();
             for (fid_u16, mappings) in equiv_map.iter() {
                 for (from, to) in mappings.iter() {
-                    mapper.add_mapping(*fid_u16 as u16, from.clone(), to.clone());
+                    mapper.add_mapping(*fid_u16, from.clone(), to.clone());
                 }
             }
             Self::apply_equivalence_mapping_to_record(&mut record, &mapper);
@@ -520,7 +510,7 @@ impl TestRunner {
                         .ok_or_else(|| "Expected value is not a record".to_string())?;
                     
                     let expected_fields_value = expected_record
-                        .get(&serde_yaml::Value::String("fields".to_string()))
+                        .get(serde_yaml::Value::String("fields".to_string()))
                         .ok_or_else(|| "Expected record has no 'fields' key".to_string())?;
                     
                     let expected_fields: Vec<ExpectedField> = serde_yaml::from_value(expected_fields_value.clone())
@@ -557,7 +547,7 @@ impl TestRunner {
                             .ok_or_else(|| format!("Array element {} is not a record", i))?;
                         
                         let expected_fields_value = expected_mapping
-                            .get(&serde_yaml::Value::String("fields".to_string()))
+                            .get(serde_yaml::Value::String("fields".to_string()))
                             .ok_or_else(|| format!("Array element {} has no 'fields' key", i))?;
                         
                         let expected_fields: Vec<ExpectedField> = serde_yaml::from_value(expected_fields_value.clone())

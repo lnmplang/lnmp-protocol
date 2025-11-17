@@ -165,6 +165,12 @@ impl BinaryEncoder {
         Self { config }
     }
 
+    /// Sets delta mode on the encoder instance in a fluent interface style.
+    pub fn with_delta_mode(mut self, enable: bool) -> Self {
+        self.config.delta_mode = enable;
+        self
+    }
+
     /// Encodes an LnmpRecord to binary format
     ///
     /// The encoder will:

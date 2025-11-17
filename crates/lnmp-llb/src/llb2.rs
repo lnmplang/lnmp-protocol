@@ -1,5 +1,4 @@
 //! LNMP LLM Optimization Layer v2 (LLB2)
-//!
 //! This module provides advanced optimization strategies for LLM contexts in LNMP v0.5,
 //! including format conversions, nested structure flattening, semantic hints, and
 //! collision-safe ID generation.
@@ -10,7 +9,7 @@ use lnmp_codec::{LnmpError, Parser};
 use std::collections::HashMap;
 
 /// Configuration for LLB2 optimization features
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct LlbConfig {
     /// Enable nested structure flattening using dot notation
     pub enable_flattening: bool,
@@ -45,15 +44,7 @@ impl LlbConfig {
     }
 }
 
-impl Default for LlbConfig {
-    fn default() -> Self {
-        Self {
-            enable_flattening: false,
-            enable_semantic_hints: false,
-            collision_safe_ids: false,
-        }
-    }
-}
+// Default is provided by the derive attribute above.
 
 /// Error types for LLB2 operations
 #[derive(Debug, Clone, PartialEq)]
@@ -110,12 +101,7 @@ impl LlbConverter {
     }
 
     /// Creates a new LlbConverter with default configuration
-    pub fn default() -> Self {
-        Self {
-            config: LlbConfig::default(),
-        }
-    }
-
+    /// This is available through the `Default` trait implementation.
     /// Converts binary format to ShortForm text representation
     ///
     /// ShortForm omits the 'F' prefix for extreme token reduction:
@@ -258,10 +244,10 @@ impl LlbConverter {
         // Simple regex-like replacement: add 'F' before field IDs
         // This handles patterns like "12=" and converts to "F12="
         let mut result = String::new();
-        let mut chars = shortform.chars().peekable();
+        let chars = shortform.chars();
         let mut at_field_start = true;
 
-        while let Some(ch) = chars.next() {
+        for ch in chars {
             if at_field_start && ch.is_ascii_digit() {
                 // Start of a field ID, add 'F' prefix
                 result.push('F');
@@ -394,7 +380,7 @@ impl LlbConverter {
         for field in flat.fields() {
             // Simple heuristic: if FID > 1000, it's likely a flattened field
             if field.fid >= 1000 {
-                let base_fid = (field.fid / 1000) as u16;
+                let base_fid = field.fid / 1000;
                 
                 // Try to find or create a nested record for this base FID
                 if let Some(_existing) = unflattened.get_field(base_fid) {
@@ -403,7 +389,7 @@ impl LlbConverter {
                 } else {
                     // Create a new nested record
                     let mut nested = LnmpRecord::new();
-                    let nested_fid = (field.fid % 1000) as u16;
+                    let nested_fid = field.fid % 1000;
                     nested.add_field(LnmpField {
                         fid: nested_fid,
                         value: field.value.clone(),
@@ -549,7 +535,7 @@ impl LlbConverter {
             
             // Check for collisions
             reverse_map.entry(short_id.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(name.clone());
             
             id_map.insert(name.clone(), short_id);
@@ -617,6 +603,12 @@ impl LlbConverter {
         }
         
         id_map
+    }
+}
+
+impl Default for LlbConverter {
+    fn default() -> Self {
+        Self::new(LlbConfig::default())
     }
 }
 

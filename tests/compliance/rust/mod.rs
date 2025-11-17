@@ -5,6 +5,7 @@
 
 mod runner;
 
+#[allow(unused_imports)]
 use runner::{TestRunner, TestSuite};
 
 #[test]

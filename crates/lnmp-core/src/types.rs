@@ -130,6 +130,15 @@ impl TypeHint {
         }
     }
 
+    /// Deprecated wrapper for backwards compatibility with older API.
+    ///
+    /// Use `TypeHint::parse(s)` or `str::parse::<TypeHint>(s)` instead.
+    #[allow(clippy::should_implement_trait)]
+    #[deprecated(note = "TypeHint::from_str is deprecated; use TypeHint::parse() or str::parse::<TypeHint>()")]
+    pub fn from_str(s: &str) -> Option<Self> {
+        Self::parse(s)
+    }
+
     /// Validates that a value matches this type hint
     pub fn validates(&self, value: &LnmpValue) -> bool {
         matches!((self, value),
