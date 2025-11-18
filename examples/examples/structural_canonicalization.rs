@@ -30,7 +30,7 @@ fn main() {
 
     println!("Before canonicalization (insertion order):");
     println!("  FID 100, FID 5, FID 50");
-    
+
     let canonical1 = canonicalize_record(&record1);
     println!("\nAfter canonicalization (sorted by FID):");
     for field in canonical1.fields() {
@@ -122,8 +122,16 @@ fn main() {
     let canonical3 = canonicalize_record(&outer_with_array);
     if let LnmpValue::NestedArray(arr) = &canonical3.fields()[0].value {
         println!("\nAfter canonicalization:");
-        println!("  Array element 1: FID {}, FID {}", arr[0].fields()[0].fid, arr[0].fields()[1].fid);
-        println!("  Array element 2: FID {}, FID {}", arr[1].fields()[0].fid, arr[1].fields()[1].fid);
+        println!(
+            "  Array element 1: FID {}, FID {}",
+            arr[0].fields()[0].fid,
+            arr[0].fields()[1].fid
+        );
+        println!(
+            "  Array element 2: FID {}, FID {}",
+            arr[1].fields()[0].fid,
+            arr[1].fields()[1].fid
+        );
     }
 
     // Example 4: Idempotency
@@ -142,9 +150,26 @@ fn main() {
     let canonical_once = canonicalize_record(&record4);
     let canonical_twice = canonicalize_record(&canonical_once);
 
-    println!("Canonicalizing once: {:?}", canonical_once.fields().iter().map(|f| f.fid).collect::<Vec<_>>());
-    println!("Canonicalizing twice: {:?}", canonical_twice.fields().iter().map(|f| f.fid).collect::<Vec<_>>());
-    println!("Results are identical: {}", canonical_once == canonical_twice);
+    println!(
+        "Canonicalizing once: {:?}",
+        canonical_once
+            .fields()
+            .iter()
+            .map(|f| f.fid)
+            .collect::<Vec<_>>()
+    );
+    println!(
+        "Canonicalizing twice: {:?}",
+        canonical_twice
+            .fields()
+            .iter()
+            .map(|f| f.fid)
+            .collect::<Vec<_>>()
+    );
+    println!(
+        "Results are identical: {}",
+        canonical_once == canonical_twice
+    );
 
     println!("\n=== Canonicalization ensures deterministic encoding ===");
     println!("All nested structures are sorted depth-first by FID");

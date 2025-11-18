@@ -12,5 +12,6 @@ categories = ["encoding", "parser-implementations"]
 [dependencies]
 lnmp-core = { path = "../lnmp-core" }
 lnmp-codec = { path = "../lnmp-codec" }
+lnmp-sfe = { path = "../lnmp-sfe" }
 
 [dev-dependencies]

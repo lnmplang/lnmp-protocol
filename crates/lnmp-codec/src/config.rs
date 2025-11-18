@@ -3,6 +3,8 @@
 use crate::equivalence::EquivalenceMapper;
 use crate::normalizer::NormalizationConfig;
 
+use lnmp_core::StructuralLimits;
+
 /// Parsing mode configuration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ParsingMode {
@@ -15,8 +17,17 @@ pub enum ParsingMode {
 
 // Default implementation derived via #[derive(Default)] on the enum
 
+/// Controls how text input is pre-processed before strict parsing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TextInputMode {
+    /// Do not alter text, return errors on malformed inputs.
+    Strict,
+    /// Run text through the lenient sanitizer before strict parsing.
+    Lenient,
+}
+
 /// Parser configuration
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct ParserConfig {
     /// Parsing mode (strict or loose)
     pub mode: ParsingMode,
@@ -28,6 +39,12 @@ pub struct ParserConfig {
     pub require_checksums: bool,
     /// Optional maximum nesting depth; if None, no limit is enforced
     pub max_nesting_depth: Option<usize>,
+    /// How to handle incoming text before lexing/parsing
+    pub text_input_mode: TextInputMode,
+    /// Optional structural limits (depth/field counts/string lengths)
+    pub structural_limits: Option<StructuralLimits>,
+    /// Optional semantic dictionary for equivalence normalization
+    pub semantic_dictionary: Option<lnmp_sfe::SemanticDictionary>,
 }
 
 impl Default for ParserConfig {
@@ -38,7 +55,24 @@ impl Default for ParserConfig {
             normalize_values: true,
             require_checksums: false,
             max_nesting_depth: None,
+            text_input_mode: TextInputMode::Strict,
+            structural_limits: None,
+            semantic_dictionary: None,
         }
+    }
+}
+
+impl ParserConfig {
+    /// Applies structural limits to the parser.
+    pub fn with_structural_limits(mut self, limits: StructuralLimits) -> Self {
+        self.structural_limits = Some(limits);
+        self
+    }
+
+    /// Attaches a semantic dictionary for equivalence normalization.
+    pub fn with_semantic_dictionary(mut self, dict: lnmp_sfe::SemanticDictionary) -> Self {
+        self.semantic_dictionary = Some(dict);
+        self
     }
 }
 
@@ -72,6 +106,8 @@ pub struct EncoderConfig {
     pub normalization_config: NormalizationConfig,
     /// Semantic equivalence mapper (v0.3 feature)
     pub equivalence_mapper: Option<EquivalenceMapper>,
+    /// Optional semantic dictionary for value normalization
+    pub semantic_dictionary: Option<lnmp_sfe::SemanticDictionary>,
 }
 
 impl Default for EncoderConfig {
@@ -84,6 +120,7 @@ impl Default for EncoderConfig {
             prompt_optimization: PromptOptimizationConfig::default(),
             normalization_config: NormalizationConfig::default(),
             equivalence_mapper: None,
+            semantic_dictionary: None,
         }
     }
 }
@@ -121,6 +158,12 @@ impl EncoderConfig {
     /// Sets semantic equivalence mapper
     pub fn with_equivalence_mapper(mut self, mapper: EquivalenceMapper) -> Self {
         self.equivalence_mapper = Some(mapper);
+        self
+    }
+
+    /// Attaches a semantic dictionary for normalization.
+    pub fn with_semantic_dictionary(mut self, dict: lnmp_sfe::SemanticDictionary) -> Self {
+        self.semantic_dictionary = Some(dict);
         self
     }
 
@@ -194,14 +237,18 @@ mod tests {
     #[test]
     fn test_encoder_config_with_normalization() {
         use crate::normalizer::StringCaseRule;
-        
+
         let norm_config = NormalizationConfig {
             string_case: StringCaseRule::Lower,
             float_precision: Some(2),
             remove_trailing_zeros: true,
+            semantic_dictionary: None,
         };
         let config = EncoderConfig::new().with_normalization(norm_config.clone());
-        assert_eq!(config.normalization_config.string_case, StringCaseRule::Lower);
+        assert_eq!(
+            config.normalization_config.string_case,
+            StringCaseRule::Lower
+        );
         assert_eq!(config.normalization_config.float_precision, Some(2));
         assert!(config.normalization_config.remove_trailing_zeros);
     }
@@ -210,10 +257,10 @@ mod tests {
     fn test_encoder_config_with_equivalence_mapper() {
         let mut mapper = EquivalenceMapper::new();
         mapper.add_mapping(7, "yes".to_string(), "1".to_string());
-        
+
         let config = EncoderConfig::new().with_equivalence_mapper(mapper);
         assert!(config.equivalence_mapper.is_some());
-        
+
         let mapper_ref = config.equivalence_mapper.as_ref().unwrap();
         assert_eq!(mapper_ref.map(7, "yes"), Some("1".to_string()));
     }
@@ -234,13 +281,13 @@ mod tests {
     fn test_encoder_config_builder_chain() {
         let mut mapper = EquivalenceMapper::new();
         mapper.add_mapping(7, "yes".to_string(), "1".to_string());
-        
+
         let config = EncoderConfig::new()
             .with_checksums(true)
             .with_explain_mode(true)
             .with_type_hints(true)
             .with_equivalence_mapper(mapper);
-        
+
         assert!(config.enable_checksums);
         assert!(config.enable_explain_mode);
         assert!(config.include_type_hints);
@@ -262,6 +309,8 @@ mod tests {
         assert!(!config.validate_checksums);
         assert!(!config.require_checksums);
         assert!(config.max_nesting_depth.is_none());
+        assert_eq!(config.text_input_mode, TextInputMode::Strict);
+        assert!(config.structural_limits.is_none());
     }
 
     #[test]
@@ -272,6 +321,9 @@ mod tests {
             normalize_values: false,
             require_checksums: false,
             max_nesting_depth: None,
+            text_input_mode: TextInputMode::Strict,
+            structural_limits: None,
+            semantic_dictionary: None,
         };
         assert_eq!(config.mode, ParsingMode::Strict);
         assert!(config.validate_checksums);
@@ -286,8 +338,24 @@ mod tests {
             normalize_values: false,
             require_checksums: true,
             max_nesting_depth: None,
+            text_input_mode: TextInputMode::Strict,
+            structural_limits: None,
+            semantic_dictionary: None,
         };
         assert!(config.validate_checksums);
         assert!(config.require_checksums);
+    }
+
+    #[test]
+    fn test_parser_config_with_structural_limits() {
+        let limits = StructuralLimits {
+            max_fields: 2,
+            ..Default::default()
+        };
+        let config = ParserConfig::default().with_structural_limits(limits.clone());
+        assert_eq!(
+            config.structural_limits.unwrap().max_fields,
+            limits.max_fields
+        );
     }
 }

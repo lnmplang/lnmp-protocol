@@ -8,11 +8,10 @@
 //! - Backward compatibility
 
 use lnmp_codec::binary::{
-    BinaryDecoder, BinaryEncoder, BinaryNestedDecoder, BinaryNestedEncoder, DecoderConfig,
-    DeltaConfig, DeltaDecoder, DeltaEncoder, DeltaOperation, EncoderConfig,
-    NestedDecoderConfig, NestedEncoderConfig, SchemaNegotiator, StreamingConfig,
-    StreamingDecoder, StreamingEncoder, StreamingEvent, Capabilities, FeatureFlags, TypeTag,
-    NegotiationResponse,
+    BinaryDecoder, BinaryEncoder, BinaryNestedDecoder, BinaryNestedEncoder, Capabilities,
+    DecoderConfig, DeltaConfig, DeltaDecoder, DeltaEncoder, DeltaOperation, EncoderConfig,
+    FeatureFlags, NegotiationResponse, NestedDecoderConfig, NestedEncoderConfig, SchemaNegotiator,
+    StreamingConfig, StreamingDecoder, StreamingEncoder, StreamingEvent, TypeTag,
 };
 use lnmp_codec::{Encoder, Parser};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
@@ -455,9 +454,7 @@ fn test_streaming_error_recovery() {
     let begin_frame = streaming_encoder.begin_stream().unwrap();
 
     // Send error frame
-    let error_frame = streaming_encoder
-        .error_frame("Simulated error")
-        .unwrap();
+    let error_frame = streaming_encoder.error_frame("Simulated error").unwrap();
 
     // Decoder should handle error
     let mut streaming_decoder = StreamingDecoder::with_config(config);
@@ -636,7 +633,7 @@ fn test_successful_client_server_negotiation() {
             // May also be SendMessage if more steps needed
         }
     }
-    
+
     // At least one party should be ready or in a valid negotiation state
     // The exact final state depends on the negotiation protocol implementation
 }
@@ -665,18 +662,21 @@ fn test_negotiation_with_fid_mappings() {
 
     // Initiate negotiation
     let _client_msg_bytes = client_negotiator.initiate().unwrap();
-    
+
     // Create message
     let client_msg = lnmp_codec::binary::NegotiationMessage::Capabilities {
         version: caps.version,
         features: caps.features.clone(),
         supported_types: caps.supported_types.clone(),
     };
-    
+
     let server_response = server_negotiator.handle_message(client_msg).unwrap();
 
     // Should succeed with matching mappings
-    assert!(matches!(server_response, NegotiationResponse::SendMessage(_)));
+    assert!(matches!(
+        server_response,
+        NegotiationResponse::SendMessage(_)
+    ));
 }
 
 #[test]
@@ -715,7 +715,7 @@ fn test_negotiation_version_mismatch() {
         features: client_caps.features,
         supported_types: client_caps.supported_types,
     };
-    
+
     let result = server_negotiator.handle_message(client_msg);
 
     // Should handle version mismatch gracefully
@@ -765,31 +765,31 @@ fn test_negotiation_feature_intersection() {
 
     // Client initiates
     let _client_init = client_negotiator.initiate().unwrap();
-    
+
     let client_msg = lnmp_codec::binary::NegotiationMessage::Capabilities {
         version: client_caps.version,
         features: client_caps.features.clone(),
         supported_types: client_caps.supported_types.clone(),
     };
-    
+
     let server_response = server_negotiator.handle_message(client_msg).unwrap();
     let server_msg = match server_response {
         NegotiationResponse::SendMessage(msg) => msg,
         _ => panic!("Expected SendMessage"),
     };
-    
+
     let client_response = client_negotiator.handle_message(server_msg).unwrap();
     let client_msg2 = match client_response {
         NegotiationResponse::SendMessage(msg) => msg,
         _ => panic!("Expected SendMessage"),
     };
-    
+
     let server_final = server_negotiator.handle_message(client_msg2).unwrap();
     let final_msg = match server_final {
         NegotiationResponse::SendMessage(msg) => msg,
         _ => panic!("Expected SendMessage"),
     };
-    
+
     let _client_final = client_negotiator.handle_message(final_msg).unwrap();
 
     // Negotiation should complete successfully
@@ -864,7 +864,10 @@ fn test_incremental_record_updates() {
         result_record.get_field(2).unwrap().value,
         LnmpValue::String("modified".to_string())
     );
-    assert_eq!(result_record.get_field(4).unwrap().value, LnmpValue::Int(42));
+    assert_eq!(
+        result_record.get_field(4).unwrap().value,
+        LnmpValue::Int(42)
+    );
 }
 
 #[test]
@@ -982,7 +985,8 @@ fn test_delta_bandwidth_savings() {
     let delta_binary = delta_encoder.encode_delta(&delta_ops).unwrap();
 
     // Delta should be significantly smaller
-    let savings_percent = ((full_binary.len() - delta_binary.len()) as f64 / full_binary.len() as f64) * 100.0;
+    let savings_percent =
+        ((full_binary.len() - delta_binary.len()) as f64 / full_binary.len() as f64) * 100.0;
     println!(
         "Full: {} bytes, Delta: {} bytes, Savings: {:.1}%",
         full_binary.len(),
@@ -1099,7 +1103,10 @@ fn test_delta_multiple_operations() {
         .unwrap();
 
     // Verify all changes
-    assert_eq!(result_record.get_field(1).unwrap().value, LnmpValue::Int(100));
+    assert_eq!(
+        result_record.get_field(1).unwrap().value,
+        LnmpValue::Int(100)
+    );
     assert_eq!(
         result_record.get_field(2).unwrap().value,
         LnmpValue::String("new".to_string())
@@ -1184,10 +1191,7 @@ fn test_v04_encoder_v05_decoder() {
     // Should decode successfully
     assert_eq!(decoded.fields().len(), 3);
     assert_eq!(decoded.get_field(7).unwrap().value, LnmpValue::Bool(true));
-    assert_eq!(
-        decoded.get_field(12).unwrap().value,
-        LnmpValue::Int(14532)
-    );
+    assert_eq!(decoded.get_field(12).unwrap().value, LnmpValue::Int(14532));
 }
 
 #[test]
@@ -1259,7 +1263,7 @@ fn test_semantic_equivalence_across_versions() {
     // Both decoders should produce semantically equivalent results
     assert_eq!(v04_decoded.fields().len(), 5);
     assert_eq!(v05_decoded.fields().len(), 5);
-    
+
     // Verify v0.4 decoded values
     assert_eq!(v04_decoded.get_field(1).unwrap().value, LnmpValue::Int(-42));
     assert_eq!(
@@ -1274,7 +1278,7 @@ fn test_semantic_equivalence_across_versions() {
         v04_decoded.get_field(4).unwrap().value,
         LnmpValue::String("test\ndata".to_string())
     );
-    
+
     // Verify v0.5 decoded values match
     assert_eq!(v05_decoded.get_field(1).unwrap().value, LnmpValue::Int(-42));
     assert_eq!(

@@ -4,6 +4,7 @@
 //! inline comments with field names and descriptions.
 
 use lnmp_core::{FieldId, LnmpField, LnmpRecord, LnmpValue, TypeHint};
+use lnmp_sfe;
 use std::collections::HashMap;
 
 /// Semantic dictionary for field name mappings
@@ -115,6 +116,16 @@ impl ExplainEncoder {
         }
     }
 
+    /// Creates an explain encoder from an SFE semantic dictionary.
+    /// This copies only the field name mappings.
+    pub fn from_sfe_dictionary(dict: &lnmp_sfe::SemanticDictionary) -> Self {
+        let mut local = SemanticDictionary::new();
+        for (fid, name) in dict.field_name_entries() {
+            local.add_field_name(fid, name.to_string());
+        }
+        Self::new(local)
+    }
+
     /// Sets whether to include type hints in the output
     ///
     /// Default is `true`.
@@ -175,7 +186,7 @@ impl ExplainEncoder {
     pub fn encode_with_explanation(&self, record: &LnmpRecord) -> String {
         // Canonicalize the record (sort fields)
         let canonical = self.canonicalize_record(record);
-        
+
         let lines: Vec<String> = canonical
             .fields()
             .iter()
@@ -188,7 +199,7 @@ impl ExplainEncoder {
     /// Encodes a single field with explanation
     fn encode_field_with_explanation(&self, field: &LnmpField) -> String {
         let base = self.encode_field(field);
-        
+
         // Add comment if field name is available
         if let Some(field_name) = self.dictionary.get_field_name(field.fid) {
             // Calculate padding to align comment
@@ -197,7 +208,7 @@ impl ExplainEncoder {
             } else {
                 2 // Minimum 2 spaces before comment
             };
-            
+
             format!("{}{}# {}", base, " ".repeat(padding), field_name)
         } else {
             base
@@ -357,11 +368,8 @@ mod tests {
 
     #[test]
     fn test_semantic_dictionary_from_pairs() {
-        let dict = SemanticDictionary::from_pairs(vec![
-            (12, "user_id"),
-            (7, "is_active"),
-            (23, "roles"),
-        ]);
+        let dict =
+            SemanticDictionary::from_pairs(vec![(12, "user_id"), (7, "is_active"), (23, "roles")]);
 
         assert_eq!(dict.get_field_name(12), Some("user_id"));
         assert_eq!(dict.get_field_name(7), Some("is_active"));
@@ -400,11 +408,8 @@ mod tests {
             value: LnmpValue::StringArray(vec!["admin".to_string(), "dev".to_string()]),
         });
 
-        let dict = SemanticDictionary::from_pairs(vec![
-            (12, "user_id"),
-            (7, "is_active"),
-            (23, "roles"),
-        ]);
+        let dict =
+            SemanticDictionary::from_pairs(vec![(12, "user_id"), (7, "is_active"), (23, "roles")]);
 
         let encoder = ExplainEncoder::new(dict);
         let output = encoder.encode_with_explanation(&record);
@@ -412,15 +417,15 @@ mod tests {
         // Fields should be sorted by FID
         let lines: Vec<&str> = output.lines().collect();
         assert_eq!(lines.len(), 3);
-        
+
         // F7 should come first
         assert!(lines[0].contains("F7:b=1"));
         assert!(lines[0].contains("# is_active"));
-        
+
         // F12 should come second
         assert!(lines[1].contains("F12:i=14532"));
         assert!(lines[1].contains("# user_id"));
-        
+
         // F23 should come third
         assert!(lines[2].contains("F23:sa=[admin,dev]"));
         assert!(lines[2].contains("# roles"));
@@ -461,11 +466,11 @@ mod tests {
 
         let lines: Vec<&str> = output.lines().collect();
         assert_eq!(lines.len(), 2);
-        
+
         // F12 should have comment
         assert!(lines[0].contains("F12:i=14532"));
         assert!(lines[0].contains("# user_id"));
-        
+
         // F99 should not have comment
         assert!(lines[1].contains("F99:i=42"));
         assert!(!lines[1].contains("#"));
@@ -483,20 +488,17 @@ mod tests {
             value: LnmpValue::Int(14532),
         });
 
-        let dict = SemanticDictionary::from_pairs(vec![
-            (1, "id"),
-            (12, "user_id"),
-        ]);
+        let dict = SemanticDictionary::from_pairs(vec![(1, "id"), (12, "user_id")]);
 
         let encoder = ExplainEncoder::new(dict);
         let output = encoder.encode_with_explanation(&record);
 
         let lines: Vec<&str> = output.lines().collect();
-        
+
         // Both comments should be aligned at the same column
         let comment_pos_1 = lines[0].find('#').unwrap();
         let comment_pos_2 = lines[1].find('#').unwrap();
-        
+
         // Comments should be at or near the same position
         // (allowing for minimum spacing)
         assert!(comment_pos_1 >= 20 || comment_pos_2 >= 20);
@@ -516,6 +518,22 @@ mod tests {
 
         let comment_pos = output.find('#').unwrap();
         assert!(comment_pos >= 30);
+    }
+
+    #[test]
+    fn test_explain_encoder_from_sfe_dictionary() {
+        let mut record = LnmpRecord::new();
+        record.add_field(LnmpField {
+            fid: 7,
+            value: LnmpValue::Bool(true),
+        });
+
+        let mut sfe_dict = lnmp_sfe::SemanticDictionary::new();
+        sfe_dict.add_field_name(7, "is_active".to_string());
+
+        let encoder = ExplainEncoder::from_sfe_dictionary(&sfe_dict);
+        let output = encoder.encode_with_explanation(&record);
+        assert!(output.contains("is_active"));
     }
 
     #[test]
@@ -662,18 +680,15 @@ mod tests {
             value: LnmpValue::Int(2),
         });
 
-        let dict = SemanticDictionary::from_pairs(vec![
-            (5, "first"),
-            (50, "second"),
-            (100, "third"),
-        ]);
+        let dict =
+            SemanticDictionary::from_pairs(vec![(5, "first"), (50, "second"), (100, "third")]);
 
         let encoder = ExplainEncoder::new(dict);
         let output = encoder.encode_with_explanation(&record);
 
         let lines: Vec<&str> = output.lines().collect();
         assert_eq!(lines.len(), 3);
-        
+
         // Should be sorted by FID
         assert!(lines[0].contains("F5:i=1"));
         assert!(lines[1].contains("F50:i=2"));

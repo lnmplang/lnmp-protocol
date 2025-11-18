@@ -8,7 +8,7 @@
 //! - Collision-safe ID generation for binary fields
 //! - Round-trip conversions maintaining semantic equivalence
 
-use lnmp_codec::binary::{BinaryEncoder, BinaryDecoder, BinaryNestedEncoder, NestedEncoderConfig};
+use lnmp_codec::binary::{BinaryDecoder, BinaryEncoder, BinaryNestedEncoder, NestedEncoderConfig};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 use lnmp_llb::{LlbConfig, LlbConverter};
 use std::collections::HashMap;
@@ -78,8 +78,10 @@ fn binary_to_shortform() {
     let standard_text = "F7=1;F12=14532;F23=[admin,dev]";
     println!("   Standard LNMP: {} chars", standard_text.len());
     println!("   ShortForm: {} chars", shortform.len());
-    println!("   Savings: ~{:.1}%", 
-             (1.0 - shortform.len() as f64 / standard_text.len() as f64) * 100.0);
+    println!(
+        "   Savings: ~{:.1}%",
+        (1.0 - shortform.len() as f64 / standard_text.len() as f64) * 100.0
+    );
 }
 
 fn binary_to_fulltext() {
@@ -160,8 +162,11 @@ fn flatten_nested_binary() {
     // Unflatten back to original structure
     let unflattened = converter.unflatten(&flattened).unwrap();
     println!("   ✓ Unflattened back to original structure");
-    println!("   Original fields: {}, Unflattened fields: {}", 
-             user.fields().len(), unflattened.fields().len());
+    println!(
+        "   Original fields: {}, Unflattened fields: {}",
+        user.fields().len(),
+        unflattened.fields().len()
+    );
 }
 
 fn semantic_hints_binary() {
@@ -320,8 +325,10 @@ fn complete_workflow() {
     println!("     Original text: {} chars", original_text.len());
     println!("     Binary: {} bytes", binary.len());
     println!("     ShortForm: {} chars", shortform.len());
-    println!("     Token savings: ~{:.1}%", 
-             (1.0 - shortform.len() as f64 / original_text.len() as f64) * 100.0);
+    println!(
+        "     Token savings: ~{:.1}%",
+        (1.0 - shortform.len() as f64 / original_text.len() as f64) * 100.0
+    );
     println!();
 
     println!("   ✓ Workflow complete: Optimal LLM representation achieved");

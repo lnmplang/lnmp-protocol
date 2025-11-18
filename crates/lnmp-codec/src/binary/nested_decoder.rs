@@ -3,10 +3,10 @@
 //! This module provides decoding support for nested records and arrays in the binary format.
 //! It implements recursive decoding with depth validation to prevent stack overflow attacks.
 
-use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 use super::error::BinaryError;
 use super::types::TypeTag;
 use super::varint;
+use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 
 /// Configuration for nested structure decoding (v0.5)
 #[derive(Debug, Clone)]
@@ -254,9 +254,8 @@ impl BinaryNestedDecoder {
                 }
 
                 let string_bytes = &bytes[offset..offset + length];
-                let value = String::from_utf8(string_bytes.to_vec()).map_err(|_| {
-                    BinaryError::InvalidUtf8 { field_id: 0 }
-                })?;
+                let value = String::from_utf8(string_bytes.to_vec())
+                    .map_err(|_| BinaryError::InvalidUtf8 { field_id: 0 })?;
                 offset += length;
                 Ok((LnmpValue::String(value), offset))
             }
@@ -297,9 +296,8 @@ impl BinaryNestedDecoder {
                     }
 
                     let string_bytes = &bytes[offset..offset + length];
-                    let string = String::from_utf8(string_bytes.to_vec()).map_err(|_| {
-                        BinaryError::InvalidUtf8 { field_id: 0 }
-                    })?;
+                    let string = String::from_utf8(string_bytes.to_vec())
+                        .map_err(|_| BinaryError::InvalidUtf8 { field_id: 0 })?;
                     offset += length;
                     array.push(string);
                 }
@@ -314,7 +312,8 @@ impl BinaryNestedDecoder {
 
                 // Recursively decode nested record (offset already advanced past tag)
                 // Increment depth when entering a nested record
-                let (record, consumed) = self.decode_nested_record_with_depth(&bytes[offset - 1..], current_depth + 1)?;
+                let (record, consumed) =
+                    self.decode_nested_record_with_depth(&bytes[offset - 1..], current_depth + 1)?;
                 // Subtract 1 because we already consumed the tag byte
                 offset += consumed - 1;
                 Ok((LnmpValue::NestedRecord(Box::new(record)), offset))
@@ -327,7 +326,8 @@ impl BinaryNestedDecoder {
 
                 // Recursively decode nested array (offset already advanced past tag)
                 // Increment depth when entering a nested array
-                let (records, consumed) = self.decode_nested_array_with_depth(&bytes[offset - 1..], current_depth + 1)?;
+                let (records, consumed) =
+                    self.decode_nested_array_with_depth(&bytes[offset - 1..], current_depth + 1)?;
                 // Subtract 1 because we already consumed the tag byte
                 offset += consumed - 1;
                 Ok((LnmpValue::NestedArray(records), offset))
@@ -360,7 +360,10 @@ impl BinaryNestedDecoder {
     /// - Nesting depth exceeds configured maximum
     /// - Binary data is malformed
     /// - TAG byte is not 0x07
-    pub fn decode_nested_array(&self, bytes: &[u8]) -> Result<(Vec<LnmpRecord>, usize), BinaryError> {
+    pub fn decode_nested_array(
+        &self,
+        bytes: &[u8],
+    ) -> Result<(Vec<LnmpRecord>, usize), BinaryError> {
         self.decode_nested_array_with_depth(bytes, 0)
     }
 
@@ -413,7 +416,8 @@ impl BinaryNestedDecoder {
         for _ in 0..element_count {
             // Each record in the array is encoded as a nested record
             // Depth stays the same since we're already inside the array
-            let (record, consumed) = self.decode_nested_record_with_depth(&bytes[offset..], current_depth)?;
+            let (record, consumed) =
+                self.decode_nested_record_with_depth(&bytes[offset..], current_depth)?;
             offset += consumed;
             records.push(record);
         }
@@ -465,7 +469,7 @@ mod tests {
         let config = NestedDecoderConfig::new()
             .with_max_depth(8)
             .with_validate_nesting(true);
-        
+
         let decoder = BinaryNestedDecoder::with_config(config);
         assert_eq!(decoder.config.max_depth, 8);
         assert!(decoder.config.validate_nesting);
@@ -479,685 +483,719 @@ mod tests {
     }
 }
 
-    #[test]
-    fn test_decode_empty_nested_record() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        let record = LnmpRecord::new();
-        let binary = encoder.encode_nested_record(&record).unwrap();
+#[test]
+fn test_decode_empty_nested_record() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
 
-        let decoder = BinaryNestedDecoder::new();
-        let (decoded, consumed) = decoder.decode_nested_record(&binary).unwrap();
+    let encoder = BinaryNestedEncoder::new();
+    let record = LnmpRecord::new();
+    let binary = encoder.encode_nested_record(&record).unwrap();
 
-        assert_eq!(decoded.fields().len(), 0);
-        assert_eq!(consumed, binary.len());
-    }
+    let decoder = BinaryNestedDecoder::new();
+    let (decoded, consumed) = decoder.decode_nested_record(&binary).unwrap();
 
-    #[test]
-    fn test_decode_single_level_nested_record() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(42),
-        });
-        record.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::String("test".to_string()),
-        });
+    assert_eq!(decoded.fields().len(), 0);
+    assert_eq!(consumed, binary.len());
+}
 
-        let binary = encoder.encode_nested_record(&record).unwrap();
+#[test]
+fn test_decode_single_level_nested_record() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
 
-        let decoder = BinaryNestedDecoder::new();
-        let (decoded, consumed) = decoder.decode_nested_record(&binary).unwrap();
+    let encoder = BinaryNestedEncoder::new();
+    let mut record = LnmpRecord::new();
+    record.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(42),
+    });
+    record.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::String("test".to_string()),
+    });
 
-        assert_eq!(decoded.fields().len(), 2);
-        assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::Int(42));
-        assert_eq!(decoded.get_field(2).unwrap().value, LnmpValue::String("test".to_string()));
-        assert_eq!(consumed, binary.len());
-    }
+    let binary = encoder.encode_nested_record(&record).unwrap();
 
-    #[test]
-    fn test_decode_nested_record_invalid_tag() {
-        let decoder = BinaryNestedDecoder::new();
-        let bytes = vec![0x01, 0x00]; // Wrong tag (Int instead of NestedRecord)
+    let decoder = BinaryNestedDecoder::new();
+    let (decoded, consumed) = decoder.decode_nested_record(&binary).unwrap();
 
-        let result = decoder.decode_nested_record(&bytes);
-        assert!(matches!(result, Err(BinaryError::InvalidTypeTag { tag: 0x01 })));
-    }
+    assert_eq!(decoded.fields().len(), 2);
+    assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::Int(42));
+    assert_eq!(
+        decoded.get_field(2).unwrap().value,
+        LnmpValue::String("test".to_string())
+    );
+    assert_eq!(consumed, binary.len());
+}
 
-    #[test]
-    fn test_decode_nested_record_insufficient_data() {
-        let decoder = BinaryNestedDecoder::new();
-        let bytes = vec![]; // Empty
+#[test]
+fn test_decode_nested_record_invalid_tag() {
+    let decoder = BinaryNestedDecoder::new();
+    let bytes = vec![0x01, 0x00]; // Wrong tag (Int instead of NestedRecord)
 
-        let result = decoder.decode_nested_record(&bytes);
-        assert!(matches!(result, Err(BinaryError::UnexpectedEof { .. })));
-    }
+    let result = decoder.decode_nested_record(&bytes);
+    assert!(matches!(
+        result,
+        Err(BinaryError::InvalidTypeTag { tag: 0x01 })
+    ));
+}
 
-    #[test]
-    fn test_decode_nested_record_negative_field_count() {
-        let decoder = BinaryNestedDecoder::new();
-        // TAG (0x06) + negative field count
-        let bytes = vec![0x06, 0x7F]; // -1 in VarInt
+#[test]
+fn test_decode_nested_record_insufficient_data() {
+    let decoder = BinaryNestedDecoder::new();
+    let bytes = vec![]; // Empty
 
-        let result = decoder.decode_nested_record(&bytes);
-        assert!(matches!(result, Err(BinaryError::InvalidNestedStructure { .. })));
-    }
+    let result = decoder.decode_nested_record(&bytes);
+    assert!(matches!(result, Err(BinaryError::UnexpectedEof { .. })));
+}
 
-    #[test]
-    fn test_decode_multi_level_nested_record() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
+#[test]
+fn test_decode_nested_record_negative_field_count() {
+    let decoder = BinaryNestedDecoder::new();
+    // TAG (0x06) + negative field count
+    let bytes = vec![0x06, 0x7F]; // -1 in VarInt
 
-        // Create a 2-level nested structure
-        let mut inner_record = LnmpRecord::new();
-        inner_record.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(42),
-        });
+    let result = decoder.decode_nested_record(&bytes);
+    assert!(matches!(
+        result,
+        Err(BinaryError::InvalidNestedStructure { .. })
+    ));
+}
 
-        let mut outer_record = LnmpRecord::new();
-        outer_record.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::NestedRecord(Box::new(inner_record)),
-        });
+#[test]
+fn test_decode_multi_level_nested_record() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
 
-        let binary = encoder.encode_nested_record(&outer_record).unwrap();
+    let encoder = BinaryNestedEncoder::new();
 
-        let decoder = BinaryNestedDecoder::new();
-        let (decoded, consumed) = decoder.decode_nested_record(&binary).unwrap();
+    // Create a 2-level nested structure
+    let mut inner_record = LnmpRecord::new();
+    inner_record.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(42),
+    });
 
-        assert_eq!(decoded.fields().len(), 1);
-        assert_eq!(consumed, binary.len());
+    let mut outer_record = LnmpRecord::new();
+    outer_record.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::NestedRecord(Box::new(inner_record)),
+    });
 
-        // Verify nested structure
-        match &decoded.get_field(2).unwrap().value {
-            LnmpValue::NestedRecord(inner) => {
-                assert_eq!(inner.fields().len(), 1);
-                assert_eq!(inner.get_field(1).unwrap().value, LnmpValue::Int(42));
-            }
-            _ => panic!("Expected NestedRecord"),
+    let binary = encoder.encode_nested_record(&outer_record).unwrap();
+
+    let decoder = BinaryNestedDecoder::new();
+    let (decoded, consumed) = decoder.decode_nested_record(&binary).unwrap();
+
+    assert_eq!(decoded.fields().len(), 1);
+    assert_eq!(consumed, binary.len());
+
+    // Verify nested structure
+    match &decoded.get_field(2).unwrap().value {
+        LnmpValue::NestedRecord(inner) => {
+            assert_eq!(inner.fields().len(), 1);
+            assert_eq!(inner.get_field(1).unwrap().value, LnmpValue::Int(42));
         }
+        _ => panic!("Expected NestedRecord"),
     }
+}
 
-    #[test]
-    fn test_decode_nested_record_depth_limit() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let config = NestedDecoderConfig::new().with_max_depth(2);
-        let decoder = BinaryNestedDecoder::with_config(config);
+#[test]
+fn test_decode_nested_record_depth_limit() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
 
-        let encoder = BinaryNestedEncoder::new();
+    let config = NestedDecoderConfig::new().with_max_depth(2);
+    let decoder = BinaryNestedDecoder::with_config(config);
 
-        // Create a deeply nested structure (depth 3)
-        let mut level3 = LnmpRecord::new();
-        level3.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(42),
-        });
+    let encoder = BinaryNestedEncoder::new();
 
-        let mut level2 = LnmpRecord::new();
-        level2.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::NestedRecord(Box::new(level3)),
-        });
+    // Create a deeply nested structure (depth 3)
+    let mut level3 = LnmpRecord::new();
+    level3.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(42),
+    });
 
-        let mut level1 = LnmpRecord::new();
-        level1.add_field(LnmpField {
-            fid: 3,
-            value: LnmpValue::NestedRecord(Box::new(level2)),
-        });
+    let mut level2 = LnmpRecord::new();
+    level2.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::NestedRecord(Box::new(level3)),
+    });
 
-        let binary = encoder.encode_nested_record(&level1).unwrap();
+    let mut level1 = LnmpRecord::new();
+    level1.add_field(LnmpField {
+        fid: 3,
+        value: LnmpValue::NestedRecord(Box::new(level2)),
+    });
 
-        let result = decoder.decode_nested_record(&binary);
-        assert!(matches!(result, Err(BinaryError::NestingDepthExceeded { .. })));
+    let binary = encoder.encode_nested_record(&level1).unwrap();
+
+    let result = decoder.decode_nested_record(&binary);
+    assert!(matches!(
+        result,
+        Err(BinaryError::NestingDepthExceeded { .. })
+    ));
+}
+
+#[test]
+fn test_decode_nested_record_all_primitive_types() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
+
+    let encoder = BinaryNestedEncoder::new();
+
+    let mut record = LnmpRecord::new();
+    record.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(-42),
+    });
+    record.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::Float(3.14),
+    });
+    record.add_field(LnmpField {
+        fid: 3,
+        value: LnmpValue::Bool(false),
+    });
+    record.add_field(LnmpField {
+        fid: 4,
+        value: LnmpValue::String("test".to_string()),
+    });
+    record.add_field(LnmpField {
+        fid: 5,
+        value: LnmpValue::StringArray(vec!["a".to_string(), "b".to_string()]),
+    });
+
+    let binary = encoder.encode_nested_record(&record).unwrap();
+
+    let decoder = BinaryNestedDecoder::new();
+    let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
+
+    assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::Int(-42));
+    assert_eq!(decoded.get_field(2).unwrap().value, LnmpValue::Float(3.14));
+    assert_eq!(decoded.get_field(3).unwrap().value, LnmpValue::Bool(false));
+    assert_eq!(
+        decoded.get_field(4).unwrap().value,
+        LnmpValue::String("test".to_string())
+    );
+    assert_eq!(
+        decoded.get_field(5).unwrap().value,
+        LnmpValue::StringArray(vec!["a".to_string(), "b".to_string()])
+    );
+}
+
+#[test]
+fn test_decode_nested_record_roundtrip() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
+
+    let encoder = BinaryNestedEncoder::new();
+    let decoder = BinaryNestedDecoder::new();
+
+    let mut original = LnmpRecord::new();
+    original.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(100),
+    });
+    original.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::String("hello".to_string()),
+    });
+
+    let binary = encoder.encode_nested_record(&original).unwrap();
+    let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
+
+    // Compare sorted fields for equality
+    assert_eq!(original.sorted_fields(), decoded.sorted_fields());
+}
+
+#[test]
+fn test_decode_empty_nested_array() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
+
+    let encoder = BinaryNestedEncoder::new();
+    let records: Vec<LnmpRecord> = vec![];
+    let binary = encoder.encode_nested_array(&records).unwrap();
+
+    let decoder = BinaryNestedDecoder::new();
+    let (decoded, consumed) = decoder.decode_nested_array(&binary).unwrap();
+
+    assert_eq!(decoded.len(), 0);
+    assert_eq!(consumed, binary.len());
+}
+
+#[test]
+fn test_decode_nested_array_single_record() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
+
+    let encoder = BinaryNestedEncoder::new();
+    let mut record = LnmpRecord::new();
+    record.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(42),
+    });
+
+    let binary = encoder.encode_nested_array(&[record.clone()]).unwrap();
+
+    let decoder = BinaryNestedDecoder::new();
+    let (decoded, consumed) = decoder.decode_nested_array(&binary).unwrap();
+
+    assert_eq!(decoded.len(), 1);
+    assert_eq!(decoded[0].sorted_fields(), record.sorted_fields());
+    assert_eq!(consumed, binary.len());
+}
+
+#[test]
+fn test_decode_nested_array_multiple_records() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
+
+    let encoder = BinaryNestedEncoder::new();
+
+    let mut record1 = LnmpRecord::new();
+    record1.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(1),
+    });
+
+    let mut record2 = LnmpRecord::new();
+    record2.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(2),
+    });
+
+    let binary = encoder
+        .encode_nested_array(&[record1.clone(), record2.clone()])
+        .unwrap();
+
+    let decoder = BinaryNestedDecoder::new();
+    let (decoded, consumed) = decoder.decode_nested_array(&binary).unwrap();
+
+    assert_eq!(decoded.len(), 2);
+    assert_eq!(decoded[0].sorted_fields(), record1.sorted_fields());
+    assert_eq!(decoded[1].sorted_fields(), record2.sorted_fields());
+    assert_eq!(consumed, binary.len());
+}
+
+#[test]
+fn test_decode_nested_array_invalid_tag() {
+    let decoder = BinaryNestedDecoder::new();
+    let bytes = vec![0x06, 0x00]; // Wrong tag (NestedRecord instead of NestedArray)
+
+    let result = decoder.decode_nested_array(&bytes);
+    assert!(matches!(
+        result,
+        Err(BinaryError::InvalidTypeTag { tag: 0x06 })
+    ));
+}
+
+#[test]
+fn test_decode_nested_array_negative_element_count() {
+    let decoder = BinaryNestedDecoder::new();
+    // TAG (0x07) + negative element count
+    let bytes = vec![0x07, 0x7F]; // -1 in VarInt
+
+    let result = decoder.decode_nested_array(&bytes);
+    assert!(matches!(
+        result,
+        Err(BinaryError::InvalidNestedStructure { .. })
+    ));
+}
+
+#[test]
+fn test_decode_nested_array_depth_limit() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
+
+    let config = NestedDecoderConfig::new().with_max_depth(2);
+    let decoder = BinaryNestedDecoder::with_config(config);
+
+    let encoder = BinaryNestedEncoder::new();
+
+    // Create a deeply nested structure (depth 3)
+    let mut level3 = LnmpRecord::new();
+    level3.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(42),
+    });
+
+    let mut level2 = LnmpRecord::new();
+    level2.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::NestedRecord(Box::new(level3)),
+    });
+
+    let mut level1 = LnmpRecord::new();
+    level1.add_field(LnmpField {
+        fid: 3,
+        value: LnmpValue::NestedArray(vec![level2]),
+    });
+
+    let binary = encoder.encode_nested_record(&level1).unwrap();
+
+    let result = decoder.decode_nested_record(&binary);
+    assert!(matches!(
+        result,
+        Err(BinaryError::NestingDepthExceeded { .. })
+    ));
+}
+
+#[test]
+fn test_decode_nested_array_roundtrip() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
+
+    let encoder = BinaryNestedEncoder::new();
+    let decoder = BinaryNestedDecoder::new();
+
+    let mut record1 = LnmpRecord::new();
+    record1.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::String("first".to_string()),
+    });
+
+    let mut record2 = LnmpRecord::new();
+    record2.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::String("second".to_string()),
+    });
+
+    let original = vec![record1.clone(), record2.clone()];
+
+    let binary = encoder.encode_nested_array(&original).unwrap();
+    let (decoded, _) = decoder.decode_nested_array(&binary).unwrap();
+
+    assert_eq!(decoded.len(), original.len());
+    for (i, record) in decoded.iter().enumerate() {
+        assert_eq!(record.sorted_fields(), original[i].sorted_fields());
     }
+}
 
-    #[test]
-    fn test_decode_nested_record_all_primitive_types() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
+#[test]
+fn test_decode_deeply_nested_record_depth_2() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
 
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(-42),
-        });
-        record.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::Float(3.14),
-        });
-        record.add_field(LnmpField {
-            fid: 3,
-            value: LnmpValue::Bool(false),
-        });
-        record.add_field(LnmpField {
-            fid: 4,
-            value: LnmpValue::String("test".to_string()),
-        });
-        record.add_field(LnmpField {
-            fid: 5,
-            value: LnmpValue::StringArray(vec!["a".to_string(), "b".to_string()]),
-        });
+    let encoder = BinaryNestedEncoder::new();
+    let decoder = BinaryNestedDecoder::new();
 
-        let binary = encoder.encode_nested_record(&record).unwrap();
+    // Create depth-2 nested structure
+    let mut level2 = LnmpRecord::new();
+    level2.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(100),
+    });
 
-        let decoder = BinaryNestedDecoder::new();
-        let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
+    let mut level1 = LnmpRecord::new();
+    level1.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::NestedRecord(Box::new(level2)),
+    });
 
-        assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::Int(-42));
-        assert_eq!(decoded.get_field(2).unwrap().value, LnmpValue::Float(3.14));
-        assert_eq!(decoded.get_field(3).unwrap().value, LnmpValue::Bool(false));
-        assert_eq!(decoded.get_field(4).unwrap().value, LnmpValue::String("test".to_string()));
-        assert_eq!(
-            decoded.get_field(5).unwrap().value,
-            LnmpValue::StringArray(vec!["a".to_string(), "b".to_string()])
-        );
-    }
+    let binary = encoder.encode_nested_record(&level1).unwrap();
+    let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
 
-    #[test]
-    fn test_decode_nested_record_roundtrip() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        let decoder = BinaryNestedDecoder::new();
-
-        let mut original = LnmpRecord::new();
-        original.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(100),
-        });
-        original.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::String("hello".to_string()),
-        });
-
-        let binary = encoder.encode_nested_record(&original).unwrap();
-        let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
-
-        // Compare sorted fields for equality
-        assert_eq!(original.sorted_fields(), decoded.sorted_fields());
-    }
-
-    #[test]
-    fn test_decode_empty_nested_array() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        let records: Vec<LnmpRecord> = vec![];
-        let binary = encoder.encode_nested_array(&records).unwrap();
-
-        let decoder = BinaryNestedDecoder::new();
-        let (decoded, consumed) = decoder.decode_nested_array(&binary).unwrap();
-
-        assert_eq!(decoded.len(), 0);
-        assert_eq!(consumed, binary.len());
-    }
-
-    #[test]
-    fn test_decode_nested_array_single_record() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(42),
-        });
-
-        let binary = encoder.encode_nested_array(&[record.clone()]).unwrap();
-
-        let decoder = BinaryNestedDecoder::new();
-        let (decoded, consumed) = decoder.decode_nested_array(&binary).unwrap();
-
-        assert_eq!(decoded.len(), 1);
-        assert_eq!(decoded[0].sorted_fields(), record.sorted_fields());
-        assert_eq!(consumed, binary.len());
-    }
-
-    #[test]
-    fn test_decode_nested_array_multiple_records() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        
-        let mut record1 = LnmpRecord::new();
-        record1.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(1),
-        });
-
-        let mut record2 = LnmpRecord::new();
-        record2.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(2),
-        });
-
-        let binary = encoder.encode_nested_array(&[record1.clone(), record2.clone()]).unwrap();
-
-        let decoder = BinaryNestedDecoder::new();
-        let (decoded, consumed) = decoder.decode_nested_array(&binary).unwrap();
-
-        assert_eq!(decoded.len(), 2);
-        assert_eq!(decoded[0].sorted_fields(), record1.sorted_fields());
-        assert_eq!(decoded[1].sorted_fields(), record2.sorted_fields());
-        assert_eq!(consumed, binary.len());
-    }
-
-    #[test]
-    fn test_decode_nested_array_invalid_tag() {
-        let decoder = BinaryNestedDecoder::new();
-        let bytes = vec![0x06, 0x00]; // Wrong tag (NestedRecord instead of NestedArray)
-
-        let result = decoder.decode_nested_array(&bytes);
-        assert!(matches!(result, Err(BinaryError::InvalidTypeTag { tag: 0x06 })));
-    }
-
-    #[test]
-    fn test_decode_nested_array_negative_element_count() {
-        let decoder = BinaryNestedDecoder::new();
-        // TAG (0x07) + negative element count
-        let bytes = vec![0x07, 0x7F]; // -1 in VarInt
-
-        let result = decoder.decode_nested_array(&bytes);
-        assert!(matches!(result, Err(BinaryError::InvalidNestedStructure { .. })));
-    }
-
-    #[test]
-    fn test_decode_nested_array_depth_limit() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let config = NestedDecoderConfig::new().with_max_depth(2);
-        let decoder = BinaryNestedDecoder::with_config(config);
-
-        let encoder = BinaryNestedEncoder::new();
-
-        // Create a deeply nested structure (depth 3)
-        let mut level3 = LnmpRecord::new();
-        level3.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(42),
-        });
-
-        let mut level2 = LnmpRecord::new();
-        level2.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::NestedRecord(Box::new(level3)),
-        });
-
-        let mut level1 = LnmpRecord::new();
-        level1.add_field(LnmpField {
-            fid: 3,
-            value: LnmpValue::NestedArray(vec![level2]),
-        });
-
-        let binary = encoder.encode_nested_record(&level1).unwrap();
-
-        let result = decoder.decode_nested_record(&binary);
-        assert!(matches!(result, Err(BinaryError::NestingDepthExceeded { .. })));
-    }
-
-    #[test]
-    fn test_decode_nested_array_roundtrip() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        let decoder = BinaryNestedDecoder::new();
-
-        let mut record1 = LnmpRecord::new();
-        record1.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::String("first".to_string()),
-        });
-
-        let mut record2 = LnmpRecord::new();
-        record2.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::String("second".to_string()),
-        });
-
-        let original = vec![record1.clone(), record2.clone()];
-
-        let binary = encoder.encode_nested_array(&original).unwrap();
-        let (decoded, _) = decoder.decode_nested_array(&binary).unwrap();
-
-        assert_eq!(decoded.len(), original.len());
-        for (i, record) in decoded.iter().enumerate() {
-            assert_eq!(record.sorted_fields(), original[i].sorted_fields());
+    // Verify structure
+    match &decoded.get_field(2).unwrap().value {
+        LnmpValue::NestedRecord(inner) => {
+            assert_eq!(inner.get_field(1).unwrap().value, LnmpValue::Int(100));
         }
+        _ => panic!("Expected NestedRecord"),
     }
+}
 
-    #[test]
-    fn test_decode_deeply_nested_record_depth_2() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        let decoder = BinaryNestedDecoder::new();
+#[test]
+fn test_decode_deeply_nested_record_depth_3() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
 
-        // Create depth-2 nested structure
-        let mut level2 = LnmpRecord::new();
-        level2.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(100),
-        });
+    let encoder = BinaryNestedEncoder::new();
+    let decoder = BinaryNestedDecoder::new();
 
-        let mut level1 = LnmpRecord::new();
-        level1.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::NestedRecord(Box::new(level2)),
-        });
+    // Create depth-3 nested structure
+    let mut level3 = LnmpRecord::new();
+    level3.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(100),
+    });
 
-        let binary = encoder.encode_nested_record(&level1).unwrap();
-        let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
+    let mut level2 = LnmpRecord::new();
+    level2.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::NestedRecord(Box::new(level3)),
+    });
 
-        // Verify structure
-        match &decoded.get_field(2).unwrap().value {
-            LnmpValue::NestedRecord(inner) => {
-                assert_eq!(inner.get_field(1).unwrap().value, LnmpValue::Int(100));
-            }
-            _ => panic!("Expected NestedRecord"),
+    let mut level1 = LnmpRecord::new();
+    level1.add_field(LnmpField {
+        fid: 3,
+        value: LnmpValue::NestedRecord(Box::new(level2)),
+    });
+
+    let binary = encoder.encode_nested_record(&level1).unwrap();
+    let result = decoder.decode_nested_record(&binary);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_decode_malformed_nested_structure_incomplete_field() {
+    let decoder = BinaryNestedDecoder::new();
+    // TAG (0x06) + FIELD_COUNT (1) + FID (1) but no VALUE
+    let bytes = vec![0x06, 0x01, 0x01];
+
+    let result = decoder.decode_nested_record(&bytes);
+    assert!(matches!(result, Err(BinaryError::UnexpectedEof { .. })));
+}
+
+#[test]
+fn test_decode_malformed_nested_structure_invalid_fid() {
+    let decoder = BinaryNestedDecoder::new();
+    // TAG (0x06) + FIELD_COUNT (1) + negative FID
+    let bytes = vec![0x06, 0x01, 0x7F]; // -1 as FID
+
+    let result = decoder.decode_nested_record(&bytes);
+    assert!(matches!(result, Err(BinaryError::InvalidFID { .. })));
+}
+
+#[test]
+fn test_decode_nested_structure_not_allowed() {
+    let config = NestedDecoderConfig::new().with_allow_nested(false);
+    let decoder = BinaryNestedDecoder::with_config(config);
+
+    // Try to decode a nested record value
+    // TAG (0x06) + FIELD_COUNT (0)
+    let bytes = vec![0x06, 0x00];
+
+    let result = decoder.decode_value_recursive(&bytes, 0);
+    assert!(matches!(
+        result,
+        Err(BinaryError::NestedStructureNotSupported)
+    ));
+}
+
+#[test]
+fn test_decode_nested_array_not_allowed() {
+    let config = NestedDecoderConfig::new().with_allow_nested(false);
+    let decoder = BinaryNestedDecoder::with_config(config);
+
+    // Try to decode a nested array value
+    // TAG (0x07) + ELEMENT_COUNT (0)
+    let bytes = vec![0x07, 0x00];
+
+    let result = decoder.decode_value_recursive(&bytes, 0);
+    assert!(matches!(
+        result,
+        Err(BinaryError::NestedStructureNotSupported)
+    ));
+}
+
+#[test]
+fn test_decode_roundtrip_complex_nested_structure() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
+
+    let encoder = BinaryNestedEncoder::new();
+    let decoder = BinaryNestedDecoder::new();
+
+    // Create a complex nested structure with mixed types
+    let mut inner1 = LnmpRecord::new();
+    inner1.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::String("inner1".to_string()),
+    });
+
+    let mut inner2 = LnmpRecord::new();
+    inner2.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::Int(42),
+    });
+
+    let mut outer = LnmpRecord::new();
+    outer.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::NestedRecord(Box::new(inner1)),
+    });
+    outer.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::NestedArray(vec![inner2]),
+    });
+    outer.add_field(LnmpField {
+        fid: 3,
+        value: LnmpValue::Bool(true),
+    });
+
+    let binary = encoder.encode_nested_record(&outer).unwrap();
+    let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
+
+    assert_eq!(decoded.sorted_fields().len(), outer.sorted_fields().len());
+}
+
+#[test]
+fn test_decode_empty_nested_records_at_multiple_levels() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
+
+    let encoder = BinaryNestedEncoder::new();
+    let decoder = BinaryNestedDecoder::new();
+
+    let inner = LnmpRecord::new(); // Empty
+    let mut outer = LnmpRecord::new();
+    outer.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::NestedRecord(Box::new(inner)),
+    });
+
+    let binary = encoder.encode_nested_record(&outer).unwrap();
+    let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
+
+    match &decoded.get_field(1).unwrap().value {
+        LnmpValue::NestedRecord(inner) => {
+            assert_eq!(inner.fields().len(), 0);
         }
+        _ => panic!("Expected NestedRecord"),
     }
+}
 
-    #[test]
-    fn test_decode_deeply_nested_record_depth_3() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        let decoder = BinaryNestedDecoder::new();
+#[test]
+fn test_decode_empty_nested_arrays() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
 
-        // Create depth-3 nested structure
-        let mut level3 = LnmpRecord::new();
-        level3.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(100),
-        });
+    let encoder = BinaryNestedEncoder::new();
+    let decoder = BinaryNestedDecoder::new();
 
-        let mut level2 = LnmpRecord::new();
-        level2.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::NestedRecord(Box::new(level3)),
-        });
+    let mut record = LnmpRecord::new();
+    record.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::NestedArray(vec![]),
+    });
 
-        let mut level1 = LnmpRecord::new();
-        level1.add_field(LnmpField {
-            fid: 3,
-            value: LnmpValue::NestedRecord(Box::new(level2)),
-        });
+    let binary = encoder.encode_nested_record(&record).unwrap();
+    let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
 
-        let binary = encoder.encode_nested_record(&level1).unwrap();
-        let result = decoder.decode_nested_record(&binary);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_decode_malformed_nested_structure_incomplete_field() {
-        let decoder = BinaryNestedDecoder::new();
-        // TAG (0x06) + FIELD_COUNT (1) + FID (1) but no VALUE
-        let bytes = vec![0x06, 0x01, 0x01];
-
-        let result = decoder.decode_nested_record(&bytes);
-        assert!(matches!(result, Err(BinaryError::UnexpectedEof { .. })));
-    }
-
-    #[test]
-    fn test_decode_malformed_nested_structure_invalid_fid() {
-        let decoder = BinaryNestedDecoder::new();
-        // TAG (0x06) + FIELD_COUNT (1) + negative FID
-        let bytes = vec![0x06, 0x01, 0x7F]; // -1 as FID
-
-        let result = decoder.decode_nested_record(&bytes);
-        assert!(matches!(result, Err(BinaryError::InvalidFID { .. })));
-    }
-
-    #[test]
-    fn test_decode_nested_structure_not_allowed() {
-        let config = NestedDecoderConfig::new().with_allow_nested(false);
-        let decoder = BinaryNestedDecoder::with_config(config);
-
-        // Try to decode a nested record value
-        // TAG (0x06) + FIELD_COUNT (0)
-        let bytes = vec![0x06, 0x00];
-
-        let result = decoder.decode_value_recursive(&bytes, 0);
-        assert!(matches!(result, Err(BinaryError::NestedStructureNotSupported)));
-    }
-
-    #[test]
-    fn test_decode_nested_array_not_allowed() {
-        let config = NestedDecoderConfig::new().with_allow_nested(false);
-        let decoder = BinaryNestedDecoder::with_config(config);
-
-        // Try to decode a nested array value
-        // TAG (0x07) + ELEMENT_COUNT (0)
-        let bytes = vec![0x07, 0x00];
-
-        let result = decoder.decode_value_recursive(&bytes, 0);
-        assert!(matches!(result, Err(BinaryError::NestedStructureNotSupported)));
-    }
-
-    #[test]
-    fn test_decode_roundtrip_complex_nested_structure() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        let decoder = BinaryNestedDecoder::new();
-
-        // Create a complex nested structure with mixed types
-        let mut inner1 = LnmpRecord::new();
-        inner1.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::String("inner1".to_string()),
-        });
-
-        let mut inner2 = LnmpRecord::new();
-        inner2.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::Int(42),
-        });
-
-        let mut outer = LnmpRecord::new();
-        outer.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::NestedRecord(Box::new(inner1)),
-        });
-        outer.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::NestedArray(vec![inner2]),
-        });
-        outer.add_field(LnmpField {
-            fid: 3,
-            value: LnmpValue::Bool(true),
-        });
-
-        let binary = encoder.encode_nested_record(&outer).unwrap();
-        let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
-
-        assert_eq!(decoded.sorted_fields().len(), outer.sorted_fields().len());
-    }
-
-    #[test]
-    fn test_decode_empty_nested_records_at_multiple_levels() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        let decoder = BinaryNestedDecoder::new();
-
-        let inner = LnmpRecord::new(); // Empty
-        let mut outer = LnmpRecord::new();
-        outer.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::NestedRecord(Box::new(inner)),
-        });
-
-        let binary = encoder.encode_nested_record(&outer).unwrap();
-        let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
-
-        match &decoded.get_field(1).unwrap().value {
-            LnmpValue::NestedRecord(inner) => {
-                assert_eq!(inner.fields().len(), 0);
-            }
-            _ => panic!("Expected NestedRecord"),
+    match &decoded.get_field(1).unwrap().value {
+        LnmpValue::NestedArray(arr) => {
+            assert_eq!(arr.len(), 0);
         }
+        _ => panic!("Expected NestedArray"),
     }
+}
 
-    #[test]
-    fn test_decode_empty_nested_arrays() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        let decoder = BinaryNestedDecoder::new();
+#[test]
+fn test_decode_mixed_primitive_and_nested_fields() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
 
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::NestedArray(vec![]),
-        });
+    let encoder = BinaryNestedEncoder::new();
+    let decoder = BinaryNestedDecoder::new();
 
-        let binary = encoder.encode_nested_record(&record).unwrap();
-        let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
+    let mut inner = LnmpRecord::new();
+    inner.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::String("inner".to_string()),
+    });
 
-        match &decoded.get_field(1).unwrap().value {
-            LnmpValue::NestedArray(arr) => {
-                assert_eq!(arr.len(), 0);
-            }
-            _ => panic!("Expected NestedArray"),
-        }
-    }
+    let mut outer = LnmpRecord::new();
+    outer.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(42),
+    });
+    outer.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::NestedRecord(Box::new(inner)),
+    });
+    outer.add_field(LnmpField {
+        fid: 3,
+        value: LnmpValue::Bool(true),
+    });
 
-    #[test]
-    fn test_decode_mixed_primitive_and_nested_fields() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        let decoder = BinaryNestedDecoder::new();
+    let binary = encoder.encode_nested_record(&outer).unwrap();
+    let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
 
-        let mut inner = LnmpRecord::new();
-        inner.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::String("inner".to_string()),
-        });
+    assert_eq!(decoded.fields().len(), 3);
+    assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::Int(42));
+    assert_eq!(decoded.get_field(3).unwrap().value, LnmpValue::Bool(true));
+}
 
-        let mut outer = LnmpRecord::new();
-        outer.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(42),
-        });
-        outer.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::NestedRecord(Box::new(inner)),
-        });
-        outer.add_field(LnmpField {
-            fid: 3,
-            value: LnmpValue::Bool(true),
-        });
+#[test]
+fn test_decode_depth_limit_enforced_at_exact_limit() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
 
-        let binary = encoder.encode_nested_record(&outer).unwrap();
-        let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
+    // With max_depth=2, we can decode structures where the deepest call to
+    // decode_nested_record_with_depth has current_depth < 2
+    let config = NestedDecoderConfig::new().with_max_depth(2);
+    let decoder = BinaryNestedDecoder::with_config(config);
+    let encoder = BinaryNestedEncoder::new();
 
-        assert_eq!(decoded.fields().len(), 3);
-        assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::Int(42));
-        assert_eq!(decoded.get_field(3).unwrap().value, LnmpValue::Bool(true));
-    }
+    // Flat record (no nesting) - should succeed
+    let mut flat = LnmpRecord::new();
+    flat.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(42),
+    });
 
-    #[test]
-    fn test_decode_depth_limit_enforced_at_exact_limit() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        // With max_depth=2, we can decode structures where the deepest call to
-        // decode_nested_record_with_depth has current_depth < 2
-        let config = NestedDecoderConfig::new().with_max_depth(2);
-        let decoder = BinaryNestedDecoder::with_config(config);
-        let encoder = BinaryNestedEncoder::new();
+    let binary = encoder.encode_nested_record(&flat).unwrap();
+    let result = decoder.decode_nested_record(&binary);
+    assert!(result.is_ok(), "Flat record should succeed");
 
-        // Flat record (no nesting) - should succeed
-        let mut flat = LnmpRecord::new();
-        flat.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(42),
-        });
+    // One level of nesting - should succeed
+    let mut inner = LnmpRecord::new();
+    inner.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(42),
+    });
 
-        let binary = encoder.encode_nested_record(&flat).unwrap();
-        let result = decoder.decode_nested_record(&binary);
-        assert!(result.is_ok(), "Flat record should succeed");
+    let mut outer = LnmpRecord::new();
+    outer.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::NestedRecord(Box::new(inner)),
+    });
 
-        // One level of nesting - should succeed
-        let mut inner = LnmpRecord::new();
-        inner.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(42),
-        });
+    let binary = encoder.encode_nested_record(&outer).unwrap();
+    let result = decoder.decode_nested_record(&binary);
+    assert!(result.is_ok(), "One level of nesting should succeed");
 
-        let mut outer = LnmpRecord::new();
-        outer.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::NestedRecord(Box::new(inner)),
-        });
+    // Two levels of nesting - should fail with max_depth=2
+    let mut level3 = LnmpRecord::new();
+    level3.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(42),
+    });
 
-        let binary = encoder.encode_nested_record(&outer).unwrap();
-        let result = decoder.decode_nested_record(&binary);
-        assert!(result.is_ok(), "One level of nesting should succeed");
+    let mut level2 = LnmpRecord::new();
+    level2.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::NestedRecord(Box::new(level3)),
+    });
 
-        // Two levels of nesting - should fail with max_depth=2
-        let mut level3 = LnmpRecord::new();
-        level3.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(42),
-        });
+    let mut level1 = LnmpRecord::new();
+    level1.add_field(LnmpField {
+        fid: 3,
+        value: LnmpValue::NestedRecord(Box::new(level2)),
+    });
 
-        let mut level2 = LnmpRecord::new();
-        level2.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::NestedRecord(Box::new(level3)),
-        });
+    let binary = encoder.encode_nested_record(&level1).unwrap();
+    let result = decoder.decode_nested_record(&binary);
+    assert!(
+        matches!(result, Err(BinaryError::NestingDepthExceeded { .. })),
+        "Two levels of nesting should fail with max_depth=2"
+    );
+}
 
-        let mut level1 = LnmpRecord::new();
-        level1.add_field(LnmpField {
-            fid: 3,
-            value: LnmpValue::NestedRecord(Box::new(level2)),
-        });
+#[test]
+fn test_decode_invalid_utf8_in_string() {
+    let decoder = BinaryNestedDecoder::new();
+    // TAG (0x06) + FIELD_COUNT (1) + FID (1) + String TAG (0x04) + length (3) + invalid UTF-8
+    let bytes = vec![0x06, 0x01, 0x01, 0x04, 0x03, 0xFF, 0xFE, 0xFD];
 
-        let binary = encoder.encode_nested_record(&level1).unwrap();
-        let result = decoder.decode_nested_record(&binary);
-        assert!(matches!(result, Err(BinaryError::NestingDepthExceeded { .. })), 
-                "Two levels of nesting should fail with max_depth=2");
-    }
+    let result = decoder.decode_nested_record(&bytes);
+    assert!(matches!(result, Err(BinaryError::InvalidUtf8 { .. })));
+}
 
-    #[test]
-    fn test_decode_invalid_utf8_in_string() {
-        let decoder = BinaryNestedDecoder::new();
-        // TAG (0x06) + FIELD_COUNT (1) + FID (1) + String TAG (0x04) + length (3) + invalid UTF-8
-        let bytes = vec![0x06, 0x01, 0x01, 0x04, 0x03, 0xFF, 0xFE, 0xFD];
+#[test]
+fn test_decode_string_array_with_empty_strings() {
+    use crate::binary::nested_encoder::BinaryNestedEncoder;
 
-        let result = decoder.decode_nested_record(&bytes);
-        assert!(matches!(result, Err(BinaryError::InvalidUtf8 { .. })));
-    }
+    let encoder = BinaryNestedEncoder::new();
+    let decoder = BinaryNestedDecoder::new();
 
-    #[test]
-    fn test_decode_string_array_with_empty_strings() {
-        use crate::binary::nested_encoder::BinaryNestedEncoder;
-        
-        let encoder = BinaryNestedEncoder::new();
-        let decoder = BinaryNestedDecoder::new();
+    let mut record = LnmpRecord::new();
+    record.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::StringArray(vec!["".to_string(), "test".to_string(), "".to_string()]),
+    });
 
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::StringArray(vec!["".to_string(), "test".to_string(), "".to_string()]),
-        });
+    let binary = encoder.encode_nested_record(&record).unwrap();
+    let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
 
-        let binary = encoder.encode_nested_record(&record).unwrap();
-        let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
-
-        assert_eq!(
-            decoded.get_field(1).unwrap().value,
-            LnmpValue::StringArray(vec!["".to_string(), "test".to_string(), "".to_string()])
-        );
-    }
+    assert_eq!(
+        decoded.get_field(1).unwrap().value,
+        LnmpValue::StringArray(vec!["".to_string(), "test".to_string(), "".to_string()])
+    );
+}

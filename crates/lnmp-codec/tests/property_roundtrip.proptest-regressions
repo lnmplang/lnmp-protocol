@@ -1,0 +1,12 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc f3b61508dabd2128ceff869148fa049ad73449f938411eb1d571aedf4286b188 # shrinks to record = LnmpRecord { fields: [LnmpField { fid: 0, value: Float(-0.0) }] }
+cc beb7715331164a761bf7ef605d794fe8ed6788ad3f518fb4158161f714713d00 # shrinks to record = LnmpRecord { fields: [LnmpField { fid: 0, value: StringArray([""]) }] }
+cc e88f160e12526febb93432c53ed80e20f6051400872341bbe76f2c77a5ad3776 # shrinks to record = LnmpRecord { fields: [LnmpField { fid: 0, value: Float(-1.039041190027136e204) }] }
+cc fbef00be2b56db10bc9a1a1aac5c3830e94fc655aec294e3102d80d2b79ed8f1 # shrinks to record = LnmpRecord { fields: [LnmpField { fid: 0, value: Float(1.638850215084121e272) }] }
+cc 3676afe83eb7ce2126333427392eeee51f54a3bfc0d1f12d2a7a7f3de5286ca4 # shrinks to record = LnmpRecord { fields: [LnmpField { fid: 0, value: StringArray(["0"]) }] }
+cc d60a8110bec37bd839bab0af34b8ffb519eb99bfb3ce12bebec2a1241b594adf # shrinks to record = LnmpRecord { fields: [LnmpField { fid: 0, value: StringArray(["0"]) }] }

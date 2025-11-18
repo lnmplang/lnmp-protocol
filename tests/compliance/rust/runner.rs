@@ -5,9 +5,12 @@
 //! against the Rust LNMP implementation, reporting pass/fail with detailed
 //! error messages.
 
-use lnmp_codec::{Encoder, EncoderConfig, Parser, ParsingMode, config::ParserConfig};
 use lnmp_codec::equivalence::EquivalenceMapper;
+use lnmp_codec::{
+    config::ParserConfig, Encoder, EncoderConfig, Parser, ParsingMode, TextInputMode,
+};
 use lnmp_core::{LnmpRecord, LnmpValue};
+use lnmp_sanitize::SanitizationConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -22,6 +25,8 @@ pub struct TestConfig {
     pub validate_checksums: bool,
     #[serde(default)]
     pub strict_mode: bool,
+    #[serde(default)]
+    pub lenient_mode: bool,
     #[serde(default)]
     pub preserve_checksums: bool,
     #[serde(default)]
@@ -99,6 +104,8 @@ pub struct TestSuite {
     pub error_handling_tests: Vec<TestCase>,
     #[serde(default)]
     pub round_trip_tests: Vec<TestCase>,
+    #[serde(default)]
+    pub lenient_tests: Vec<TestCase>,
 }
 
 impl TestSuite {
@@ -116,6 +123,7 @@ impl TestSuite {
         tests.extend(&self.semantic_tests);
         tests.extend(&self.error_handling_tests);
         tests.extend(&self.round_trip_tests);
+        tests.extend(&self.lenient_tests);
         tests
     }
 }
@@ -126,6 +134,7 @@ pub enum TestResult {
     Pass,
     Fail { reason: String },
     Skip { reason: String },
+    Info { reason: String },
 }
 
 impl TestResult {
@@ -170,9 +179,12 @@ impl TestRunner {
 
         match &test.expected {
             Some(ExpectedOutput::Success { fields }) => self.run_success_test(test, fields),
-            Some(ExpectedOutput::Error(expected_error)) => self.run_error_test(test, expected_error),
+            Some(ExpectedOutput::Error(expected_error)) => {
+                self.run_error_test(test, expected_error)
+            }
             None => TestResult::Fail {
-                reason: "Test case has neither 'expected' nor 'expected_canonical' field".to_string(),
+                reason: "Test case has neither 'expected' nor 'expected_canonical' field"
+                    .to_string(),
             },
         }
     }
@@ -192,6 +204,13 @@ impl TestRunner {
             normalize_values: test.config.normalize_values,
             require_checksums: false,
             max_nesting_depth: test.config.max_nesting_depth,
+            text_input_mode: if test.config.lenient_mode {
+                TextInputMode::Lenient
+            } else {
+                TextInputMode::Strict
+            },
+            semantic_dictionary: None,
+            structural_limits: None,
         };
 
         let mut parser = match Parser::with_config(&test.input, parser_config) {
@@ -241,6 +260,13 @@ impl TestRunner {
             normalize_values: test.config.normalize_values,
             require_checksums: false,
             max_nesting_depth: test.config.max_nesting_depth,
+            text_input_mode: if test.config.lenient_mode {
+                TextInputMode::Lenient
+            } else {
+                TextInputMode::Strict
+            },
+            semantic_dictionary: None,
+            structural_limits: None,
         };
 
         let mut parser = match Parser::with_config(&test.input, parser_config) {
@@ -271,6 +297,13 @@ impl TestRunner {
             normalize_values: test.config.normalize_values,
             require_checksums: false,
             max_nesting_depth: test.config.max_nesting_depth,
+            text_input_mode: if test.config.lenient_mode {
+                TextInputMode::Lenient
+            } else {
+                TextInputMode::Strict
+            },
+            semantic_dictionary: None,
+            structural_limits: None,
         };
         let mut parser = match Parser::with_config(&test.input, parser_config) {
             Ok(p) => p,
@@ -357,7 +390,9 @@ impl TestRunner {
             }
 
             // Validate value matches expected
-            if let Err(reason) = self.validate_value(&actual.value, &expected.value, &expected.type_name) {
+            if let Err(reason) =
+                self.validate_value(&actual.value, &expected.value, &expected.type_name)
+            {
                 return TestResult::Fail {
                     reason: format!("Field {} value mismatch: {}", actual.fid, reason),
                 };
@@ -368,7 +403,10 @@ impl TestRunner {
     }
 
     /// Apply equivalence mappings to a parsed record.
-    fn apply_equivalence_mapping_to_record(record: &mut lnmp_core::LnmpRecord, mapper: &EquivalenceMapper) {
+    fn apply_equivalence_mapping_to_record(
+        record: &mut lnmp_core::LnmpRecord,
+        mapper: &EquivalenceMapper,
+    ) {
         // Convert record into owned fields vector so we can mutate values
         let mut fields = record.fields().to_vec();
 
@@ -476,7 +514,7 @@ impl TestRunner {
                     let expected_arr = expected
                         .as_sequence()
                         .ok_or_else(|| "Expected value is not an array".to_string())?;
-                    
+
                     if actual_arr.len() != expected_arr.len() {
                         return Err(format!(
                             "array length mismatch: expected {}, got {}",
@@ -508,18 +546,20 @@ impl TestRunner {
                     let expected_record = expected
                         .as_mapping()
                         .ok_or_else(|| "Expected value is not a record".to_string())?;
-                    
+
                     let expected_fields_value = expected_record
                         .get(serde_yaml::Value::String("fields".to_string()))
                         .ok_or_else(|| "Expected record has no 'fields' key".to_string())?;
-                    
-                    let expected_fields: Vec<ExpectedField> = serde_yaml::from_value(expected_fields_value.clone())
-                        .map_err(|e| format!("Failed to parse expected fields: {}", e))?;
-                    
+
+                    let expected_fields: Vec<ExpectedField> =
+                        serde_yaml::from_value(expected_fields_value.clone())
+                            .map_err(|e| format!("Failed to parse expected fields: {}", e))?;
+
                     match self.validate_record(actual_record, &expected_fields) {
                         TestResult::Pass => Ok(()),
                         TestResult::Fail { reason } => Err(reason),
                         TestResult::Skip { reason } => Err(format!("Skipped: {}", reason)),
+                        TestResult::Info { reason } => Err(format!("Info: {}", reason)),
                     }
                 } else {
                     Err(format!("expected nested_record, got {:?}", actual))
@@ -530,7 +570,7 @@ impl TestRunner {
                     let expected_arr = expected
                         .as_sequence()
                         .ok_or_else(|| "Expected value is not an array".to_string())?;
-                    
+
                     if actual_arr.len() != expected_arr.len() {
                         return Err(format!(
                             "nested array length mismatch: expected {}, got {}",
@@ -545,22 +585,36 @@ impl TestRunner {
                         let expected_mapping = expected_record
                             .as_mapping()
                             .ok_or_else(|| format!("Array element {} is not a record", i))?;
-                        
+
                         let expected_fields_value = expected_mapping
                             .get(serde_yaml::Value::String("fields".to_string()))
                             .ok_or_else(|| format!("Array element {} has no 'fields' key", i))?;
-                        
-                        let expected_fields: Vec<ExpectedField> = serde_yaml::from_value(expected_fields_value.clone())
-                            .map_err(|e| format!("Failed to parse expected fields for element {}: {}", i, e))?;
-                        
+
+                        let expected_fields: Vec<ExpectedField> =
+                            serde_yaml::from_value(expected_fields_value.clone()).map_err(|e| {
+                                format!("Failed to parse expected fields for element {}: {}", i, e)
+                            })?;
+
                         match self.validate_record(actual_record, &expected_fields) {
-                            TestResult::Pass => {},
+                            TestResult::Pass => {}
                             TestResult::Fail { reason } => {
-                                return Err(format!("nested array element {} mismatch: {}", i, reason));
-                            },
+                                return Err(format!(
+                                    "nested array element {} mismatch: {}",
+                                    i, reason
+                                ));
+                            }
                             TestResult::Skip { reason } => {
-                                return Err(format!("nested array element {} skipped: {}", i, reason));
-                            },
+                                return Err(format!(
+                                    "nested array element {} skipped: {}",
+                                    i, reason
+                                ));
+                            }
+                            TestResult::Info { reason } => {
+                                return Err(format!(
+                                    "nested array element {} info: {}",
+                                    i, reason
+                                ));
+                            }
                         }
                     }
                     Ok(())
@@ -664,6 +718,10 @@ impl TestRunner {
                 }
                 TestResult::Skip { reason } => {
                     println!("⏭️  {}", name);
+                    println!("   {}", reason);
+                }
+                TestResult::Info { reason } => {
+                    println!("ℹ️  {}", name);
                     println!("   {}", reason);
                 }
             }

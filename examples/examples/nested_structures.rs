@@ -7,8 +7,8 @@
 //! - Optional checksum integration
 //! - Round-trip parsing and encoding
 
-use lnmp_codec::{Encoder, Parser};
 use lnmp_codec::config::EncoderConfig;
+use lnmp_codec::{Encoder, Parser};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 
 fn main() {
@@ -106,7 +106,7 @@ fn nested_array_example() {
     // Parse it back
     let mut parser = Parser::new(&encoded).unwrap();
     let parsed = parser.parse_record().unwrap();
-    
+
     if let Some(field) = parsed.get_field(100) {
         if let LnmpValue::NestedArray(users) = &field.value {
             println!("Parsed {} users successfully", users.len());

@@ -279,6 +279,7 @@ pub mod streaming;
 pub mod types;
 pub mod varint;
 
+pub use crate::config::TextInputMode;
 pub use decoder::{BinaryDecoder, DecoderConfig};
 pub use delta::{
     DeltaConfig, DeltaDecoder, DeltaEncoder, DeltaError, DeltaOp, DeltaOperation, DELTA_TAG,

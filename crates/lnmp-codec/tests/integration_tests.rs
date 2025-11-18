@@ -450,10 +450,7 @@ fn test_loose_input_encode_strict_parse_succeeds() {
     // Verify data integrity
     assert_eq!(record2.fields().len(), 3);
     assert_eq!(record2.get_field(7).unwrap().value, LnmpValue::Bool(true));
-    assert_eq!(
-        record2.get_field(12).unwrap().value,
-        LnmpValue::Int(14532)
-    );
+    assert_eq!(record2.get_field(12).unwrap().value, LnmpValue::Int(14532));
     assert_eq!(
         record2.get_field(23).unwrap().value,
         LnmpValue::StringArray(vec!["admin".to_string(), "dev".to_string()])

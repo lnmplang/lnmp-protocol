@@ -1,7 +1,7 @@
 //! Binary type system for LNMP v0.4 protocol.
 
-use lnmp_core::LnmpValue;
 use super::error::BinaryError;
+use lnmp_core::LnmpValue;
 
 /// Type tag for binary values (LNMP v0.4/v0.5)
 #[repr(u8)]
@@ -121,7 +121,7 @@ pub enum BinaryValue {
 
 impl BinaryValue {
     /// Converts from LnmpValue to BinaryValue
-    /// 
+    ///
     /// In v0.5, nested structures are supported. Use `from_lnmp_value_v0_4` for v0.4 compatibility.
     pub fn from_lnmp_value(value: &LnmpValue) -> Result<Self, BinaryError> {
         match value {
@@ -136,7 +136,7 @@ impl BinaryValue {
     }
 
     /// Converts from LnmpValue to BinaryValue (v0.4 compatibility mode)
-    /// 
+    ///
     /// Returns an error if the value contains nested structures (not supported in v0.4)
     pub fn from_lnmp_value_v0_4(value: &LnmpValue) -> Result<Self, BinaryError> {
         match value {
@@ -350,7 +350,7 @@ mod tests {
         let result = BinaryValue::from_lnmp_value(&nested);
         assert!(result.is_ok());
         match result.unwrap() {
-            BinaryValue::NestedRecord(_) => {},
+            BinaryValue::NestedRecord(_) => {}
             _ => panic!("Expected NestedRecord variant"),
         }
     }
@@ -362,7 +362,7 @@ mod tests {
         let result = BinaryValue::from_lnmp_value(&nested);
         assert!(result.is_ok());
         match result.unwrap() {
-            BinaryValue::NestedArray(_) => {},
+            BinaryValue::NestedArray(_) => {}
             _ => panic!("Expected NestedArray variant"),
         }
     }

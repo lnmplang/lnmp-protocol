@@ -1,10 +1,5 @@
 use crc::Crc;
-use crc::{
-    CRC_32_ISO_HDLC,
-    CRC_32_ISCSI,
-    CRC_32_BZIP2,
-    CRC_32_CKSUM,
-};
+use crc::{CRC_32_BZIP2, CRC_32_CKSUM, CRC_32_ISCSI, CRC_32_ISO_HDLC};
 
 fn compute_crc(crc: &Crc<u32>, s: &str) -> u32 {
     let mut digest = crc.digest();

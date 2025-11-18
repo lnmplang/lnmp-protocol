@@ -8,6 +8,7 @@ use lnmp_core::{LnmpField, LnmpRecord, LnmpValue, TypeHint};
 pub struct Encoder {
     use_semicolons: bool,
     config: EncoderConfig,
+    normalizer: Option<crate::normalizer::ValueNormalizer>,
 }
 
 impl Encoder {
@@ -17,24 +18,37 @@ impl Encoder {
             // Canonical format uses newlines between top-level fields
             use_semicolons: false,
             config: EncoderConfig::default(),
+            normalizer: None,
         }
     }
 
     /// Creates a new encoder with custom configuration
     pub fn with_config(config: EncoderConfig) -> Self {
+        let normalizer = config
+            .semantic_dictionary
+            .as_ref()
+            .map(|dict| crate::normalizer::ValueNormalizer::new(crate::normalizer::NormalizationConfig {
+                semantic_dictionary: Some(dict.clone()),
+                ..crate::normalizer::NormalizationConfig::default()
+            }));
+
         Self {
             // If canonical is enabled, prefer newlines; otherwise use semicolons for inline format
             use_semicolons: !config.canonical,
             config,
+            normalizer,
         }
     }
 
     /// Creates a new encoder with specified format (deprecated - use new() for canonical format)
-    #[deprecated(note = "Use new() for canonical format. Semicolons are not part of v0.2 canonical format.")]
+    #[deprecated(
+        note = "Use new() for canonical format. Semicolons are not part of v0.2 canonical format."
+    )]
     pub fn with_semicolons(use_semicolons: bool) -> Self {
         Self {
             use_semicolons,
             config: EncoderConfig::default(),
+            normalizer: None,
         }
     }
 
@@ -42,11 +56,22 @@ impl Encoder {
     pub fn encode(&self, record: &LnmpRecord) -> String {
         // Canonicalize the record first (sorts fields and nested structures)
         let canonical = canonicalize_record(record);
-        
+
         let fields: Vec<String> = canonical
             .fields()
             .iter()
-            .map(|field| self.encode_field(field))
+            .map(|field| {
+                let normalized_value = if let Some(norm) = &self.normalizer {
+                    norm.normalize_with_fid(Some(field.fid), &field.value)
+                } else {
+                    field.value.clone()
+                };
+                let normalized_field = LnmpField {
+                    fid: field.fid,
+                    value: normalized_value,
+                };
+                self.encode_field(&normalized_field)
+            })
             .collect();
 
         if self.use_semicolons {
@@ -215,7 +240,7 @@ impl Default for Encoder {
 }
 
 /// Canonicalizes a record by recursively sorting fields and normalizing nested structures
-/// 
+///
 /// This function ensures deterministic encoding by:
 /// - Sorting fields by FID at every nesting level (depth-first)
 /// - Recursively canonicalizing nested records and arrays
@@ -223,13 +248,13 @@ impl Default for Encoder {
 /// - Maintaining structural integrity
 pub fn canonicalize_record(record: &LnmpRecord) -> LnmpRecord {
     let mut canonical = LnmpRecord::new();
-    
+
     // Sort fields by FID (stable sort preserves insertion order for duplicates)
     let sorted = record.sorted_fields();
-    
+
     for field in sorted {
         let canonical_value = canonicalize_value(&field.value);
-        
+
         // Omit redundant empty fields
         if !is_empty_value(&canonical_value) {
             canonical.add_field(LnmpField {
@@ -238,7 +263,7 @@ pub fn canonicalize_record(record: &LnmpRecord) -> LnmpRecord {
             });
         }
     }
-    
+
     canonical
 }
 
@@ -251,26 +276,23 @@ fn canonicalize_value(value: &LnmpValue) -> LnmpValue {
         LnmpValue::Bool(b) => LnmpValue::Bool(*b),
         LnmpValue::String(s) => LnmpValue::String(s.clone()),
         LnmpValue::StringArray(arr) => LnmpValue::StringArray(arr.clone()),
-        
+
         // Recursively canonicalize nested record
         LnmpValue::NestedRecord(nested) => {
             let canonical_nested = canonicalize_record(nested);
             LnmpValue::NestedRecord(Box::new(canonical_nested))
         }
-        
+
         // Recursively canonicalize each record in nested array
         LnmpValue::NestedArray(arr) => {
-            let canonical_arr: Vec<LnmpRecord> = arr
-                .iter()
-                .map(canonicalize_record)
-                .collect();
+            let canonical_arr: Vec<LnmpRecord> = arr.iter().map(canonicalize_record).collect();
             LnmpValue::NestedArray(canonical_arr)
         }
     }
 }
 
 /// Checks if a value is considered "empty" and should be omitted during canonicalization
-/// 
+///
 /// Empty values include:
 /// - Empty strings
 /// - Empty string arrays
@@ -288,10 +310,10 @@ fn is_empty_value(value: &LnmpValue) -> bool {
 }
 
 /// Validates that canonicalization is idempotent (round-trip stable)
-/// 
+///
 /// Verifies that canonicalize(canonicalize(x)) == canonicalize(x)
 /// This ensures that the canonicalization process is stable and deterministic.
-/// 
+///
 /// Returns true if the record is round-trip stable, false otherwise.
 pub fn validate_round_trip_stability(record: &LnmpRecord) -> bool {
     let canonical_once = canonicalize_record(record);
@@ -837,7 +859,7 @@ mod tests {
 
         let canonical = canonicalize_record(&record);
         let fields = canonical.fields();
-        
+
         assert_eq!(fields.len(), 3);
         assert_eq!(fields[0].fid, 5);
         assert_eq!(fields[1].fid, 50);
@@ -869,12 +891,12 @@ mod tests {
 
         let canonical = canonicalize_record(&outer_record);
         let fields = canonical.fields();
-        
+
         // Outer fields should be sorted
         assert_eq!(fields.len(), 2);
         assert_eq!(fields[0].fid, 10);
         assert_eq!(fields[1].fid, 50);
-        
+
         // Inner fields should also be sorted
         if let LnmpValue::NestedRecord(nested) = &fields[1].value {
             let nested_fields = nested.fields();
@@ -917,18 +939,18 @@ mod tests {
 
         let canonical = canonicalize_record(&outer_record);
         let fields = canonical.fields();
-        
+
         assert_eq!(fields.len(), 1);
         assert_eq!(fields[0].fid, 60);
-        
+
         // Each record in the array should have sorted fields
         if let LnmpValue::NestedArray(arr) = &fields[0].value {
             assert_eq!(arr.len(), 2);
-            
+
             let arr_fields1 = arr[0].fields();
             assert_eq!(arr_fields1[0].fid, 10);
             assert_eq!(arr_fields1[1].fid, 20);
-            
+
             let arr_fields2 = arr[1].fields();
             assert_eq!(arr_fields2[0].fid, 15);
             assert_eq!(arr_fields2[1].fid, 30);
@@ -972,17 +994,17 @@ mod tests {
 
         let canonical = canonicalize_record(&level1);
         let fields = canonical.fields();
-        
+
         // Level 1 should be sorted
         assert_eq!(fields[0].fid, 50);
         assert_eq!(fields[1].fid, 100);
-        
+
         // Level 2 should be sorted
         if let LnmpValue::NestedRecord(level2_rec) = &fields[1].value {
             let level2_fields = level2_rec.fields();
             assert_eq!(level2_fields[0].fid, 10);
             assert_eq!(level2_fields[1].fid, 20);
-            
+
             // Level 3 should be sorted
             if let LnmpValue::NestedRecord(level3_rec) = &level2_fields[1].value {
                 let level3_fields = level3_rec.fields();
@@ -1018,7 +1040,7 @@ mod tests {
 
         let canonical = canonicalize_record(&record);
         let fields = canonical.fields();
-        
+
         // Empty nested structures should be omitted
         assert_eq!(fields.len(), 0);
     }
@@ -1049,12 +1071,21 @@ mod tests {
         });
 
         let canonical = canonicalize_record(&record);
-        
+
         assert_eq!(canonical.get_field(1).unwrap().value, LnmpValue::Int(42));
-        assert_eq!(canonical.get_field(2).unwrap().value, LnmpValue::Float(3.14159));
+        assert_eq!(
+            canonical.get_field(2).unwrap().value,
+            LnmpValue::Float(3.14159)
+        );
         assert_eq!(canonical.get_field(3).unwrap().value, LnmpValue::Bool(true));
-        assert_eq!(canonical.get_field(4).unwrap().value, LnmpValue::String("test value".to_string()));
-        assert_eq!(canonical.get_field(5).unwrap().value, LnmpValue::StringArray(vec!["a".to_string(), "b".to_string()]));
+        assert_eq!(
+            canonical.get_field(4).unwrap().value,
+            LnmpValue::String("test value".to_string())
+        );
+        assert_eq!(
+            canonical.get_field(5).unwrap().value,
+            LnmpValue::StringArray(vec!["a".to_string(), "b".to_string()])
+        );
     }
 
     #[test]
@@ -1076,7 +1107,7 @@ mod tests {
 
         let canonical1 = canonicalize_record(&record);
         let canonical2 = canonicalize_record(&canonical1);
-        
+
         assert_eq!(canonical1, canonical2);
     }
 
@@ -1119,12 +1150,12 @@ mod tests {
 
         let canonical = canonicalize_record(&outer_record);
         let fields = canonical.fields();
-        
+
         // Outer fields sorted
         assert_eq!(fields[0].fid, 10);
         assert_eq!(fields[1].fid, 50);
         assert_eq!(fields[2].fid, 100);
-        
+
         // Nested array fields sorted
         if let LnmpValue::NestedArray(arr) = &fields[1].value {
             let arr_fields = arr[0].fields();
@@ -1133,7 +1164,7 @@ mod tests {
         } else {
             panic!("Expected nested array");
         }
-        
+
         // Nested record fields sorted
         if let LnmpValue::NestedRecord(nested) = &fields[2].value {
             let nested_fields = nested.fields();
@@ -1165,7 +1196,7 @@ mod tests {
 
         let encoder = Encoder::new();
         let output = encoder.encode(&record);
-        
+
         // Fields should be sorted within nested record
         assert_eq!(output, "F50={F7=1;F12=1}");
     }
@@ -1208,7 +1239,7 @@ mod tests {
 
         let encoder = Encoder::new();
         let output = encoder.encode(&record);
-        
+
         // Fields sorted: F7, F12, F23
         assert_eq!(output, "F50={F7=1;F12=14532;F23=[admin,dev]}");
     }
@@ -1432,7 +1463,7 @@ mod tests {
 
         let encoder = Encoder::with_config(config);
         let output = encoder.encode(&record);
-        
+
         // Type hints should be included
         assert_eq!(output, "F50:r={F7:b=1;F12:i=14532}");
     }
@@ -1463,7 +1494,7 @@ mod tests {
 
         let encoder = Encoder::with_config(config);
         let output = encoder.encode(&record);
-        
+
         // Type hints should be included
         assert_eq!(output, "F60:ra=[{F12:i=1},{F12:i=2}]");
     }
@@ -1595,7 +1626,7 @@ mod tests {
         // Should include checksum
         assert!(output.contains('#'));
         assert!(output.starts_with("F12=14532#"));
-        
+
         // Checksum should be 8 hex characters
         let parts: Vec<&str> = output.split('#').collect();
         assert_eq!(parts.len(), 2);
@@ -1612,7 +1643,9 @@ mod tests {
             value: LnmpValue::Int(14532),
         });
 
-        let config = EncoderConfig::new().with_type_hints(true).with_checksums(true);
+        let config = EncoderConfig::new()
+            .with_type_hints(true)
+            .with_checksums(true);
 
         let encoder = Encoder::with_config(config);
         let output = encoder.encode(&record);
@@ -1657,7 +1690,9 @@ mod tests {
             value: LnmpValue::Bool(true),
         });
 
-        let config = EncoderConfig::new().with_type_hints(true).with_checksums(true);
+        let config = EncoderConfig::new()
+            .with_type_hints(true)
+            .with_checksums(true);
 
         let encoder = Encoder::with_config(config);
         let output = encoder.encode(&record);
@@ -1682,7 +1717,7 @@ mod tests {
         let config = EncoderConfig::new().with_type_hints(true);
 
         let encoder = Encoder::with_config(config);
-        
+
         // Encode multiple times
         let output1 = encoder.encode(&record);
         let output2 = encoder.encode(&record);
@@ -1709,7 +1744,9 @@ mod tests {
             value: LnmpValue::NestedRecord(Box::new(inner)),
         });
 
-        let config = EncoderConfig::new().with_type_hints(true).with_checksums(true);
+        let config = EncoderConfig::new()
+            .with_type_hints(true)
+            .with_checksums(true);
 
         let encoder = Encoder::with_config(config);
         let output = encoder.encode(&record);
@@ -1718,7 +1755,7 @@ mod tests {
         assert!(output.contains('#'));
         // The nested record value includes type hints for inner fields
         assert!(output.starts_with("F50:r={F12:i=1}#"));
-        
+
         // Verify checksum is 8 hex characters
         let parts: Vec<&str> = output.split('#').collect();
         assert_eq!(parts.len(), 2);
@@ -1741,7 +1778,9 @@ mod tests {
             value: LnmpValue::NestedArray(vec![rec1]),
         });
 
-        let config = EncoderConfig::new().with_type_hints(true).with_checksums(true);
+        let config = EncoderConfig::new()
+            .with_type_hints(true)
+            .with_checksums(true);
 
         let encoder = Encoder::with_config(config);
         let output = encoder.encode(&record);
@@ -1749,7 +1788,7 @@ mod tests {
         // Should include checksum for the nested array field
         assert!(output.contains('#'));
         assert!(output.starts_with("F60:ra=[{F12:i=1}]#"));
-        
+
         // Verify checksum is 8 hex characters
         let parts: Vec<&str> = output.split('#').collect();
         assert_eq!(parts.len(), 2);
@@ -1772,16 +1811,18 @@ mod tests {
             value: LnmpValue::Int(14533),
         });
 
-        let config = EncoderConfig::new().with_type_hints(true).with_checksums(true);
+        let config = EncoderConfig::new()
+            .with_type_hints(true)
+            .with_checksums(true);
 
         let encoder = Encoder::with_config(config);
-        
+
         let output1 = encoder.encode(&record1);
         let output2 = encoder.encode(&record2);
 
         // Checksums should be different
         assert_ne!(output1, output2);
-        
+
         // Extract checksums
         let checksum1 = output1.split('#').nth(1).unwrap();
         let checksum2 = output2.split('#').nth(1).unwrap();
@@ -1789,7 +1830,7 @@ mod tests {
     }
 
     // Canonicalization tests for v0.5 requirements
-    
+
     #[test]
     fn test_canonicalize_field_ordering_multiple_levels() {
         // Test field ordering at multiple nesting levels (Requirement 9.1)
@@ -1837,19 +1878,19 @@ mod tests {
 
         let canonical = canonicalize_record(&level1);
         let fields = canonical.fields();
-        
+
         // Level 1 fields should be sorted
         assert_eq!(fields[0].fid, 1000);
         assert_eq!(fields[1].fid, 2000);
         assert_eq!(fields[2].fid, 3000);
-        
+
         // Level 2 fields should be sorted
         if let LnmpValue::NestedRecord(level2_rec) = &fields[2].value {
             let level2_fields = level2_rec.fields();
             assert_eq!(level2_fields[0].fid, 100);
             assert_eq!(level2_fields[1].fid, 200);
             assert_eq!(level2_fields[2].fid, 300);
-            
+
             // Level 3 fields should be sorted
             if let LnmpValue::NestedRecord(level3_rec) = &level2_fields[2].value {
                 let level3_fields = level3_rec.fields();
@@ -1903,20 +1944,20 @@ mod tests {
 
         let canonical = canonicalize_record(&outer);
         let fields = canonical.fields();
-        
+
         assert_eq!(fields.len(), 1);
         assert_eq!(fields[0].fid, 100);
-        
+
         // Each record in the array should have sorted fields
         if let LnmpValue::NestedArray(arr) = &fields[0].value {
             assert_eq!(arr.len(), 2);
-            
+
             // First record fields should be sorted
             let rec1_fields = arr[0].fields();
             assert_eq!(rec1_fields[0].fid, 10);
             assert_eq!(rec1_fields[1].fid, 30);
             assert_eq!(rec1_fields[2].fid, 50);
-            
+
             // Second record fields should be sorted
             let rec2_fields = arr[1].fields();
             assert_eq!(rec2_fields[0].fid, 20);
@@ -1958,7 +1999,7 @@ mod tests {
 
         let canonical = canonicalize_record(&record);
         let fields = canonical.fields();
-        
+
         // Only non-empty fields should remain
         assert_eq!(fields.len(), 2);
         assert_eq!(fields[0].fid, 10);
@@ -1996,11 +2037,11 @@ mod tests {
 
         let canonical = canonicalize_record(&outer);
         let fields = canonical.fields();
-        
+
         // Only the nested record should remain (empty array omitted)
         assert_eq!(fields.len(), 1);
         assert_eq!(fields[0].fid, 100);
-        
+
         // Check nested record has empty field omitted
         if let LnmpValue::NestedRecord(nested) = &fields[0].value {
             let nested_fields = nested.fields();
@@ -2207,18 +2248,24 @@ mod tests {
         // Test the is_empty_value helper function
         assert!(is_empty_value(&LnmpValue::String("".to_string())));
         assert!(!is_empty_value(&LnmpValue::String("not_empty".to_string())));
-        
+
         assert!(is_empty_value(&LnmpValue::StringArray(vec![])));
-        assert!(!is_empty_value(&LnmpValue::StringArray(vec!["item".to_string()])));
-        
-        assert!(is_empty_value(&LnmpValue::NestedRecord(Box::new(LnmpRecord::new()))));
+        assert!(!is_empty_value(&LnmpValue::StringArray(vec![
+            "item".to_string()
+        ])));
+
+        assert!(is_empty_value(&LnmpValue::NestedRecord(Box::new(
+            LnmpRecord::new()
+        ))));
         let mut non_empty_record = LnmpRecord::new();
         non_empty_record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(42),
         });
-        assert!(!is_empty_value(&LnmpValue::NestedRecord(Box::new(non_empty_record))));
-        
+        assert!(!is_empty_value(&LnmpValue::NestedRecord(Box::new(
+            non_empty_record
+        ))));
+
         assert!(is_empty_value(&LnmpValue::NestedArray(vec![])));
         let mut rec = LnmpRecord::new();
         rec.add_field(LnmpField {
@@ -2226,7 +2273,7 @@ mod tests {
             value: LnmpValue::Int(42),
         });
         assert!(!is_empty_value(&LnmpValue::NestedArray(vec![rec])));
-        
+
         // Primitive values are never empty
         assert!(!is_empty_value(&LnmpValue::Int(0)));
         assert!(!is_empty_value(&LnmpValue::Int(42)));

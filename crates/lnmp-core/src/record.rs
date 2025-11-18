@@ -59,6 +59,14 @@ impl LnmpRecord {
     pub fn from_sorted_fields(fields: Vec<LnmpField>) -> Self {
         Self { fields }
     }
+
+    /// Validates this record against structural limits (depth, field counts, lengths).
+    pub fn validate_with_limits(
+        &self,
+        limits: &crate::limits::StructuralLimits,
+    ) -> Result<(), crate::limits::StructuralError> {
+        limits.validate_record(self)
+    }
 }
 
 #[cfg(test)]

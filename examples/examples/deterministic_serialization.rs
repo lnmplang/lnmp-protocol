@@ -38,7 +38,10 @@ fn main() {
     println!("Encode 1: {:?}", output1);
     println!("Encode 2: {:?}", output2);
     println!("Encode 3: {:?}", output3);
-    println!("All identical: {}\n", output1 == output2 && output2 == output3);
+    println!(
+        "All identical: {}\n",
+        output1 == output2 && output2 == output3
+    );
 
     // Example 3: Loose input becomes canonical
     println!("3. Normalization:");

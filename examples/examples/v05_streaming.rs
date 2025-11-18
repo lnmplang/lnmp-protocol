@@ -9,8 +9,8 @@
 //! - Error recovery scenarios
 
 use lnmp_codec::binary::{
-    BinaryEncoder, StreamingEncoder, StreamingDecoder, StreamingConfig,
-    StreamingEvent, BackpressureController, FrameType,
+    BackpressureController, BinaryEncoder, FrameType, StreamingConfig, StreamingDecoder,
+    StreamingEncoder, StreamingEvent,
 };
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 
@@ -63,7 +63,7 @@ fn stream_small_payload() {
     // Encode to binary first
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     println!("   Original binary size: {} bytes", binary.len());
 
     // Stream it with default chunk size (4KB)
@@ -71,43 +71,43 @@ fn stream_small_payload() {
         .with_chunk_size(4096)
         .with_checksums(true);
     let mut streaming_encoder = StreamingEncoder::with_config(config);
-    
+
     // Begin stream
     let begin_frame = streaming_encoder.begin_stream().unwrap();
     println!("   BEGIN frame: {} bytes", begin_frame.len());
-    
+
     // Write data (will fit in one chunk since it's small)
     let chunk_frame = streaming_encoder.write_chunk(&binary).unwrap();
     println!("   CHUNK frame: {} bytes", chunk_frame.len());
-    
+
     // End stream
     let end_frame = streaming_encoder.end_stream().unwrap();
     println!("   END frame: {} bytes", end_frame.len());
-    
+
     // Decode the stream
     let decoder_config = StreamingConfig::new().with_checksums(true);
     let mut streaming_decoder = StreamingDecoder::with_config(decoder_config);
-    
+
     // Feed frames
     match streaming_decoder.feed_frame(&begin_frame).unwrap() {
         StreamingEvent::StreamStarted => println!("   ✓ Stream started"),
         _ => println!("   ✗ Unexpected event"),
     }
-    
+
     match streaming_decoder.feed_frame(&chunk_frame).unwrap() {
         StreamingEvent::ChunkReceived { bytes } => {
             println!("   ✓ Chunk received: {} bytes", bytes);
         }
         _ => println!("   ✗ Unexpected event"),
     }
-    
+
     match streaming_decoder.feed_frame(&end_frame).unwrap() {
         StreamingEvent::StreamComplete { total_bytes } => {
             println!("   ✓ Stream complete: {} bytes total", total_bytes);
         }
         _ => println!("   ✗ Unexpected event"),
     }
-    
+
     // Get the complete payload
     if let Some(payload) = streaming_decoder.get_complete_payload() {
         println!("   ✓ Payload matches original: {}", payload == binary);
@@ -120,14 +120,17 @@ fn stream_large_payload() {
     for i in 1..=200 {
         record.add_field(LnmpField {
             fid: i,
-            value: LnmpValue::String(format!("Field {} with some substantial data content to make it larger", i)),
+            value: LnmpValue::String(format!(
+                "Field {} with some substantial data content to make it larger",
+                i
+            )),
         });
     }
 
     // Encode to binary
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     println!("   Large record binary size: {} bytes", binary.len());
 
     // Stream with small chunk size to demonstrate multiple chunks
@@ -136,16 +139,16 @@ fn stream_large_payload() {
         .with_chunk_size(chunk_size)
         .with_checksums(true);
     let mut streaming_encoder = StreamingEncoder::with_config(config);
-    
+
     // Begin stream
     let begin_frame = streaming_encoder.begin_stream().unwrap();
     println!("   BEGIN frame sent");
-    
+
     // Write data in chunks
     let mut offset = 0;
     let mut chunk_count = 0;
     let mut frames = vec![begin_frame];
-    
+
     while offset < binary.len() {
         let end = (offset + chunk_size).min(binary.len());
         let chunk = &binary[offset..end];
@@ -154,18 +157,18 @@ fn stream_large_payload() {
         chunk_count += 1;
         offset = end;
     }
-    
+
     println!("   Sent {} CHUNK frames", chunk_count);
-    
+
     // End stream
     let end_frame = streaming_encoder.end_stream().unwrap();
     frames.push(end_frame);
     println!("   END frame sent");
-    
+
     // Decode the stream
     let decoder_config = StreamingConfig::new().with_checksums(true);
     let mut streaming_decoder = StreamingDecoder::with_config(decoder_config);
-    
+
     let mut received_chunks = 0;
     for frame in frames {
         match streaming_decoder.feed_frame(&frame).unwrap() {
@@ -182,7 +185,7 @@ fn stream_large_payload() {
             }
         }
     }
-    
+
     // Verify payload
     if let Some(payload) = streaming_decoder.get_complete_payload() {
         println!("   ✓ Payload integrity verified: {} bytes", payload.len());
@@ -199,32 +202,32 @@ fn checksum_validation_example() {
 
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     // Stream with checksums enabled
     let config = StreamingConfig::new()
         .with_chunk_size(4096)
         .with_checksums(true);
     let mut streaming_encoder = StreamingEncoder::with_config(config);
-    
+
     let begin_frame = streaming_encoder.begin_stream().unwrap();
     let mut chunk_frame = streaming_encoder.write_chunk(&binary).unwrap();
     let end_frame = streaming_encoder.end_stream().unwrap();
-    
+
     println!("   Original chunk frame: {} bytes", chunk_frame.len());
-    
+
     // Corrupt the checksum (last 4 bytes before payload)
     if chunk_frame.len() > 10 {
         let idx = chunk_frame.len() - 5;
         chunk_frame[idx] ^= 0xFF; // Flip bits
         println!("   Corrupted checksum in chunk frame");
     }
-    
+
     // Try to decode with corrupted checksum
     let decoder_config = StreamingConfig::new().with_checksums(true);
     let mut streaming_decoder = StreamingDecoder::with_config(decoder_config);
-    
+
     streaming_decoder.feed_frame(&begin_frame).unwrap();
-    
+
     match streaming_decoder.feed_frame(&chunk_frame) {
         Ok(_) => println!("   ✗ Unexpected success with corrupted checksum"),
         Err(e) => println!("   ✓ Correctly detected corruption: {}", e),
@@ -233,25 +236,29 @@ fn checksum_validation_example() {
 
 fn backpressure_example() {
     println!("   Simulating backpressure flow control");
-    
+
     // Create backpressure controller with 8KB window
     let mut controller = BackpressureController::with_window_size(8192);
-    
+
     println!("   Window size: 8192 bytes");
     println!("   Initial state: can_send = {}", controller.can_send());
-    
+
     // Send some chunks
     let chunk_size = 2048;
     for i in 1..=3 {
         if controller.can_send() {
             controller.on_chunk_sent(chunk_size);
-            println!("   Sent chunk {}: {} bytes (in-flight: {} bytes)", 
-                     i, chunk_size, controller.bytes_in_flight());
+            println!(
+                "   Sent chunk {}: {} bytes (in-flight: {} bytes)",
+                i,
+                chunk_size,
+                controller.bytes_in_flight()
+            );
         } else {
             println!("   Cannot send chunk {}: backpressure active", i);
         }
     }
-    
+
     // Try to send more - should hit backpressure
     if controller.can_send() {
         controller.on_chunk_sent(chunk_size);
@@ -259,11 +266,14 @@ fn backpressure_example() {
     } else {
         println!("   ✓ Backpressure activated: cannot send chunk 4");
     }
-    
+
     // Acknowledge some chunks
     controller.on_chunk_acked(chunk_size);
-    println!("   Acknowledged chunk (in-flight: {} bytes)", controller.bytes_in_flight());
-    
+    println!(
+        "   Acknowledged chunk (in-flight: {} bytes)",
+        controller.bytes_in_flight()
+    );
+
     // Now we can send again
     if controller.can_send() {
         controller.on_chunk_sent(chunk_size);
@@ -275,20 +285,22 @@ fn error_frame_example() {
     // Create streaming encoder
     let config = StreamingConfig::new();
     let mut streaming_encoder = StreamingEncoder::with_config(config);
-    
+
     // Begin stream
     let begin_frame = streaming_encoder.begin_stream().unwrap();
-    
+
     // Simulate an error condition
-    let error_frame = streaming_encoder.error_frame("Simulated encoding error").unwrap();
+    let error_frame = streaming_encoder
+        .error_frame("Simulated encoding error")
+        .unwrap();
     println!("   ERROR frame created: {} bytes", error_frame.len());
-    
+
     // Decode the stream
     let decoder_config = StreamingConfig::new();
     let mut streaming_decoder = StreamingDecoder::with_config(decoder_config);
-    
+
     streaming_decoder.feed_frame(&begin_frame).unwrap();
-    
+
     match streaming_decoder.feed_frame(&error_frame).unwrap() {
         StreamingEvent::StreamError { message } => {
             println!("   ✓ Error received: {}", message);
@@ -307,29 +319,29 @@ fn incomplete_stream_example() {
 
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     // Stream it
     let config = StreamingConfig::new();
     let mut streaming_encoder = StreamingEncoder::with_config(config);
-    
+
     let begin_frame = streaming_encoder.begin_stream().unwrap();
     let chunk_frame = streaming_encoder.write_chunk(&binary).unwrap();
     // Intentionally don't send END frame
-    
+
     println!("   Sent BEGIN and CHUNK frames, but no END frame");
-    
+
     // Decode the incomplete stream
     let decoder_config = StreamingConfig::new();
     let mut streaming_decoder = StreamingDecoder::with_config(decoder_config);
-    
+
     streaming_decoder.feed_frame(&begin_frame).unwrap();
     streaming_decoder.feed_frame(&chunk_frame).unwrap();
-    
+
     // Try to get payload before stream is complete
     match streaming_decoder.get_complete_payload() {
         Some(_) => println!("   ✗ Unexpected payload from incomplete stream"),
         None => println!("   ✓ Correctly detected incomplete stream"),
     }
-    
+
     println!("   Stream state: waiting for END frame");
 }

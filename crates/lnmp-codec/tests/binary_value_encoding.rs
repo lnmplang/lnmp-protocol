@@ -9,7 +9,7 @@
 //!
 //! Requirements: 2.4, 2.5, 2.6, 3.6, 3.7, 3.8
 
-use lnmp_codec::binary::{BinaryEncoder, BinaryDecoder};
+use lnmp_codec::binary::{BinaryDecoder, BinaryEncoder};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 
 // ============================================================================
@@ -20,20 +20,20 @@ use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 #[test]
 fn test_integer_encoding_small_positive() {
     let values = vec![0, 1, 42, 100, 127];
-    
+
     for val in values {
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(val),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(
             decoded.get_field(1).unwrap().value,
             LnmpValue::Int(val),
@@ -46,20 +46,20 @@ fn test_integer_encoding_small_positive() {
 #[test]
 fn test_integer_encoding_medium_positive() {
     let values = vec![128, 255, 256, 1000, 16383, 16384];
-    
+
     for val in values {
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(val),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(
             decoded.get_field(1).unwrap().value,
             LnmpValue::Int(val),
@@ -72,20 +72,20 @@ fn test_integer_encoding_medium_positive() {
 #[test]
 fn test_integer_encoding_large_positive() {
     let values = vec![65535, 100000, 1000000, i32::MAX as i64, i64::MAX];
-    
+
     for val in values {
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(val),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(
             decoded.get_field(1).unwrap().value,
             LnmpValue::Int(val),
@@ -97,21 +97,32 @@ fn test_integer_encoding_large_positive() {
 
 #[test]
 fn test_integer_encoding_negative() {
-    let values = vec![-1, -42, -100, -127, -128, -255, -1000, -65535, i32::MIN as i64, i64::MIN];
-    
+    let values = vec![
+        -1,
+        -42,
+        -100,
+        -127,
+        -128,
+        -255,
+        -1000,
+        -65535,
+        i32::MIN as i64,
+        i64::MIN,
+    ];
+
     for val in values {
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(val),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(
             decoded.get_field(1).unwrap().value,
             LnmpValue::Int(val),
@@ -128,17 +139,14 @@ fn test_integer_encoding_zero() {
         fid: 1,
         value: LnmpValue::Int(0),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let decoded = decoder.decode(&binary).unwrap();
-    
-    assert_eq!(
-        decoded.get_field(1).unwrap().value,
-        LnmpValue::Int(0)
-    );
+
+    assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::Int(0));
 }
 
 // ============================================================================
@@ -149,20 +157,20 @@ fn test_integer_encoding_zero() {
 #[test]
 fn test_float_encoding_simple() {
     let values = vec![0.0, 1.0, -1.0, 3.14, -3.14, 2.718, 1.414];
-    
+
     for val in values {
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Float(val),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(
             decoded.get_field(1).unwrap().value,
             LnmpValue::Float(val),
@@ -179,13 +187,13 @@ fn test_float_encoding_nan() {
         fid: 1,
         value: LnmpValue::Float(f64::NAN),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let decoded = decoder.decode(&binary).unwrap();
-    
+
     match decoded.get_field(1).unwrap().value {
         LnmpValue::Float(f) => assert!(f.is_nan(), "NaN not preserved"),
         _ => panic!("Expected Float value"),
@@ -199,13 +207,13 @@ fn test_float_encoding_infinity() {
         fid: 1,
         value: LnmpValue::Float(f64::INFINITY),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let decoded = decoder.decode(&binary).unwrap();
-    
+
     assert_eq!(
         decoded.get_field(1).unwrap().value,
         LnmpValue::Float(f64::INFINITY)
@@ -219,13 +227,13 @@ fn test_float_encoding_neg_infinity() {
         fid: 1,
         value: LnmpValue::Float(f64::NEG_INFINITY),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let decoded = decoder.decode(&binary).unwrap();
-    
+
     assert_eq!(
         decoded.get_field(1).unwrap().value,
         LnmpValue::Float(f64::NEG_INFINITY)
@@ -235,20 +243,20 @@ fn test_float_encoding_neg_infinity() {
 #[test]
 fn test_float_encoding_edge_cases() {
     let values = vec![f64::MIN, f64::MAX, f64::MIN_POSITIVE, f64::EPSILON];
-    
+
     for val in values {
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Float(val),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(
             decoded.get_field(1).unwrap().value,
             LnmpValue::Float(val),
@@ -270,22 +278,19 @@ fn test_boolean_encoding_true() {
         fid: 1,
         value: LnmpValue::Bool(true),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     // Verify the boolean is encoded as 0x01
     // Binary format: VERSION(1) + FLAGS(1) + COUNT(1) + FID(2) + TAG(1) + VALUE(1)
     // The VALUE byte should be at position 6
     assert_eq!(binary[6], 0x01, "Boolean true should be encoded as 0x01");
-    
+
     let decoder = BinaryDecoder::new();
     let decoded = decoder.decode(&binary).unwrap();
-    
-    assert_eq!(
-        decoded.get_field(1).unwrap().value,
-        LnmpValue::Bool(true)
-    );
+
+    assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::Bool(true));
 }
 
 #[test]
@@ -295,22 +300,19 @@ fn test_boolean_encoding_false() {
         fid: 1,
         value: LnmpValue::Bool(false),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     // Verify the boolean is encoded as 0x00
     // Binary format: VERSION(1) + FLAGS(1) + COUNT(1) + FID(2) + TAG(1) + VALUE(1)
     // The VALUE byte should be at position 6
     assert_eq!(binary[6], 0x00, "Boolean false should be encoded as 0x00");
-    
+
     let decoder = BinaryDecoder::new();
     let decoded = decoder.decode(&binary).unwrap();
-    
-    assert_eq!(
-        decoded.get_field(1).unwrap().value,
-        LnmpValue::Bool(false)
-    );
+
+    assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::Bool(false));
 }
 
 // ============================================================================
@@ -325,13 +327,13 @@ fn test_string_encoding_empty() {
         fid: 1,
         value: LnmpValue::String("".to_string()),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let decoded = decoder.decode(&binary).unwrap();
-    
+
     assert_eq!(
         decoded.get_field(1).unwrap().value,
         LnmpValue::String("".to_string())
@@ -349,20 +351,20 @@ fn test_string_encoding_ascii() {
         "lowercase",
         "MixedCase123",
     ];
-    
+
     for s in test_strings {
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::String(s.to_string()),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(
             decoded.get_field(1).unwrap().value,
             LnmpValue::String(s.to_string()),
@@ -384,20 +386,20 @@ fn test_string_encoding_utf8() {
         "한국어",
         "mixed: hello 世界 🌍",
     ];
-    
+
     for s in test_strings {
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::String(s.to_string()),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(
             decoded.get_field(1).unwrap().value,
             LnmpValue::String(s.to_string()),
@@ -419,13 +421,13 @@ fn test_string_array_encoding_empty() {
         fid: 1,
         value: LnmpValue::StringArray(vec![]),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let decoded = decoder.decode(&binary).unwrap();
-    
+
     assert_eq!(
         decoded.get_field(1).unwrap().value,
         LnmpValue::StringArray(vec![])
@@ -434,25 +436,21 @@ fn test_string_array_encoding_empty() {
 
 #[test]
 fn test_string_array_encoding_single() {
-    let test_arrays = vec![
-        vec!["a"],
-        vec!["hello"],
-        vec!["single item with spaces"],
-    ];
-    
+    let test_arrays = vec![vec!["a"], vec!["hello"], vec!["single item with spaces"]];
+
     for arr in test_arrays {
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::StringArray(arr.iter().map(|s| s.to_string()).collect()),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(
             decoded.get_field(1).unwrap().value,
             LnmpValue::StringArray(arr.iter().map(|s| s.to_string()).collect()),
@@ -470,20 +468,20 @@ fn test_string_array_encoding_multiple() {
         vec!["one", "two", "three"],
         vec!["hello", "world", "test", "data", "array"],
     ];
-    
+
     for arr in test_arrays {
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::StringArray(arr.iter().map(|s| s.to_string()).collect()),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(
             decoded.get_field(1).unwrap().value,
             LnmpValue::StringArray(arr.iter().map(|s| s.to_string()).collect()),

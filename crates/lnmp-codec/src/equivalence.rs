@@ -75,10 +75,7 @@ impl EquivalenceMapper {
     /// assert_eq!(mapper.map(12, "dev"), Some("developer".to_string()));
     /// ```
     pub fn add_mapping(&mut self, fid: FieldId, from: String, to: String) {
-        self.mappings
-            .entry(fid)
-            .or_default()
-            .insert(from, to);
+        self.mappings.entry(fid).or_default().insert(from, to);
     }
 
     /// Adds multiple mappings for a specific field
@@ -229,10 +226,7 @@ mod tests {
         let mut mapper = EquivalenceMapper::new();
         mapper.add_mapping(12, "admin".to_string(), "administrator".to_string());
 
-        assert_eq!(
-            mapper.map(12, "admin"),
-            Some("administrator".to_string())
-        );
+        assert_eq!(mapper.map(12, "admin"), Some("administrator".to_string()));
         assert_eq!(mapper.map(12, "user"), None);
         assert_eq!(mapper.field_count(), 1);
         assert_eq!(mapper.mapping_count(12), 1);
@@ -245,15 +239,9 @@ mod tests {
         mapper.add_mapping(12, "dev".to_string(), "developer".to_string());
         mapper.add_mapping(12, "qa".to_string(), "quality_assurance".to_string());
 
-        assert_eq!(
-            mapper.map(12, "admin"),
-            Some("administrator".to_string())
-        );
+        assert_eq!(mapper.map(12, "admin"), Some("administrator".to_string()));
         assert_eq!(mapper.map(12, "dev"), Some("developer".to_string()));
-        assert_eq!(
-            mapper.map(12, "qa"),
-            Some("quality_assurance".to_string())
-        );
+        assert_eq!(mapper.map(12, "qa"), Some("quality_assurance".to_string()));
         assert_eq!(mapper.field_count(), 1);
         assert_eq!(mapper.mapping_count(12), 3);
     }
@@ -264,10 +252,7 @@ mod tests {
         mapper.add_mapping(12, "admin".to_string(), "administrator".to_string());
         mapper.add_mapping(7, "yes".to_string(), "1".to_string());
 
-        assert_eq!(
-            mapper.map(12, "admin"),
-            Some("administrator".to_string())
-        );
+        assert_eq!(mapper.map(12, "admin"), Some("administrator".to_string()));
         assert_eq!(mapper.map(7, "yes"), Some("1".to_string()));
         assert_eq!(mapper.map(12, "yes"), None); // Different field
         assert_eq!(mapper.map(7, "admin"), None); // Different field
@@ -284,15 +269,9 @@ mod tests {
         ];
         mapper.add_mappings(12, mappings);
 
-        assert_eq!(
-            mapper.map(12, "admin"),
-            Some("administrator".to_string())
-        );
+        assert_eq!(mapper.map(12, "admin"), Some("administrator".to_string()));
         assert_eq!(mapper.map(12, "dev"), Some("developer".to_string()));
-        assert_eq!(
-            mapper.map(12, "qa"),
-            Some("quality_assurance".to_string())
-        );
+        assert_eq!(mapper.map(12, "qa"), Some("quality_assurance".to_string()));
         assert_eq!(mapper.mapping_count(12), 3);
     }
 
@@ -400,10 +379,7 @@ mod tests {
     fn test_overwrite_mapping() {
         let mut mapper = EquivalenceMapper::new();
         mapper.add_mapping(12, "admin".to_string(), "administrator".to_string());
-        assert_eq!(
-            mapper.map(12, "admin"),
-            Some("administrator".to_string())
-        );
+        assert_eq!(mapper.map(12, "admin"), Some("administrator".to_string()));
 
         // Overwrite with new mapping
         mapper.add_mapping(12, "admin".to_string(), "superuser".to_string());
@@ -417,14 +393,8 @@ mod tests {
         mapper.add_mapping(12, "admin".to_string(), "administrator".to_string());
         mapper.add_mapping(12, "Admin".to_string(), "Administrator".to_string());
 
-        assert_eq!(
-            mapper.map(12, "admin"),
-            Some("administrator".to_string())
-        );
-        assert_eq!(
-            mapper.map(12, "Admin"),
-            Some("Administrator".to_string())
-        );
+        assert_eq!(mapper.map(12, "admin"), Some("administrator".to_string()));
+        assert_eq!(mapper.map(12, "Admin"), Some("Administrator".to_string()));
         assert_eq!(mapper.map(12, "ADMIN"), None);
     }
 
@@ -454,10 +424,7 @@ mod tests {
         mapper.add_mapping(12, "admin".to_string(), "administrator".to_string());
 
         let cloned = mapper.clone();
-        assert_eq!(
-            cloned.map(12, "admin"),
-            Some("administrator".to_string())
-        );
+        assert_eq!(cloned.map(12, "admin"), Some("administrator".to_string()));
         assert_eq!(cloned.field_count(), 1);
     }
 
@@ -468,10 +435,7 @@ mod tests {
         mapper.add_mapping(15, "admin".to_string(), "admin_user".to_string());
 
         // Same source value, different canonical values per field
-        assert_eq!(
-            mapper.map(12, "admin"),
-            Some("administrator".to_string())
-        );
+        assert_eq!(mapper.map(12, "admin"), Some("administrator".to_string()));
         assert_eq!(mapper.map(15, "admin"), Some("admin_user".to_string()));
     }
 

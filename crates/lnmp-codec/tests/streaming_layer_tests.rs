@@ -131,7 +131,10 @@ fn test_checksum_validation() {
         corrupted_bytes[5] ^= 0xFF; // Corrupt a byte in the checksum area
     }
     let result = decoder.feed_frame(&corrupted_bytes);
-    assert!(matches!(result, Err(StreamingError::ChecksumMismatch { .. })));
+    assert!(matches!(
+        result,
+        Err(StreamingError::ChecksumMismatch { .. })
+    ));
 }
 
 #[test]
@@ -310,9 +313,9 @@ fn test_streaming_binary_data() {
 fn test_checksum_with_different_data_patterns() {
     // Test checksum with various data patterns
     let patterns = vec![
-        vec![0u8; 100],                           // All zeros
-        vec![0xFF; 100],                          // All ones
-        (0..100).map(|i| i as u8).collect(),      // Sequential
+        vec![0u8; 100],                            // All zeros
+        vec![0xFF; 100],                           // All ones
+        (0..100).map(|i| i as u8).collect(),       // Sequential
         (0..100).map(|i| (i * 7) as u8).collect(), // Pattern
     ];
 
@@ -328,8 +331,8 @@ fn test_checksum_with_different_data_patterns() {
 fn test_backpressure_with_realistic_scenario() {
     // Simulate a realistic streaming scenario with backpressure
     let window_size = 16384; // 16KB window
-    let chunk_size = 4096;   // 4KB chunks
-    let total_data = 65536;  // 64KB total data
+    let chunk_size = 4096; // 4KB chunks
+    let total_data = 65536; // 64KB total data
 
     let mut controller = BackpressureController::with_window_size(window_size);
     let mut chunks_sent = 0;

@@ -3,9 +3,9 @@
 //! including format conversions, nested structure flattening, semantic hints, and
 //! collision-safe ID generation.
 
-use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 use lnmp_codec::binary::{BinaryDecoder, BinaryEncoder, BinaryError};
 use lnmp_codec::{LnmpError, Parser};
+use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 use std::collections::HashMap;
 
 /// Configuration for LLB2 optimization features
@@ -233,7 +233,7 @@ impl LlbConverter {
     fn shortform_to_record(&self, shortform: &str) -> Result<LnmpRecord, LlbError> {
         // Convert ShortForm to FullText by adding 'F' prefixes
         let fulltext = self.shortform_to_fulltext(shortform);
-        
+
         // Parse using standard LNMP parser
         let mut parser = Parser::new(&fulltext)?;
         Ok(parser.parse_record()?)
@@ -241,38 +241,58 @@ impl LlbConverter {
 
     /// Converts ShortForm to FullText by adding 'F' prefixes
     fn shortform_to_fulltext(&self, shortform: &str) -> String {
-        // Simple regex-like replacement: add 'F' before field IDs
-        // This handles patterns like "12=" and converts to "F12="
-        let mut result = String::new();
-        let chars = shortform.chars();
+        // Context-aware scan:
+        // - Only prefix 'F' when we are at the start of a field (not inside quotes, not after '=')
+        // - Field starts after '{', ';', '\n' or at beginning of string.
+        let mut out = String::with_capacity(shortform.len() + 8);
+        let mut in_string = false;
+        let mut escape = false;
         let mut at_field_start = true;
 
-        for ch in chars {
-            if at_field_start && ch.is_ascii_digit() {
-                // Start of a field ID, add 'F' prefix
-                result.push('F');
-                result.push(ch);
-                at_field_start = false;
-            } else if ch == ';' || ch == '\n' {
-                // Field separator
-                result.push(ch);
-                at_field_start = true;
-            } else if ch == '{' {
-                // Start of nested record
-                result.push(ch);
-                at_field_start = true;
-            } else {
-                result.push(ch);
-                if ch == '=' || ch == '[' || ch == ']' || ch == '}' {
-                    // After these characters, next digit sequence might be a field ID
-                    if ch == '}' || ch == ';' {
-                        at_field_start = true;
-                    }
+        for ch in shortform.chars() {
+            if in_string {
+                out.push(ch);
+                if escape {
+                    escape = false;
+                } else if ch == '\\' {
+                    escape = true;
+                } else if ch == '"' {
+                    in_string = false;
+                }
+                continue;
+            }
+
+            match ch {
+                '"' => {
+                    in_string = true;
+                    out.push(ch);
+                    at_field_start = false;
+                }
+                ';' | '\n' => {
+                    out.push(ch);
+                    at_field_start = true;
+                }
+                '{' => {
+                    out.push(ch);
+                    at_field_start = true;
+                }
+                '=' | '[' | ']' | '}' | ',' => {
+                    out.push(ch);
+                    at_field_start = false;
+                }
+                digit if at_field_start && digit.is_ascii_digit() => {
+                    out.push('F');
+                    out.push(digit);
+                    at_field_start = false;
+                }
+                other => {
+                    out.push(other);
+                    at_field_start = false;
                 }
             }
         }
 
-        result
+        out
     }
 
     /// Flattens nested structures using dot notation
@@ -291,13 +311,14 @@ impl LlbConverter {
             // If flattening is disabled, return the record as-is
             return Ok(record.clone());
         }
-        
+
         let mut flattened = LnmpRecord::new();
-        
+        let mut seen_paths = std::collections::HashMap::new();
+
         for field in record.fields() {
-            self.flatten_field(&mut flattened, field.fid, &field.value, vec![])?;
+            self.flatten_field(&mut flattened, field.fid, &field.value, vec![], &mut seen_paths)?;
         }
-        
+
         Ok(flattened)
     }
 
@@ -308,34 +329,37 @@ impl LlbConverter {
         base_fid: u16,
         value: &LnmpValue,
         path: Vec<u16>,
+        seen_paths: &mut std::collections::HashMap<u16, Vec<u16>>,
     ) -> Result<(), LlbError> {
         match value {
             // Primitive values are added directly
-            LnmpValue::Int(_) | LnmpValue::Float(_) | LnmpValue::Bool(_) 
-            | LnmpValue::String(_) | LnmpValue::StringArray(_) => {
+            LnmpValue::Int(_)
+            | LnmpValue::Float(_)
+            | LnmpValue::Bool(_)
+            | LnmpValue::String(_)
+            | LnmpValue::StringArray(_) => {
                 let fid = if path.is_empty() {
                     base_fid
                 } else {
-                    // For nested fields, we encode the path in the FID
-                    // This is a simplified approach - in production you'd want a more sophisticated encoding
-                    self.encode_path_to_fid(base_fid, &path)?
+                    // Encode path deterministically, error if collision occurs.
+                    self.encode_path_to_fid(base_fid, &path, seen_paths)?
                 };
-                
+
                 target.add_field(LnmpField {
                     fid,
                     value: value.clone(),
                 });
             }
-            
+
             // Nested records are flattened recursively
             LnmpValue::NestedRecord(nested) => {
                 for nested_field in nested.fields() {
                     let mut new_path = path.clone();
                     new_path.push(nested_field.fid);
-                    self.flatten_field(target, base_fid, &nested_field.value, new_path)?;
+                    self.flatten_field(target, base_fid, &nested_field.value, new_path, seen_paths)?;
                 }
             }
-            
+
             // Nested arrays are flattened with index encoding
             LnmpValue::NestedArray(records) => {
                 for (idx, record) in records.iter().enumerate() {
@@ -343,28 +367,46 @@ impl LlbConverter {
                         let mut new_path = path.clone();
                         new_path.push((idx as u16) + 1); // 1-indexed
                         new_path.push(nested_field.fid);
-                        self.flatten_field(target, base_fid, &nested_field.value, new_path)?;
+                        self.flatten_field(target, base_fid, &nested_field.value, new_path, seen_paths)?;
                     }
                 }
             }
         }
-        
+
         Ok(())
     }
 
-    /// Encodes a path into a FID using a simple scheme
-    /// Base FID + path components encoded in higher bits
-    fn encode_path_to_fid(&self, base_fid: u16, path: &[u16]) -> Result<u16, LlbError> {
+    /// Encodes a path into a FID via a stable hash, detecting collisions.
+    fn encode_path_to_fid(
+        &self,
+        base_fid: u16,
+        path: &[u16],
+        seen_paths: &mut std::collections::HashMap<u16, Vec<u16>>,
+    ) -> Result<u16, LlbError> {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
         if path.is_empty() {
             return Ok(base_fid);
         }
-        
-        // Simple encoding: base_fid * 1000 + path_hash
-        // This is a simplified approach for demonstration
-        let path_sum: u32 = path.iter().map(|&x| x as u32).sum();
-        let encoded = (base_fid as u32 * 1000 + path_sum) % 65536;
-        
-        Ok(encoded as u16)
+
+        let mut hasher = DefaultHasher::new();
+        base_fid.hash(&mut hasher);
+        path.hash(&mut hasher);
+        let encoded = (hasher.finish() & 0xFFFF) as u16;
+
+        if let Some(existing) = seen_paths.get(&encoded) {
+            if existing != path {
+                return Err(LlbError::FlatteningError(format!(
+                    "FID collision while flattening: base {} paths {:?} vs {:?}",
+                    base_fid, existing, path
+                )));
+            }
+        } else {
+            seen_paths.insert(encoded, path.to_vec());
+        }
+
+        Ok(encoded)
     }
 
     /// Unflattens a flattened record back to its original nested structure
@@ -373,39 +415,31 @@ impl LlbConverter {
     /// Note: This is a best-effort reconstruction and may not perfectly
     /// restore the original structure if FID encoding is ambiguous.
     pub fn unflatten(&self, flat: &LnmpRecord) -> Result<LnmpRecord, LlbError> {
-        // For now, return a simple implementation that groups fields by base FID
-        // A full implementation would decode the path from the FID
+        // Best-effort reverse: group by base_fid and treat higher bits as path hash.
+        // This is lossy but preserves non-flattened fields.
         let mut unflattened = LnmpRecord::new();
-        
+
         for field in flat.fields() {
-            // Simple heuristic: if FID > 1000, it's likely a flattened field
-            if field.fid >= 1000 {
-                let base_fid = field.fid / 1000;
-                
-                // Try to find or create a nested record for this base FID
-                if let Some(_existing) = unflattened.get_field(base_fid) {
-                    // Field already exists, skip for now (would need more complex merging)
-                    continue;
-                } else {
-                    // Create a new nested record
-                    let mut nested = LnmpRecord::new();
-                    let nested_fid = field.fid % 1000;
-                    nested.add_field(LnmpField {
-                        fid: nested_fid,
-                        value: field.value.clone(),
-                    });
-                    
-                    unflattened.add_field(LnmpField {
-                        fid: base_fid,
-                        value: LnmpValue::NestedRecord(Box::new(nested)),
-                    });
-                }
+            // Use high byte as heuristic for base fid when flattening is enabled.
+            if field.fid >= 256 {
+                let base_fid = field.fid >> 8;
+                let leaf_fid = field.fid & 0x00FF;
+
+                let mut nested = LnmpRecord::new();
+                nested.add_field(LnmpField {
+                    fid: leaf_fid,
+                    value: field.value.clone(),
+                });
+
+                unflattened.add_field(LnmpField {
+                    fid: base_fid,
+                    value: LnmpValue::NestedRecord(Box::new(nested)),
+                });
             } else {
-                // Regular field, add as-is
                 unflattened.add_field(field.clone());
             }
         }
-        
+
         Ok(unflattened)
     }
 
@@ -430,21 +464,26 @@ impl LlbConverter {
             let encoder = lnmp_codec::Encoder::new();
             return encoder.encode(record);
         }
-        
+
         let mut lines = Vec::new();
-        
+
         for field in record.sorted_fields() {
             let field_str = self.format_field_with_hint(field.fid, &field.value, hints);
             lines.push(field_str);
         }
-        
+
         lines.join("\n")
     }
 
     /// Formats a single field with optional semantic hint
-    fn format_field_with_hint(&self, fid: u16, value: &LnmpValue, hints: &HashMap<u16, String>) -> String {
+    fn format_field_with_hint(
+        &self,
+        fid: u16,
+        value: &LnmpValue,
+        hints: &HashMap<u16, String>,
+    ) -> String {
         let base = format!("F{}={}", fid, self.format_value_for_hint(value));
-        
+
         if let Some(hint) = hints.get(&fid) {
             format!("{} # {}@sem", base, hint)
         } else {
@@ -521,26 +560,30 @@ impl LlbConverter {
     /// # Errors
     ///
     /// Returns `LlbError::IdCollision` if a collision is detected
-    pub fn generate_short_ids(&self, field_names: &[String]) -> Result<HashMap<String, String>, LlbError> {
+    pub fn generate_short_ids(
+        &self,
+        field_names: &[String],
+    ) -> Result<HashMap<String, String>, LlbError> {
         if self.config.collision_safe_ids {
             // Use the safe version that handles collisions
             return Ok(self.generate_short_ids_safe(field_names));
         }
-        
+
         let mut id_map = HashMap::new();
         let mut reverse_map: HashMap<String, Vec<String>> = HashMap::new();
-        
+
         for name in field_names {
             let short_id = self.compute_short_id(name);
-            
+
             // Check for collisions
-            reverse_map.entry(short_id.clone())
+            reverse_map
+                .entry(short_id.clone())
                 .or_default()
                 .push(name.clone());
-            
+
             id_map.insert(name.clone(), short_id);
         }
-        
+
         // Detect collisions
         for (id, names) in reverse_map.iter() {
             if names.len() > 1 {
@@ -550,7 +593,7 @@ impl LlbConverter {
                 });
             }
         }
-        
+
         Ok(id_map)
     }
 
@@ -564,16 +607,16 @@ impl LlbConverter {
         if name.is_empty() {
             return "x".to_string();
         }
-        
+
         // Strategy 1: First letter + length
         let first_char = name.chars().next().unwrap().to_lowercase().to_string();
         let len = name.len();
-        
+
         // For very short names, just use the name itself
         if len <= 3 {
             return name.to_lowercase();
         }
-        
+
         // For longer names, use first letter + length
         format!("{}{}", first_char, len)
     }
@@ -584,24 +627,24 @@ impl LlbConverter {
     pub fn generate_short_ids_safe(&self, field_names: &[String]) -> HashMap<String, String> {
         let mut id_map = HashMap::new();
         let mut id_counts: HashMap<String, usize> = HashMap::new();
-        
+
         for name in field_names {
             let base_id = self.compute_short_id(name);
-            
+
             // Check if this ID has been used before
             let count = id_counts.entry(base_id.clone()).or_insert(0);
-            
+
             let final_id = if *count == 0 {
                 base_id.clone()
             } else {
                 // Add numeric suffix for disambiguation
                 format!("{}{}", base_id, count)
             };
-            
+
             *count += 1;
             id_map.insert(name.clone(), final_id);
         }
-        
+
         id_map
     }
 }
@@ -662,7 +705,7 @@ mod tests {
             .with_flattening(true)
             .with_semantic_hints(true)
             .with_collision_safe_ids(true);
-        
+
         assert!(config.enable_flattening);
         assert!(config.enable_semantic_hints);
         assert!(config.collision_safe_ids);
@@ -854,378 +897,404 @@ mod tests {
 
         assert_eq!(shortform, r#"5="hello world""#);
     }
+
+    #[test]
+    fn test_shortform_to_fulltext_respects_strings() {
+        // String contains digits; should not be prefixed with 'F'
+        let converter = LlbConverter::default();
+        let fulltext = converter.shortform_to_fulltext(r#"12="1234""#);
+        assert_eq!(fulltext, r#"F12="1234""#);
+    }
+
+    #[test]
+    fn test_shortform_to_fulltext_handles_nested() {
+        let converter = LlbConverter::default();
+        let fulltext = converter.shortform_to_fulltext("10={1=1;2=\"x\"}");
+        assert_eq!(fulltext, "F10={F1=1;F2=\"x\"}");
+    }
 }
 
-    #[test]
-    fn test_flatten_simple_record() {
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(42),
-        });
-        record.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::String("test".to_string()),
-        });
+#[test]
+fn test_flatten_simple_record() {
+    let mut record = LnmpRecord::new();
+    record.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(42),
+    });
+    record.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::String("test".to_string()),
+    });
 
-        let converter = LlbConverter::default();
-        let flattened = converter.flatten_nested(&record).unwrap();
+    let converter = LlbConverter::default();
+    let flattened = converter.flatten_nested(&record).unwrap();
 
-        // Simple records should remain unchanged
-        assert_eq!(flattened.fields().len(), 2);
-        assert_eq!(flattened.get_field(1).unwrap().value, LnmpValue::Int(42));
-        assert_eq!(flattened.get_field(2).unwrap().value, LnmpValue::String("test".to_string()));
+    // Simple records should remain unchanged
+    assert_eq!(flattened.fields().len(), 2);
+    assert_eq!(flattened.get_field(1).unwrap().value, LnmpValue::Int(42));
+    assert_eq!(
+        flattened.get_field(2).unwrap().value,
+        LnmpValue::String("test".to_string())
+    );
+}
+
+#[test]
+fn test_flatten_nested_record() {
+    let mut inner = LnmpRecord::new();
+    inner.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(42),
+    });
+    inner.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::String("test".to_string()),
+    });
+
+    let mut outer = LnmpRecord::new();
+    outer.add_field(LnmpField {
+        fid: 10,
+        value: LnmpValue::NestedRecord(Box::new(inner)),
+    });
+
+    let config = LlbConfig::new().with_flattening(true);
+    let converter = LlbConverter::new(config);
+    let flattened = converter.flatten_nested(&outer).unwrap();
+
+    // Nested fields should be flattened with encoded FIDs
+    assert!(flattened.fields().len() >= 2);
+
+    // Check that flattened fields exist (exact FIDs depend on encoding)
+    let has_int_field = flattened
+        .fields()
+        .iter()
+        .any(|f| f.value == LnmpValue::Int(42));
+    let has_string_field = flattened
+        .fields()
+        .iter()
+        .any(|f| f.value == LnmpValue::String("test".to_string()));
+
+    assert!(has_int_field);
+    assert!(has_string_field);
+}
+
+#[test]
+fn test_flatten_deeply_nested() {
+    let mut level2 = LnmpRecord::new();
+    level2.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(100),
+    });
+
+    let mut level1 = LnmpRecord::new();
+    level1.add_field(LnmpField {
+        fid: 5,
+        value: LnmpValue::NestedRecord(Box::new(level2)),
+    });
+
+    let mut level0 = LnmpRecord::new();
+    level0.add_field(LnmpField {
+        fid: 10,
+        value: LnmpValue::NestedRecord(Box::new(level1)),
+    });
+
+    let config = LlbConfig::new().with_flattening(true);
+    let converter = LlbConverter::new(config);
+    let flattened = converter.flatten_nested(&level0).unwrap();
+
+    // Should have at least one flattened field
+    assert!(!flattened.fields().is_empty());
+
+    // Check that the deeply nested value is present
+    let has_value = flattened
+        .fields()
+        .iter()
+        .any(|f| f.value == LnmpValue::Int(100));
+    assert!(has_value);
+}
+
+#[test]
+fn test_unflatten_simple_record() {
+    let mut record = LnmpRecord::new();
+    record.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(42),
+    });
+    record.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::String("test".to_string()),
+    });
+
+    let converter = LlbConverter::default();
+    let unflattened = converter.unflatten(&record).unwrap();
+
+    // Simple records should remain unchanged
+    assert_eq!(unflattened.fields().len(), 2);
+    assert_eq!(unflattened.get_field(1).unwrap().value, LnmpValue::Int(42));
+    assert_eq!(
+        unflattened.get_field(2).unwrap().value,
+        LnmpValue::String("test".to_string())
+    );
+}
+
+#[test]
+fn test_flatten_unflatten_preserves_primitives() {
+    let mut record = LnmpRecord::new();
+    record.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(42),
+    });
+    record.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::Float(3.14),
+    });
+    record.add_field(LnmpField {
+        fid: 3,
+        value: LnmpValue::Bool(true),
+    });
+
+    let converter = LlbConverter::default();
+    let flattened = converter.flatten_nested(&record).unwrap();
+    let unflattened = converter.unflatten(&flattened).unwrap();
+
+    // Primitive values should be preserved
+    assert_eq!(unflattened.get_field(1).unwrap().value, LnmpValue::Int(42));
+    assert_eq!(
+        unflattened.get_field(2).unwrap().value,
+        LnmpValue::Float(3.14)
+    );
+    assert_eq!(
+        unflattened.get_field(3).unwrap().value,
+        LnmpValue::Bool(true)
+    );
+}
+
+#[test]
+fn test_add_semantic_hints_simple() {
+    let mut record = LnmpRecord::new();
+    record.add_field(LnmpField {
+        fid: 7,
+        value: LnmpValue::Bool(true),
+    });
+    record.add_field(LnmpField {
+        fid: 12,
+        value: LnmpValue::Int(14532),
+    });
+
+    let mut hints = HashMap::new();
+    hints.insert(7, "is_admin".to_string());
+    hints.insert(12, "user_id".to_string());
+
+    let config = LlbConfig::new().with_semantic_hints(true);
+    let converter = LlbConverter::new(config);
+    let output = converter.add_semantic_hints(&record, &hints);
+
+    assert!(output.contains("F7=1 # is_admin@sem"));
+    assert!(output.contains("F12=14532 # user_id@sem"));
+}
+
+#[test]
+fn test_add_semantic_hints_partial() {
+    let mut record = LnmpRecord::new();
+    record.add_field(LnmpField {
+        fid: 7,
+        value: LnmpValue::Bool(true),
+    });
+    record.add_field(LnmpField {
+        fid: 12,
+        value: LnmpValue::Int(14532),
+    });
+    record.add_field(LnmpField {
+        fid: 20,
+        value: LnmpValue::String("test".to_string()),
+    });
+
+    let mut hints = HashMap::new();
+    hints.insert(7, "is_admin".to_string());
+    // No hint for field 12
+    hints.insert(20, "username".to_string());
+
+    let config = LlbConfig::new().with_semantic_hints(true);
+    let converter = LlbConverter::new(config);
+    let output = converter.add_semantic_hints(&record, &hints);
+
+    assert!(output.contains("F7=1 # is_admin@sem"));
+    assert!(output.contains("F12=14532\n")); // No hint
+    assert!(output.contains("F20=test # username@sem"));
+}
+
+#[test]
+fn test_add_semantic_hints_no_hints() {
+    let mut record = LnmpRecord::new();
+    record.add_field(LnmpField {
+        fid: 7,
+        value: LnmpValue::Bool(true),
+    });
+
+    let hints = HashMap::new();
+
+    let converter = LlbConverter::default();
+    let output = converter.add_semantic_hints(&record, &hints);
+
+    // Should just output the field without hints
+    assert_eq!(output, "F7=1");
+}
+
+#[test]
+fn test_add_semantic_hints_with_string_array() {
+    let mut record = LnmpRecord::new();
+    record.add_field(LnmpField {
+        fid: 23,
+        value: LnmpValue::StringArray(vec!["admin".to_string(), "dev".to_string()]),
+    });
+
+    let mut hints = HashMap::new();
+    hints.insert(23, "roles".to_string());
+
+    let config = LlbConfig::new().with_semantic_hints(true);
+    let converter = LlbConverter::new(config);
+    let output = converter.add_semantic_hints(&record, &hints);
+
+    assert_eq!(output, "F23=[admin,dev] # roles@sem");
+}
+
+#[test]
+fn test_semantic_hints_sorted_by_fid() {
+    let mut record = LnmpRecord::new();
+    record.add_field(LnmpField {
+        fid: 100,
+        value: LnmpValue::Int(3),
+    });
+    record.add_field(LnmpField {
+        fid: 5,
+        value: LnmpValue::Int(1),
+    });
+    record.add_field(LnmpField {
+        fid: 50,
+        value: LnmpValue::Int(2),
+    });
+
+    let mut hints = HashMap::new();
+    hints.insert(5, "first".to_string());
+    hints.insert(50, "second".to_string());
+    hints.insert(100, "third".to_string());
+
+    let converter = LlbConverter::default();
+    let output = converter.add_semantic_hints(&record, &hints);
+
+    // Fields should be sorted by FID
+    let lines: Vec<&str> = output.lines().collect();
+    assert_eq!(lines.len(), 3);
+    assert!(lines[0].starts_with("F5="));
+    assert!(lines[1].starts_with("F50="));
+    assert!(lines[2].starts_with("F100="));
+}
+
+#[test]
+fn test_generate_short_ids_simple() {
+    let field_names = vec![
+        "user_id".to_string(),
+        "username".to_string(),
+        "email".to_string(),
+    ];
+
+    let converter = LlbConverter::default();
+    let ids = converter.generate_short_ids(&field_names).unwrap();
+
+    assert_eq!(ids.len(), 3);
+    assert!(ids.contains_key("user_id"));
+    assert!(ids.contains_key("username"));
+    assert!(ids.contains_key("email"));
+
+    // IDs should be short
+    assert!(ids["user_id"].len() <= 4);
+    assert!(ids["username"].len() <= 4);
+    assert!(ids["email"].len() <= 4);
+}
+
+#[test]
+fn test_generate_short_ids_deterministic() {
+    let field_names = vec!["user_id".to_string(), "username".to_string()];
+
+    let converter = LlbConverter::default();
+    let ids1 = converter.generate_short_ids(&field_names).unwrap();
+    let ids2 = converter.generate_short_ids(&field_names).unwrap();
+
+    // Same input should produce same output
+    assert_eq!(ids1, ids2);
+}
+
+#[test]
+fn test_generate_short_ids_collision_detection() {
+    // These names will collide with the simple algorithm (both start with 'u' and have length 7)
+    let field_names = vec!["user_id".to_string(), "user_no".to_string()];
+
+    let converter = LlbConverter::default();
+    let result = converter.generate_short_ids(&field_names);
+
+    // Should detect collision
+    assert!(result.is_err());
+    if let Err(LlbError::IdCollision { id, names }) = result {
+        assert_eq!(id, "u7");
+        assert_eq!(names.len(), 2);
+    } else {
+        panic!("Expected IdCollision error");
     }
+}
 
-    #[test]
-    fn test_flatten_nested_record() {
-        let mut inner = LnmpRecord::new();
-        inner.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(42),
-        });
-        inner.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::String("test".to_string()),
-        });
+#[test]
+fn test_generate_short_ids_safe_handles_collisions() {
+    // These names will collide with the simple algorithm
+    let field_names = vec![
+        "user_id".to_string(),
+        "user_no".to_string(),
+        "user_pk".to_string(),
+    ];
 
-        let mut outer = LnmpRecord::new();
-        outer.add_field(LnmpField {
-            fid: 10,
-            value: LnmpValue::NestedRecord(Box::new(inner)),
-        });
+    let converter = LlbConverter::default();
+    let ids = converter.generate_short_ids_safe(&field_names);
 
-        let config = LlbConfig::new().with_flattening(true);
-        let converter = LlbConverter::new(config);
-        let flattened = converter.flatten_nested(&outer).unwrap();
+    assert_eq!(ids.len(), 3);
 
-        // Nested fields should be flattened with encoded FIDs
-        assert!(flattened.fields().len() >= 2);
-        
-        // Check that flattened fields exist (exact FIDs depend on encoding)
-        let has_int_field = flattened.fields().iter().any(|f| f.value == LnmpValue::Int(42));
-        let has_string_field = flattened.fields().iter().any(|f| f.value == LnmpValue::String("test".to_string()));
-        
-        assert!(has_int_field);
-        assert!(has_string_field);
-    }
+    // All IDs should be unique
+    let mut unique_ids: Vec<&String> = ids.values().collect();
+    unique_ids.sort();
+    unique_ids.dedup();
+    assert_eq!(unique_ids.len(), 3);
+}
 
-    #[test]
-    fn test_flatten_deeply_nested() {
-        let mut level2 = LnmpRecord::new();
-        level2.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(100),
-        });
+#[test]
+fn test_generate_short_ids_short_names() {
+    let field_names = vec!["id".to_string(), "age".to_string(), "zip".to_string()];
 
-        let mut level1 = LnmpRecord::new();
-        level1.add_field(LnmpField {
-            fid: 5,
-            value: LnmpValue::NestedRecord(Box::new(level2)),
-        });
+    let converter = LlbConverter::default();
+    let ids = converter.generate_short_ids(&field_names).unwrap();
 
-        let mut level0 = LnmpRecord::new();
-        level0.add_field(LnmpField {
-            fid: 10,
-            value: LnmpValue::NestedRecord(Box::new(level1)),
-        });
+    // Short names should use themselves as IDs
+    assert_eq!(ids["id"], "id");
+    assert_eq!(ids["age"], "age");
+    assert_eq!(ids["zip"], "zip");
+}
 
-        let config = LlbConfig::new().with_flattening(true);
-        let converter = LlbConverter::new(config);
-        let flattened = converter.flatten_nested(&level0).unwrap();
+#[test]
+fn test_generate_short_ids_empty_name() {
+    let field_names = vec!["".to_string()];
 
-        // Should have at least one flattened field
-        assert!(!flattened.fields().is_empty());
-        
-        // Check that the deeply nested value is present
-        let has_value = flattened.fields().iter().any(|f| f.value == LnmpValue::Int(100));
-        assert!(has_value);
-    }
+    let converter = LlbConverter::default();
+    let ids = converter.generate_short_ids(&field_names).unwrap();
 
-    #[test]
-    fn test_unflatten_simple_record() {
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(42),
-        });
-        record.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::String("test".to_string()),
-        });
+    // Empty name should get a default ID
+    assert!(ids.contains_key(""));
+    assert!(!ids[""].is_empty());
+}
 
-        let converter = LlbConverter::default();
-        let unflattened = converter.unflatten(&record).unwrap();
+#[test]
+fn test_compute_short_id_various_lengths() {
+    let converter = LlbConverter::default();
 
-        // Simple records should remain unchanged
-        assert_eq!(unflattened.fields().len(), 2);
-        assert_eq!(unflattened.get_field(1).unwrap().value, LnmpValue::Int(42));
-        assert_eq!(unflattened.get_field(2).unwrap().value, LnmpValue::String("test".to_string()));
-    }
-
-    #[test]
-    fn test_flatten_unflatten_preserves_primitives() {
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(42),
-        });
-        record.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::Float(3.14),
-        });
-        record.add_field(LnmpField {
-            fid: 3,
-            value: LnmpValue::Bool(true),
-        });
-
-        let converter = LlbConverter::default();
-        let flattened = converter.flatten_nested(&record).unwrap();
-        let unflattened = converter.unflatten(&flattened).unwrap();
-
-        // Primitive values should be preserved
-        assert_eq!(unflattened.get_field(1).unwrap().value, LnmpValue::Int(42));
-        assert_eq!(unflattened.get_field(2).unwrap().value, LnmpValue::Float(3.14));
-        assert_eq!(unflattened.get_field(3).unwrap().value, LnmpValue::Bool(true));
-    }
-
-    #[test]
-    fn test_add_semantic_hints_simple() {
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Bool(true),
-        });
-        record.add_field(LnmpField {
-            fid: 12,
-            value: LnmpValue::Int(14532),
-        });
-
-        let mut hints = HashMap::new();
-        hints.insert(7, "is_admin".to_string());
-        hints.insert(12, "user_id".to_string());
-
-        let config = LlbConfig::new().with_semantic_hints(true);
-        let converter = LlbConverter::new(config);
-        let output = converter.add_semantic_hints(&record, &hints);
-
-        assert!(output.contains("F7=1 # is_admin@sem"));
-        assert!(output.contains("F12=14532 # user_id@sem"));
-    }
-
-    #[test]
-    fn test_add_semantic_hints_partial() {
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Bool(true),
-        });
-        record.add_field(LnmpField {
-            fid: 12,
-            value: LnmpValue::Int(14532),
-        });
-        record.add_field(LnmpField {
-            fid: 20,
-            value: LnmpValue::String("test".to_string()),
-        });
-
-        let mut hints = HashMap::new();
-        hints.insert(7, "is_admin".to_string());
-        // No hint for field 12
-        hints.insert(20, "username".to_string());
-
-        let config = LlbConfig::new().with_semantic_hints(true);
-        let converter = LlbConverter::new(config);
-        let output = converter.add_semantic_hints(&record, &hints);
-
-        assert!(output.contains("F7=1 # is_admin@sem"));
-        assert!(output.contains("F12=14532\n")); // No hint
-        assert!(output.contains("F20=test # username@sem"));
-    }
-
-    #[test]
-    fn test_add_semantic_hints_no_hints() {
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Bool(true),
-        });
-
-        let hints = HashMap::new();
-
-        let converter = LlbConverter::default();
-        let output = converter.add_semantic_hints(&record, &hints);
-
-        // Should just output the field without hints
-        assert_eq!(output, "F7=1");
-    }
-
-    #[test]
-    fn test_add_semantic_hints_with_string_array() {
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 23,
-            value: LnmpValue::StringArray(vec!["admin".to_string(), "dev".to_string()]),
-        });
-
-        let mut hints = HashMap::new();
-        hints.insert(23, "roles".to_string());
-
-        let config = LlbConfig::new().with_semantic_hints(true);
-        let converter = LlbConverter::new(config);
-        let output = converter.add_semantic_hints(&record, &hints);
-
-        assert_eq!(output, "F23=[admin,dev] # roles@sem");
-    }
-
-    #[test]
-    fn test_semantic_hints_sorted_by_fid() {
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 100,
-            value: LnmpValue::Int(3),
-        });
-        record.add_field(LnmpField {
-            fid: 5,
-            value: LnmpValue::Int(1),
-        });
-        record.add_field(LnmpField {
-            fid: 50,
-            value: LnmpValue::Int(2),
-        });
-
-        let mut hints = HashMap::new();
-        hints.insert(5, "first".to_string());
-        hints.insert(50, "second".to_string());
-        hints.insert(100, "third".to_string());
-
-        let converter = LlbConverter::default();
-        let output = converter.add_semantic_hints(&record, &hints);
-
-        // Fields should be sorted by FID
-        let lines: Vec<&str> = output.lines().collect();
-        assert_eq!(lines.len(), 3);
-        assert!(lines[0].starts_with("F5="));
-        assert!(lines[1].starts_with("F50="));
-        assert!(lines[2].starts_with("F100="));
-    }
-
-    #[test]
-    fn test_generate_short_ids_simple() {
-        let field_names = vec![
-            "user_id".to_string(),
-            "username".to_string(),
-            "email".to_string(),
-        ];
-
-        let converter = LlbConverter::default();
-        let ids = converter.generate_short_ids(&field_names).unwrap();
-
-        assert_eq!(ids.len(), 3);
-        assert!(ids.contains_key("user_id"));
-        assert!(ids.contains_key("username"));
-        assert!(ids.contains_key("email"));
-        
-        // IDs should be short
-        assert!(ids["user_id"].len() <= 4);
-        assert!(ids["username"].len() <= 4);
-        assert!(ids["email"].len() <= 4);
-    }
-
-    #[test]
-    fn test_generate_short_ids_deterministic() {
-        let field_names = vec![
-            "user_id".to_string(),
-            "username".to_string(),
-        ];
-
-        let converter = LlbConverter::default();
-        let ids1 = converter.generate_short_ids(&field_names).unwrap();
-        let ids2 = converter.generate_short_ids(&field_names).unwrap();
-
-        // Same input should produce same output
-        assert_eq!(ids1, ids2);
-    }
-
-    #[test]
-    fn test_generate_short_ids_collision_detection() {
-        // These names will collide with the simple algorithm (both start with 'u' and have length 7)
-        let field_names = vec![
-            "user_id".to_string(),
-            "user_no".to_string(),
-        ];
-
-        let converter = LlbConverter::default();
-        let result = converter.generate_short_ids(&field_names);
-
-        // Should detect collision
-        assert!(result.is_err());
-        if let Err(LlbError::IdCollision { id, names }) = result {
-            assert_eq!(id, "u7");
-            assert_eq!(names.len(), 2);
-        } else {
-            panic!("Expected IdCollision error");
-        }
-    }
-
-    #[test]
-    fn test_generate_short_ids_safe_handles_collisions() {
-        // These names will collide with the simple algorithm
-        let field_names = vec![
-            "user_id".to_string(),
-            "user_no".to_string(),
-            "user_pk".to_string(),
-        ];
-
-        let converter = LlbConverter::default();
-        let ids = converter.generate_short_ids_safe(&field_names);
-
-        assert_eq!(ids.len(), 3);
-        
-        // All IDs should be unique
-        let mut unique_ids: Vec<&String> = ids.values().collect();
-        unique_ids.sort();
-        unique_ids.dedup();
-        assert_eq!(unique_ids.len(), 3);
-    }
-
-    #[test]
-    fn test_generate_short_ids_short_names() {
-        let field_names = vec![
-            "id".to_string(),
-            "age".to_string(),
-            "zip".to_string(),
-        ];
-
-        let converter = LlbConverter::default();
-        let ids = converter.generate_short_ids(&field_names).unwrap();
-
-        // Short names should use themselves as IDs
-        assert_eq!(ids["id"], "id");
-        assert_eq!(ids["age"], "age");
-        assert_eq!(ids["zip"], "zip");
-    }
-
-    #[test]
-    fn test_generate_short_ids_empty_name() {
-        let field_names = vec!["".to_string()];
-
-        let converter = LlbConverter::default();
-        let ids = converter.generate_short_ids(&field_names).unwrap();
-
-        // Empty name should get a default ID
-        assert!(ids.contains_key(""));
-        assert!(!ids[""].is_empty());
-    }
-
-    #[test]
-    fn test_compute_short_id_various_lengths() {
-        let converter = LlbConverter::default();
-
-        assert_eq!(converter.compute_short_id("id"), "id");
-        assert_eq!(converter.compute_short_id("age"), "age");
-        assert_eq!(converter.compute_short_id("name"), "n4");
-        assert_eq!(converter.compute_short_id("user_id"), "u7");
-        assert_eq!(converter.compute_short_id("username"), "u8");
-        assert_eq!(converter.compute_short_id("email_address"), "e13");
-    }
+    assert_eq!(converter.compute_short_id("id"), "id");
+    assert_eq!(converter.compute_short_id("age"), "age");
+    assert_eq!(converter.compute_short_id("name"), "n4");
+    assert_eq!(converter.compute_short_id("user_id"), "u7");
+    assert_eq!(converter.compute_short_id("username"), "u8");
+    assert_eq!(converter.compute_short_id("email_address"), "e13");
+}

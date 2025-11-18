@@ -59,7 +59,7 @@ impl SemanticChecksum {
     pub fn compute(fid: FieldId, type_hint: Option<TypeHint>, value: &LnmpValue) -> u32 {
         // Serialize the field components into a canonical string
         let serialized = Self::serialize_for_checksum(fid, type_hint, value);
-        
+
         // Compute CRC32/ISO-HDLC (zlib/IEEE) — canonical CRC32 variant
         let crc = Crc::<u32>::new(&CRC_32_ISO_HDLC);
         let mut digest = crc.digest();
@@ -90,7 +90,12 @@ impl SemanticChecksum {
     /// let checksum = SemanticChecksum::compute(12, Some(TypeHint::Int), &value);
     /// assert!(SemanticChecksum::validate(12, Some(TypeHint::Int), &value, checksum));
     /// ```
-    pub fn validate(fid: FieldId, type_hint: Option<TypeHint>, value: &LnmpValue, checksum: u32) -> bool {
+    pub fn validate(
+        fid: FieldId,
+        type_hint: Option<TypeHint>,
+        value: &LnmpValue,
+        checksum: u32,
+    ) -> bool {
         let computed = Self::compute(fid, type_hint, value);
         computed == checksum
     }
@@ -150,7 +155,11 @@ impl SemanticChecksum {
     /// Format: `{fid}:{type_hint}:{normalized_value}`
     ///
     /// If no type hint is provided, it's inferred from the value type.
-    fn serialize_for_checksum(fid: FieldId, type_hint: Option<TypeHint>, value: &LnmpValue) -> String {
+    fn serialize_for_checksum(
+        fid: FieldId,
+        type_hint: Option<TypeHint>,
+        value: &LnmpValue,
+    ) -> String {
         let hint = type_hint.unwrap_or_else(|| Self::infer_type_hint(value));
         let value_str = Self::serialize_value(value);
         format!("{}:{}:{}", fid, hint.as_str(), value_str)
@@ -233,7 +242,7 @@ impl SemanticChecksum {
     /// Formats a float with trailing zeros removed
     fn format_float(f: f64) -> String {
         let s = f.to_string();
-        
+
         // If there's no decimal point, return as-is
         if !s.contains('.') {
             return s;
@@ -254,11 +263,11 @@ mod tests {
     fn test_compute_int() {
         let value = LnmpValue::Int(14532);
         let checksum = SemanticChecksum::compute(12, Some(TypeHint::Int), &value);
-        
+
         // Checksum should be deterministic
         let checksum2 = SemanticChecksum::compute(12, Some(TypeHint::Int), &value);
         assert_eq!(checksum, checksum2);
-        
+
         // Checksum should be non-zero
         assert_ne!(checksum, 0);
     }
@@ -268,7 +277,7 @@ mod tests {
         let value = LnmpValue::Int(14532);
         let checksum1 = SemanticChecksum::compute(12, Some(TypeHint::Int), &value);
         let checksum2 = SemanticChecksum::compute(13, Some(TypeHint::Int), &value);
-        
+
         // Different FIDs should produce different checksums
         assert_ne!(checksum1, checksum2);
     }
@@ -278,7 +287,7 @@ mod tests {
         let value = LnmpValue::Int(14532);
         let checksum1 = SemanticChecksum::compute(12, Some(TypeHint::Int), &value);
         let checksum2 = SemanticChecksum::compute(12, Some(TypeHint::Float), &value);
-        
+
         // Different type hints should produce different checksums
         assert_ne!(checksum1, checksum2);
     }
@@ -289,7 +298,7 @@ mod tests {
         let value2 = LnmpValue::Int(14533);
         let checksum1 = SemanticChecksum::compute(12, Some(TypeHint::Int), &value1);
         let checksum2 = SemanticChecksum::compute(12, Some(TypeHint::Int), &value2);
-        
+
         // Different values should produce different checksums
         assert_ne!(checksum1, checksum2);
     }
@@ -298,17 +307,27 @@ mod tests {
     fn test_validate_correct_checksum() {
         let value = LnmpValue::Int(14532);
         let checksum = SemanticChecksum::compute(12, Some(TypeHint::Int), &value);
-        
-        assert!(SemanticChecksum::validate(12, Some(TypeHint::Int), &value, checksum));
+
+        assert!(SemanticChecksum::validate(
+            12,
+            Some(TypeHint::Int),
+            &value,
+            checksum
+        ));
     }
 
     #[test]
     fn test_validate_incorrect_checksum() {
         let value = LnmpValue::Int(14532);
         let checksum = SemanticChecksum::compute(12, Some(TypeHint::Int), &value);
-        
+
         // Wrong checksum should fail validation
-        assert!(!SemanticChecksum::validate(12, Some(TypeHint::Int), &value, checksum + 1));
+        assert!(!SemanticChecksum::validate(
+            12,
+            Some(TypeHint::Int),
+            &value,
+            checksum + 1
+        ));
     }
 
     #[test]
@@ -369,7 +388,7 @@ mod tests {
     fn test_serialize_bool_canonical() {
         let value_true = LnmpValue::Bool(true);
         let value_false = LnmpValue::Bool(false);
-        
+
         assert_eq!(SemanticChecksum::serialize_value(&value_true), "1");
         assert_eq!(SemanticChecksum::serialize_value(&value_false), "0");
     }
@@ -425,18 +444,33 @@ mod tests {
         let value = LnmpValue::Int(14532);
         let checksum_explicit = SemanticChecksum::compute(12, Some(TypeHint::Int), &value);
         let checksum_inferred = SemanticChecksum::compute(12, None, &value);
-        
+
         // Should produce the same checksum
         assert_eq!(checksum_explicit, checksum_inferred);
     }
 
     #[test]
     fn test_infer_type_hint() {
-        assert_eq!(SemanticChecksum::infer_type_hint(&LnmpValue::Int(42)), TypeHint::Int);
-        assert_eq!(SemanticChecksum::infer_type_hint(&LnmpValue::Float(3.14)), TypeHint::Float);
-        assert_eq!(SemanticChecksum::infer_type_hint(&LnmpValue::Bool(true)), TypeHint::Bool);
-        assert_eq!(SemanticChecksum::infer_type_hint(&LnmpValue::String("test".to_string())), TypeHint::String);
-        assert_eq!(SemanticChecksum::infer_type_hint(&LnmpValue::StringArray(vec![])), TypeHint::StringArray);
+        assert_eq!(
+            SemanticChecksum::infer_type_hint(&LnmpValue::Int(42)),
+            TypeHint::Int
+        );
+        assert_eq!(
+            SemanticChecksum::infer_type_hint(&LnmpValue::Float(3.14)),
+            TypeHint::Float
+        );
+        assert_eq!(
+            SemanticChecksum::infer_type_hint(&LnmpValue::Bool(true)),
+            TypeHint::Bool
+        );
+        assert_eq!(
+            SemanticChecksum::infer_type_hint(&LnmpValue::String("test".to_string())),
+            TypeHint::String
+        );
+        assert_eq!(
+            SemanticChecksum::infer_type_hint(&LnmpValue::StringArray(vec![])),
+            TypeHint::StringArray
+        );
     }
 
     #[test]
@@ -450,10 +484,10 @@ mod tests {
             fid: 7,
             value: LnmpValue::Bool(true),
         });
-        
+
         let value = LnmpValue::NestedRecord(Box::new(record));
         let serialized = SemanticChecksum::serialize_value(&value);
-        
+
         // Fields should be sorted by FID (7 before 12)
         assert_eq!(serialized, "{7:b:1;12:i:1}");
     }
@@ -465,16 +499,16 @@ mod tests {
             fid: 12,
             value: LnmpValue::Int(1),
         });
-        
+
         let mut record2 = LnmpRecord::new();
         record2.add_field(LnmpField {
             fid: 12,
             value: LnmpValue::Int(2),
         });
-        
+
         let value = LnmpValue::NestedArray(vec![record1, record2]);
         let serialized = SemanticChecksum::serialize_value(&value);
-        
+
         assert_eq!(serialized, "[{12:i:1},{12:i:2}]");
     }
 
@@ -485,10 +519,10 @@ mod tests {
             fid: 12,
             value: LnmpValue::Int(1),
         });
-        
+
         let value = LnmpValue::NestedRecord(Box::new(record));
         let checksum = SemanticChecksum::compute(50, Some(TypeHint::Record), &value);
-        
+
         // Should be deterministic
         let checksum2 = SemanticChecksum::compute(50, Some(TypeHint::Record), &value);
         assert_eq!(checksum, checksum2);
@@ -501,10 +535,10 @@ mod tests {
             fid: 12,
             value: LnmpValue::Int(1),
         });
-        
+
         let value = LnmpValue::NestedArray(vec![record]);
         let checksum = SemanticChecksum::compute(60, Some(TypeHint::RecordArray), &value);
-        
+
         // Should be deterministic
         let checksum2 = SemanticChecksum::compute(60, Some(TypeHint::RecordArray), &value);
         assert_eq!(checksum, checksum2);
@@ -545,7 +579,7 @@ mod tests {
         let checksums: Vec<u32> = (0..100)
             .map(|_| SemanticChecksum::compute(5, Some(TypeHint::String), &value))
             .collect();
-        
+
         let first = checksums[0];
         assert!(checksums.iter().all(|&c| c == first));
     }

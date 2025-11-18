@@ -5,10 +5,10 @@
 //! - TAG (Type Tag): 1 byte
 //! - VALUE: Variable length, encoding depends on type
 
-use lnmp_core::{LnmpField, FieldId};
 use super::error::BinaryError;
 use super::types::{BinaryValue, TypeTag};
 use super::varint;
+use lnmp_core::{FieldId, LnmpField};
 
 /// A single field encoded in binary format
 #[derive(Debug, Clone, PartialEq)]
@@ -38,18 +38,17 @@ impl BinaryEntry {
     /// Returns `BinaryError::InvalidValue` if the field contains nested structures
     /// (not supported in v0.4 binary format)
     pub fn from_field(field: &LnmpField) -> Result<Self, BinaryError> {
-        let value = BinaryValue::from_lnmp_value(&field.value)
-            .map_err(|e| match e {
-                BinaryError::InvalidValue { type_tag, reason, .. } => {
-                    BinaryError::InvalidValue {
-                        field_id: field.fid,
-                        type_tag,
-                        reason,
-                    }
-                }
-                other => other,
-            })?;
-        
+        let value = BinaryValue::from_lnmp_value(&field.value).map_err(|e| match e {
+            BinaryError::InvalidValue {
+                type_tag, reason, ..
+            } => BinaryError::InvalidValue {
+                field_id: field.fid,
+                type_tag,
+                reason,
+            },
+            other => other,
+        })?;
+
         Ok(Self {
             fid: field.fid,
             tag: value.type_tag(),
@@ -81,13 +80,13 @@ impl BinaryEntry {
     /// ```
     pub fn encode(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        
+
         // Write FID (2 bytes, little-endian)
         bytes.extend_from_slice(&self.fid.to_le_bytes());
-        
+
         // Write TAG (1 byte)
         bytes.push(self.tag.to_u8());
-        
+
         // Write VALUE (encoding depends on type)
         match &self.value {
             BinaryValue::Int(i) => {
@@ -124,7 +123,7 @@ impl BinaryEntry {
                 panic!("Nested structure encoding not yet implemented - use BinaryNestedEncoder");
             }
         }
-        
+
         bytes
     }
 
@@ -142,7 +141,7 @@ impl BinaryEntry {
     /// - `InvalidValue`: Other value decoding errors
     pub fn decode(bytes: &[u8]) -> Result<(Self, usize), BinaryError> {
         let mut offset = 0;
-        
+
         // Read FID (2 bytes, little-endian)
         if bytes.len() < 2 {
             return Err(BinaryError::UnexpectedEof {
@@ -152,7 +151,7 @@ impl BinaryEntry {
         }
         let fid = u16::from_le_bytes([bytes[0], bytes[1]]);
         offset += 2;
-        
+
         // Read TAG (1 byte)
         if bytes.len() < offset + 1 {
             return Err(BinaryError::UnexpectedEof {
@@ -162,7 +161,7 @@ impl BinaryEntry {
         }
         let tag = TypeTag::from_u8(bytes[offset])?;
         offset += 1;
-        
+
         // Read VALUE (depends on type)
         let value = match tag {
             TypeTag::NestedRecord | TypeTag::NestedArray => {
@@ -170,12 +169,19 @@ impl BinaryEntry {
                 return Err(BinaryError::InvalidValue {
                     field_id: fid,
                     type_tag: tag.to_u8(),
-                    reason: "Nested structure decoding not yet implemented - use BinaryNestedDecoder".to_string(),
+                    reason:
+                        "Nested structure decoding not yet implemented - use BinaryNestedDecoder"
+                            .to_string(),
                 });
             }
-            TypeTag::Reserved08 | TypeTag::Reserved09 | TypeTag::Reserved0A 
-            | TypeTag::Reserved0B | TypeTag::Reserved0C | TypeTag::Reserved0D 
-            | TypeTag::Reserved0E | TypeTag::Reserved0F => {
+            TypeTag::Reserved08
+            | TypeTag::Reserved09
+            | TypeTag::Reserved0A
+            | TypeTag::Reserved0B
+            | TypeTag::Reserved0C
+            | TypeTag::Reserved0D
+            | TypeTag::Reserved0E
+            | TypeTag::Reserved0F => {
                 return Err(BinaryError::InvalidValue {
                     field_id: fid,
                     type_tag: tag.to_u8(),
@@ -183,8 +189,8 @@ impl BinaryEntry {
                 });
             }
             TypeTag::Int => {
-                let (int_val, consumed) = varint::decode(&bytes[offset..])
-                    .map_err(|_| BinaryError::InvalidValue {
+                let (int_val, consumed) =
+                    varint::decode(&bytes[offset..]).map_err(|_| BinaryError::InvalidValue {
                         field_id: fid,
                         type_tag: tag.to_u8(),
                         reason: "Invalid VarInt encoding".to_string(),
@@ -220,7 +226,10 @@ impl BinaryEntry {
                         return Err(BinaryError::InvalidValue {
                             field_id: fid,
                             type_tag: tag.to_u8(),
-                            reason: format!("Invalid boolean value: 0x{:02X} (expected 0x00 or 0x01)", other),
+                            reason: format!(
+                                "Invalid boolean value: 0x{:02X} (expected 0x00 or 0x01)",
+                                other
+                            ),
                         });
                     }
                 };
@@ -228,14 +237,14 @@ impl BinaryEntry {
                 BinaryValue::Bool(bool_val)
             }
             TypeTag::String => {
-                let (length, consumed) = varint::decode(&bytes[offset..])
-                    .map_err(|_| BinaryError::InvalidValue {
+                let (length, consumed) =
+                    varint::decode(&bytes[offset..]).map_err(|_| BinaryError::InvalidValue {
                         field_id: fid,
                         type_tag: tag.to_u8(),
                         reason: "Invalid string length VarInt".to_string(),
                     })?;
                 offset += consumed;
-                
+
                 if length < 0 {
                     return Err(BinaryError::InvalidValue {
                         field_id: fid,
@@ -243,7 +252,7 @@ impl BinaryEntry {
                         reason: format!("Negative string length: {}", length),
                     });
                 }
-                
+
                 let length = length as usize;
                 if bytes.len() < offset + length {
                     return Err(BinaryError::UnexpectedEof {
@@ -251,7 +260,7 @@ impl BinaryEntry {
                         found: bytes.len(),
                     });
                 }
-                
+
                 let string_val = std::str::from_utf8(&bytes[offset..offset + length])
                     .map_err(|_| BinaryError::InvalidUtf8 { field_id: fid })?
                     .to_string();
@@ -259,14 +268,14 @@ impl BinaryEntry {
                 BinaryValue::String(string_val)
             }
             TypeTag::StringArray => {
-                let (count, consumed) = varint::decode(&bytes[offset..])
-                    .map_err(|_| BinaryError::InvalidValue {
+                let (count, consumed) =
+                    varint::decode(&bytes[offset..]).map_err(|_| BinaryError::InvalidValue {
                         field_id: fid,
                         type_tag: tag.to_u8(),
                         reason: "Invalid array count VarInt".to_string(),
                     })?;
                 offset += consumed;
-                
+
                 if count < 0 {
                     return Err(BinaryError::InvalidValue {
                         field_id: fid,
@@ -274,19 +283,20 @@ impl BinaryEntry {
                         reason: format!("Negative array count: {}", count),
                     });
                 }
-                
+
                 let count = count as usize;
                 let mut strings = Vec::with_capacity(count);
-                
+
                 for _ in 0..count {
-                    let (length, consumed) = varint::decode(&bytes[offset..])
-                        .map_err(|_| BinaryError::InvalidValue {
+                    let (length, consumed) = varint::decode(&bytes[offset..]).map_err(|_| {
+                        BinaryError::InvalidValue {
                             field_id: fid,
                             type_tag: tag.to_u8(),
                             reason: "Invalid string length in array".to_string(),
-                        })?;
+                        }
+                    })?;
                     offset += consumed;
-                    
+
                     if length < 0 {
                         return Err(BinaryError::InvalidValue {
                             field_id: fid,
@@ -294,7 +304,7 @@ impl BinaryEntry {
                             reason: format!("Negative string length in array: {}", length),
                         });
                     }
-                    
+
                     let length = length as usize;
                     if bytes.len() < offset + length {
                         return Err(BinaryError::UnexpectedEof {
@@ -302,29 +312,21 @@ impl BinaryEntry {
                             found: bytes.len(),
                         });
                     }
-                    
+
                     let string_val = std::str::from_utf8(&bytes[offset..offset + length])
                         .map_err(|_| BinaryError::InvalidUtf8 { field_id: fid })?
                         .to_string();
                     offset += length;
                     strings.push(string_val);
                 }
-                
+
                 BinaryValue::StringArray(strings)
             }
         };
-        
-        Ok((
-            Self {
-                fid,
-                tag,
-                value,
-            },
-            offset,
-        ))
+
+        Ok((Self { fid, tag, value }, offset))
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -337,7 +339,7 @@ mod tests {
             fid: 12,
             value: LnmpValue::Int(14532),
         };
-        
+
         let entry = BinaryEntry::from_field(&field).unwrap();
         assert_eq!(entry.fid, 12);
         assert_eq!(entry.tag, TypeTag::Int);
@@ -350,7 +352,7 @@ mod tests {
             fid: 5,
             value: LnmpValue::Float(3.14),
         };
-        
+
         let entry = BinaryEntry::from_field(&field).unwrap();
         assert_eq!(entry.fid, 5);
         assert_eq!(entry.tag, TypeTag::Float);
@@ -363,7 +365,7 @@ mod tests {
             fid: 7,
             value: LnmpValue::Bool(true),
         };
-        
+
         let entry = BinaryEntry::from_field(&field).unwrap();
         assert_eq!(entry.fid, 7);
         assert_eq!(entry.tag, TypeTag::Bool);
@@ -376,7 +378,7 @@ mod tests {
             fid: 1,
             value: LnmpValue::String("hello".to_string()),
         };
-        
+
         let entry = BinaryEntry::from_field(&field).unwrap();
         assert_eq!(entry.fid, 1);
         assert_eq!(entry.tag, TypeTag::String);
@@ -389,7 +391,7 @@ mod tests {
             fid: 23,
             value: LnmpValue::StringArray(vec!["admin".to_string(), "dev".to_string()]),
         };
-        
+
         let entry = BinaryEntry::from_field(&field).unwrap();
         assert_eq!(entry.fid, 23);
         assert_eq!(entry.tag, TypeTag::StringArray);
@@ -406,7 +408,7 @@ mod tests {
             tag: TypeTag::Int,
             value: BinaryValue::Int(42),
         };
-        
+
         let field = entry.to_field();
         assert_eq!(field.fid, 12);
         assert_eq!(field.value, LnmpValue::Int(42));
@@ -419,7 +421,7 @@ mod tests {
             tag: TypeTag::Float,
             value: BinaryValue::Float(2.718),
         };
-        
+
         let field = entry.to_field();
         assert_eq!(field.fid, 5);
         assert_eq!(field.value, LnmpValue::Float(2.718));
@@ -432,7 +434,7 @@ mod tests {
             tag: TypeTag::Bool,
             value: BinaryValue::Bool(false),
         };
-        
+
         let field = entry.to_field();
         assert_eq!(field.fid, 7);
         assert_eq!(field.value, LnmpValue::Bool(false));
@@ -445,7 +447,7 @@ mod tests {
             tag: TypeTag::String,
             value: BinaryValue::String("world".to_string()),
         };
-        
+
         let field = entry.to_field();
         assert_eq!(field.fid, 1);
         assert_eq!(field.value, LnmpValue::String("world".to_string()));
@@ -458,7 +460,7 @@ mod tests {
             tag: TypeTag::StringArray,
             value: BinaryValue::StringArray(vec!["x".to_string(), "y".to_string()]),
         };
-        
+
         let field = entry.to_field();
         assert_eq!(field.fid, 23);
         assert_eq!(
@@ -474,9 +476,9 @@ mod tests {
             tag: TypeTag::Int,
             value: BinaryValue::Int(14532),
         };
-        
+
         let bytes = entry.encode();
-        
+
         // FID (12 in little-endian)
         assert_eq!(bytes[0], 0x0C);
         assert_eq!(bytes[1], 0x00);
@@ -494,9 +496,9 @@ mod tests {
             tag: TypeTag::Float,
             value: BinaryValue::Float(3.14),
         };
-        
+
         let bytes = entry.encode();
-        
+
         // FID (5 in little-endian)
         assert_eq!(bytes[0], 0x05);
         assert_eq!(bytes[1], 0x00);
@@ -514,9 +516,9 @@ mod tests {
             tag: TypeTag::Bool,
             value: BinaryValue::Bool(true),
         };
-        
+
         let bytes = entry.encode();
-        
+
         // FID (7 in little-endian)
         assert_eq!(bytes[0], 0x07);
         assert_eq!(bytes[1], 0x00);
@@ -533,9 +535,9 @@ mod tests {
             tag: TypeTag::Bool,
             value: BinaryValue::Bool(false),
         };
-        
+
         let bytes = entry.encode();
-        
+
         // FID (7 in little-endian)
         assert_eq!(bytes[0], 0x07);
         assert_eq!(bytes[1], 0x00);
@@ -552,9 +554,9 @@ mod tests {
             tag: TypeTag::String,
             value: BinaryValue::String("hello".to_string()),
         };
-        
+
         let bytes = entry.encode();
-        
+
         // FID (1 in little-endian)
         assert_eq!(bytes[0], 0x01);
         assert_eq!(bytes[1], 0x00);
@@ -574,28 +576,31 @@ mod tests {
             tag: TypeTag::StringArray,
             value: BinaryValue::StringArray(vec!["admin".to_string(), "dev".to_string()]),
         };
-        
+
         let bytes = entry.encode();
-        
+
         // FID (23 in little-endian)
         assert_eq!(bytes[0], 0x17);
         assert_eq!(bytes[1], 0x00);
         // TAG (StringArray = 0x05)
         assert_eq!(bytes[2], 0x05);
-        
+
         let mut offset = 3;
         // Count VarInt (2)
         let count_varint = varint::encode(2);
-        assert_eq!(&bytes[offset..offset + count_varint.len()], &count_varint[..]);
+        assert_eq!(
+            &bytes[offset..offset + count_varint.len()],
+            &count_varint[..]
+        );
         offset += count_varint.len();
-        
+
         // First string "admin"
         let len1_varint = varint::encode(5);
         assert_eq!(&bytes[offset..offset + len1_varint.len()], &len1_varint[..]);
         offset += len1_varint.len();
         assert_eq!(&bytes[offset..offset + 5], b"admin");
         offset += 5;
-        
+
         // Second string "dev"
         let len2_varint = varint::encode(3);
         assert_eq!(&bytes[offset..offset + len2_varint.len()], &len2_varint[..]);
@@ -610,10 +615,10 @@ mod tests {
             tag: TypeTag::Int,
             value: BinaryValue::Int(14532),
         };
-        
+
         let bytes = entry.encode();
         let (decoded, consumed) = BinaryEntry::decode(&bytes).unwrap();
-        
+
         assert_eq!(decoded, entry);
         assert_eq!(consumed, bytes.len());
     }
@@ -625,10 +630,10 @@ mod tests {
             tag: TypeTag::Float,
             value: BinaryValue::Float(3.14),
         };
-        
+
         let bytes = entry.encode();
         let (decoded, consumed) = BinaryEntry::decode(&bytes).unwrap();
-        
+
         assert_eq!(decoded, entry);
         assert_eq!(consumed, bytes.len());
     }
@@ -640,10 +645,10 @@ mod tests {
             tag: TypeTag::Bool,
             value: BinaryValue::Bool(true),
         };
-        
+
         let bytes = entry.encode();
         let (decoded, consumed) = BinaryEntry::decode(&bytes).unwrap();
-        
+
         assert_eq!(decoded, entry);
         assert_eq!(consumed, bytes.len());
     }
@@ -655,10 +660,10 @@ mod tests {
             tag: TypeTag::String,
             value: BinaryValue::String("hello".to_string()),
         };
-        
+
         let bytes = entry.encode();
         let (decoded, consumed) = BinaryEntry::decode(&bytes).unwrap();
-        
+
         assert_eq!(decoded, entry);
         assert_eq!(consumed, bytes.len());
     }
@@ -670,10 +675,10 @@ mod tests {
             tag: TypeTag::StringArray,
             value: BinaryValue::StringArray(vec!["admin".to_string(), "dev".to_string()]),
         };
-        
+
         let bytes = entry.encode();
         let (decoded, consumed) = BinaryEntry::decode(&bytes).unwrap();
-        
+
         assert_eq!(decoded, entry);
         assert_eq!(consumed, bytes.len());
     }
@@ -685,12 +690,12 @@ mod tests {
             tag: TypeTag::Int,
             value: BinaryValue::Int(42),
         };
-        
+
         let mut bytes = entry.encode();
         bytes.extend_from_slice(&[0xFF, 0xFF, 0xFF]); // Extra bytes
-        
+
         let (decoded, consumed) = BinaryEntry::decode(&bytes).unwrap();
-        
+
         assert_eq!(decoded, entry);
         assert_eq!(consumed, bytes.len() - 3); // Should not consume trailing bytes
     }
@@ -728,7 +733,7 @@ mod tests {
         let mut bytes = vec![0x01, 0x00, 0x04]; // FID=1, TAG=String
         bytes.extend_from_slice(&varint::encode(3)); // Length=3
         bytes.extend_from_slice(&[0xFF, 0xFE, 0xFD]); // Invalid UTF-8
-        
+
         let result = BinaryEntry::decode(&bytes);
         assert!(matches!(result, Err(BinaryError::InvalidUtf8 { .. })));
     }
@@ -800,7 +805,7 @@ mod tests {
             tag: TypeTag::String,
             value: BinaryValue::String("".to_string()),
         };
-        
+
         let bytes = entry.encode();
         let (decoded, _) = BinaryEntry::decode(&bytes).unwrap();
         assert_eq!(decoded, entry);
@@ -813,7 +818,7 @@ mod tests {
             tag: TypeTag::StringArray,
             value: BinaryValue::StringArray(vec![]),
         };
-        
+
         let bytes = entry.encode();
         let (decoded, _) = BinaryEntry::decode(&bytes).unwrap();
         assert_eq!(decoded, entry);
@@ -826,7 +831,7 @@ mod tests {
             tag: TypeTag::String,
             value: BinaryValue::String("Hello 🎯 World".to_string()),
         };
-        
+
         let bytes = entry.encode();
         let (decoded, _) = BinaryEntry::decode(&bytes).unwrap();
         assert_eq!(decoded, entry);
@@ -839,7 +844,7 @@ mod tests {
             tag: TypeTag::Int,
             value: BinaryValue::Int(-9999),
         };
-        
+
         let bytes = entry.encode();
         let (decoded, _) = BinaryEntry::decode(&bytes).unwrap();
         assert_eq!(decoded, entry);

@@ -4,10 +4,10 @@
 //! It implements recursive encoding with depth validation and size limits to prevent
 //! stack overflow and memory exhaustion attacks.
 
-use lnmp_core::{LnmpRecord, LnmpValue};
 use super::error::BinaryError;
 use super::types::TypeTag;
 use super::varint;
+use lnmp_core::{LnmpRecord, LnmpValue};
 
 /// Configuration for nested structure encoding (v0.5)
 #[derive(Debug, Clone)]
@@ -231,7 +231,12 @@ impl BinaryNestedEncoder {
         current_depth: usize,
     ) -> Result<Vec<u8>, BinaryError> {
         // Validate depth for nested structures
-        if current_depth >= self.config.max_depth && matches!(value, LnmpValue::NestedRecord(_) | LnmpValue::NestedArray(_)) {
+        if current_depth >= self.config.max_depth
+            && matches!(
+                value,
+                LnmpValue::NestedRecord(_) | LnmpValue::NestedArray(_)
+            )
+        {
             return Err(BinaryError::NestingDepthExceeded {
                 depth: current_depth,
                 max: self.config.max_depth,
@@ -406,7 +411,7 @@ mod tests {
         // Should start with TAG (0x07) + ELEMENT_COUNT (1)
         assert_eq!(result[0], 0x07); // NestedArray tag
         assert_eq!(result[1], 0x01); // Element count = 1
-        // Next should be the nested record (TAG 0x06)
+                                     // Next should be the nested record (TAG 0x06)
         assert_eq!(result[2], 0x06); // NestedRecord tag
     }
 
@@ -516,9 +521,9 @@ mod tests {
         // Should start with TAG (0x06) + FIELD_COUNT (1)
         assert_eq!(result[0], 0x06); // NestedRecord tag
         assert_eq!(result[1], 0x01); // Field count = 1
-        // Next should be FID=2
+                                     // Next should be FID=2
         assert_eq!(result[2], 0x02); // FID = 2
-        // Next should be nested record TAG (0x06)
+                                     // Next should be nested record TAG (0x06)
         assert_eq!(result[3], 0x06); // Inner NestedRecord tag
     }
 

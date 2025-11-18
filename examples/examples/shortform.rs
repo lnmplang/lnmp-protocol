@@ -7,8 +7,8 @@
 //! WARNING: ShortForm is NOT canonical LNMP and should only be used for
 //! LLM input optimization, never for storage or APIs.
 
-use lnmp_codec::Encoder;
 use lnmp_codec::config::EncoderConfig;
+use lnmp_codec::Encoder;
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 
 fn main() {
@@ -73,8 +73,9 @@ fn standard_vs_shortform() {
     println!("{}", shortform_output);
     println!("Length: {} chars\n", shortform_output.len());
 
-    let reduction = ((standard_output.len() - shortform_output.len()) as f64 
-        / standard_output.len() as f64) * 100.0;
+    let reduction = ((standard_output.len() - shortform_output.len()) as f64
+        / standard_output.len() as f64)
+        * 100.0;
     println!("Reduction: {:.1}%", reduction);
 }
 
@@ -125,10 +126,10 @@ fn token_reduction_metrics() {
     println!("{}", shortform_output);
     println!("Length: {} chars\n", shortform_output.len());
 
-    let json_reduction = ((json_output.len() - shortform_output.len()) as f64 
-        / json_output.len() as f64) * 100.0;
-    let lnmp_reduction = ((lnmp_output.len() - shortform_output.len()) as f64 
-        / lnmp_output.len() as f64) * 100.0;
+    let json_reduction =
+        ((json_output.len() - shortform_output.len()) as f64 / json_output.len() as f64) * 100.0;
+    let lnmp_reduction =
+        ((lnmp_output.len() - shortform_output.len()) as f64 / lnmp_output.len() as f64) * 100.0;
 
     println!("Token reduction:");
     println!("  vs JSON: {:.1}%", json_reduction);
@@ -206,7 +207,7 @@ fn simulate_shortform(record: &LnmpRecord) -> String {
             format!("{}={}", field.fid, value_str)
         })
         .collect();
-    
+
     fields.join(" ")
 }
 
@@ -241,6 +242,6 @@ fn simulate_shortform_nested(record: &LnmpRecord) -> String {
             format!("{}={}", field.fid, value_str)
         })
         .collect();
-    
+
     fields.join(" ")
 }

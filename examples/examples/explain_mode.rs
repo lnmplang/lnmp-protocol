@@ -85,11 +85,7 @@ fn basic_explain_mode() {
 }
 
 fn explain_mode_no_type_hints() {
-    let dict = SemanticDictionary::from_pairs(vec![
-        (1, "id"),
-        (2, "name"),
-        (3, "active"),
-    ]);
+    let dict = SemanticDictionary::from_pairs(vec![(1, "id"), (2, "name"), (3, "active")]);
 
     let mut record = LnmpRecord::new();
     record.add_field(LnmpField {
@@ -116,10 +112,7 @@ fn explain_mode_no_type_hints() {
 }
 
 fn custom_comment_alignment() {
-    let dict = SemanticDictionary::from_pairs(vec![
-        (1, "id"),
-        (100, "very_long_field_name"),
-    ]);
+    let dict = SemanticDictionary::from_pairs(vec![(1, "id"), (100, "very_long_field_name")]);
 
     let mut record = LnmpRecord::new();
     record.add_field(LnmpField {
@@ -181,10 +174,7 @@ fn nested_with_explain_mode() {
 
 fn fields_without_names() {
     // Dictionary with only some field names
-    let dict = SemanticDictionary::from_pairs(vec![
-        (12, "user_id"),
-        (23, "roles"),
-    ]);
+    let dict = SemanticDictionary::from_pairs(vec![(12, "user_id"), (23, "roles")]);
 
     let mut record = LnmpRecord::new();
     record.add_field(LnmpField {

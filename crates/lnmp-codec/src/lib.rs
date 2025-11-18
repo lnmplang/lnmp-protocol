@@ -158,7 +158,7 @@ pub mod lexer;
 pub mod normalizer;
 pub mod parser;
 
-pub use config::{EncoderConfig, ParsingMode};
+pub use config::{EncoderConfig, ParsingMode, TextInputMode};
 pub use encoder::{canonicalize_record, Encoder};
 pub use equivalence::EquivalenceMapper;
 pub use error::LnmpError;

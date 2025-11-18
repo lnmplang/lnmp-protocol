@@ -52,8 +52,57 @@ impl LnmpValue {
         }
     }
 
-    /// Validates the structural integrity of the value
+    /// Validates the structural integrity of the value without imposing limits.
+    ///
+    /// This uses an iterative walk to avoid deep-recursion stack overflows.
     pub fn validate_structure(&self) -> Result<(), String> {
+        self.validate_with_max_depth(usize::MAX)
+    }
+
+    /// Validates structure while enforcing a maximum nesting depth.
+    ///
+    /// Returns an error string if the structure contains invalid nested values
+    /// or if `max_depth` is exceeded.
+    pub fn validate_with_max_depth(&self, max_depth: usize) -> Result<(), String> {
+        let mut stack: Vec<(usize, &LnmpValue)> = vec![(0, self)];
+
+        while let Some((depth, value)) = stack.pop() {
+            if depth > max_depth {
+                return Err(format!(
+                    "maximum nesting depth exceeded (max={}, saw={})",
+                    max_depth, depth
+                ));
+            }
+
+            match value {
+                LnmpValue::Int(_)
+                | LnmpValue::Float(_)
+                | LnmpValue::Bool(_)
+                | LnmpValue::String(_)
+                | LnmpValue::StringArray(_) => {}
+
+                LnmpValue::NestedRecord(record) => {
+                    for field in record.fields() {
+                        stack.push((depth + 1, &field.value));
+                    }
+                }
+
+                LnmpValue::NestedArray(records) => {
+                    for record in records {
+                        for field in record.fields() {
+                            stack.push((depth + 1, &field.value));
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Validates the structural integrity of the value (deprecated name).
+    #[deprecated(note = "use validate_with_max_depth or validate_structure instead")]
+    pub fn validate_structure_recursive(&self) -> Result<(), String> {
         match self {
             // Primitive types are always valid
             LnmpValue::Int(_)
@@ -61,7 +110,7 @@ impl LnmpValue {
             | LnmpValue::Bool(_)
             | LnmpValue::String(_)
             | LnmpValue::StringArray(_) => Ok(()),
-            
+
             // Validate nested record
             LnmpValue::NestedRecord(record) => {
                 for field in record.fields() {
@@ -69,7 +118,7 @@ impl LnmpValue {
                 }
                 Ok(())
             }
-            
+
             // Validate nested array
             LnmpValue::NestedArray(records) => {
                 for record in records {
@@ -134,24 +183,26 @@ impl TypeHint {
     ///
     /// Use `TypeHint::parse(s)` or `str::parse::<TypeHint>(s)` instead.
     #[allow(clippy::should_implement_trait)]
-    #[deprecated(note = "TypeHint::from_str is deprecated; use TypeHint::parse() or str::parse::<TypeHint>()")]
+    #[deprecated(
+        note = "TypeHint::from_str is deprecated; use TypeHint::parse() or str::parse::<TypeHint>()"
+    )]
     pub fn from_str(s: &str) -> Option<Self> {
         Self::parse(s)
     }
 
     /// Validates that a value matches this type hint
     pub fn validates(&self, value: &LnmpValue) -> bool {
-        matches!((self, value),
-            (TypeHint::Int, LnmpValue::Int(_)) |
-            (TypeHint::Float, LnmpValue::Float(_)) |
-            (TypeHint::Bool, LnmpValue::Bool(_)) |
-            (TypeHint::String, LnmpValue::String(_)) |
-            (TypeHint::StringArray, LnmpValue::StringArray(_)) |
-            (TypeHint::Record, LnmpValue::NestedRecord(_)) |
-            (TypeHint::RecordArray, LnmpValue::NestedArray(_))
+        matches!(
+            (self, value),
+            (TypeHint::Int, LnmpValue::Int(_))
+                | (TypeHint::Float, LnmpValue::Float(_))
+                | (TypeHint::Bool, LnmpValue::Bool(_))
+                | (TypeHint::String, LnmpValue::String(_))
+                | (TypeHint::StringArray, LnmpValue::StringArray(_))
+                | (TypeHint::Record, LnmpValue::NestedRecord(_))
+                | (TypeHint::RecordArray, LnmpValue::NestedArray(_))
         )
     }
-
 }
 
 /// Implement std::str::FromStr for TypeHint so callers can use `str::parse::<TypeHint>()`.
@@ -208,10 +259,10 @@ mod tests {
         assert!(!hint.validates(&LnmpValue::Bool(true)));
         assert!(!hint.validates(&LnmpValue::String("test".to_string())));
         assert!(!hint.validates(&LnmpValue::StringArray(vec![])));
-        
+
         let nested_record = LnmpValue::NestedRecord(Box::new(crate::LnmpRecord::new()));
         assert!(!hint.validates(&nested_record));
-        
+
         let nested_array = LnmpValue::NestedArray(vec![]);
         assert!(!hint.validates(&nested_array));
     }
@@ -251,7 +302,10 @@ mod tests {
     #[test]
     fn test_type_hint_validates_string_array() {
         let hint = TypeHint::StringArray;
-        assert!(hint.validates(&LnmpValue::StringArray(vec!["a".to_string(), "b".to_string()])));
+        assert!(hint.validates(&LnmpValue::StringArray(vec![
+            "a".to_string(),
+            "b".to_string()
+        ])));
         assert!(hint.validates(&LnmpValue::StringArray(vec![])));
         assert!(!hint.validates(&LnmpValue::Int(42)));
         assert!(!hint.validates(&LnmpValue::Float(3.14)));
@@ -281,14 +335,14 @@ mod tests {
     #[test]
     fn test_type_hint_validates_record() {
         use crate::{LnmpField, LnmpRecord};
-        
+
         let hint = TypeHint::Record;
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 12,
             value: LnmpValue::Int(1),
         });
-        
+
         let nested_record = LnmpValue::NestedRecord(Box::new(record));
         assert!(hint.validates(&nested_record));
         assert!(!hint.validates(&LnmpValue::Int(42)));
@@ -298,14 +352,14 @@ mod tests {
     #[test]
     fn test_type_hint_validates_record_array() {
         use crate::{LnmpField, LnmpRecord};
-        
+
         let hint = TypeHint::RecordArray;
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 12,
             value: LnmpValue::Int(1),
         });
-        
+
         let nested_array = LnmpValue::NestedArray(vec![record]);
         assert!(hint.validates(&nested_array));
         assert!(!hint.validates(&LnmpValue::Int(42)));
@@ -324,13 +378,13 @@ mod tests {
     #[test]
     fn test_depth_nested_record() {
         use crate::{LnmpField, LnmpRecord};
-        
+
         let mut inner_record = LnmpRecord::new();
         inner_record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(42),
         });
-        
+
         let nested = LnmpValue::NestedRecord(Box::new(inner_record));
         assert_eq!(nested.depth(), 1);
     }
@@ -338,26 +392,26 @@ mod tests {
     #[test]
     fn test_depth_deeply_nested_record() {
         use crate::{LnmpField, LnmpRecord};
-        
+
         // Create a 3-level nested structure
         let mut level3 = LnmpRecord::new();
         level3.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(42),
         });
-        
+
         let mut level2 = LnmpRecord::new();
         level2.add_field(LnmpField {
             fid: 2,
             value: LnmpValue::NestedRecord(Box::new(level3)),
         });
-        
+
         let mut level1 = LnmpRecord::new();
         level1.add_field(LnmpField {
             fid: 3,
             value: LnmpValue::NestedRecord(Box::new(level2)),
         });
-        
+
         let nested = LnmpValue::NestedRecord(Box::new(level1));
         assert_eq!(nested.depth(), 3);
     }
@@ -365,19 +419,19 @@ mod tests {
     #[test]
     fn test_depth_nested_array() {
         use crate::{LnmpField, LnmpRecord};
-        
+
         let mut record1 = LnmpRecord::new();
         record1.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(1),
         });
-        
+
         let mut record2 = LnmpRecord::new();
         record2.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(2),
         });
-        
+
         let nested_array = LnmpValue::NestedArray(vec![record1, record2]);
         assert_eq!(nested_array.depth(), 1);
     }
@@ -385,12 +439,33 @@ mod tests {
     #[test]
     fn test_depth_empty_nested_structures() {
         use crate::LnmpRecord;
-        
+
         let empty_record = LnmpValue::NestedRecord(Box::new(LnmpRecord::new()));
         assert_eq!(empty_record.depth(), 1);
-        
+
         let empty_array = LnmpValue::NestedArray(vec![]);
         assert_eq!(empty_array.depth(), 1);
+    }
+
+    #[test]
+    fn validate_with_max_depth_rejects_excess() {
+        use crate::{LnmpField, LnmpRecord};
+
+        // Create a 2-level nesting: depth 2 should fail when max_depth=1.
+        let mut inner = LnmpRecord::new();
+        inner.add_field(LnmpField {
+            fid: 1,
+            value: LnmpValue::Int(1),
+        });
+        let mut outer = LnmpRecord::new();
+        outer.add_field(LnmpField {
+            fid: 2,
+            value: LnmpValue::NestedRecord(Box::new(inner)),
+        });
+
+        let value = LnmpValue::NestedRecord(Box::new(outer));
+        let err = value.validate_with_max_depth(1).unwrap_err();
+        assert!(err.contains("maximum nesting depth exceeded"));
     }
 
     #[test]
@@ -398,14 +473,18 @@ mod tests {
         assert!(LnmpValue::Int(42).validate_structure().is_ok());
         assert!(LnmpValue::Float(3.14).validate_structure().is_ok());
         assert!(LnmpValue::Bool(true).validate_structure().is_ok());
-        assert!(LnmpValue::String("test".to_string()).validate_structure().is_ok());
-        assert!(LnmpValue::StringArray(vec!["a".to_string()]).validate_structure().is_ok());
+        assert!(LnmpValue::String("test".to_string())
+            .validate_structure()
+            .is_ok());
+        assert!(LnmpValue::StringArray(vec!["a".to_string()])
+            .validate_structure()
+            .is_ok());
     }
 
     #[test]
     fn test_validate_structure_nested_record() {
         use crate::{LnmpField, LnmpRecord};
-        
+
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 1,
@@ -415,7 +494,7 @@ mod tests {
             fid: 2,
             value: LnmpValue::String("test".to_string()),
         });
-        
+
         let nested = LnmpValue::NestedRecord(Box::new(record));
         assert!(nested.validate_structure().is_ok());
     }
@@ -423,19 +502,19 @@ mod tests {
     #[test]
     fn test_validate_structure_nested_array() {
         use crate::{LnmpField, LnmpRecord};
-        
+
         let mut record1 = LnmpRecord::new();
         record1.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(1),
         });
-        
+
         let mut record2 = LnmpRecord::new();
         record2.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(2),
         });
-        
+
         let nested_array = LnmpValue::NestedArray(vec![record1, record2]);
         assert!(nested_array.validate_structure().is_ok());
     }
@@ -443,19 +522,19 @@ mod tests {
     #[test]
     fn test_validate_structure_deeply_nested() {
         use crate::{LnmpField, LnmpRecord};
-        
+
         let mut inner = LnmpRecord::new();
         inner.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(42),
         });
-        
+
         let mut outer = LnmpRecord::new();
         outer.add_field(LnmpField {
             fid: 2,
             value: LnmpValue::NestedRecord(Box::new(inner)),
         });
-        
+
         let nested = LnmpValue::NestedRecord(Box::new(outer));
         assert!(nested.validate_structure().is_ok());
     }

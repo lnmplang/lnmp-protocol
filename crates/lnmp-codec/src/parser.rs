@@ -1,10 +1,14 @@
 //! Parser for converting LNMP text format into structured records.
 
-use crate::config::{ParserConfig, ParsingMode};
+use std::borrow::Cow;
+
+use crate::config::{ParserConfig, ParsingMode, TextInputMode};
 use crate::error::LnmpError;
 use crate::lexer::{Lexer, Token};
+use crate::normalizer::ValueNormalizer;
 use lnmp_core::checksum::SemanticChecksum;
 use lnmp_core::{FieldId, LnmpField, LnmpRecord, LnmpValue, TypeHint};
+use lnmp_sanitize::{sanitize_lnmp_text, SanitizationConfig};
 
 /// Parser for LNMP text format
 pub struct Parser<'a> {
@@ -13,12 +17,35 @@ pub struct Parser<'a> {
     config: ParserConfig,
     // current nesting depth for nested records/arrays
     nesting_depth: usize,
+    normalizer: Option<ValueNormalizer>,
 }
 
 impl<'a> Parser<'a> {
     /// Creates a new parser for the given input (defaults to loose mode)
     pub fn new(input: &'a str) -> Result<Self, LnmpError> {
         Self::with_config(input, ParserConfig::default())
+    }
+
+    /// Creates a new parser using strict text input handling.
+    pub fn new_strict(input: &'a str) -> Result<Self, LnmpError> {
+        Self::with_config(
+            input,
+            ParserConfig {
+                text_input_mode: TextInputMode::Strict,
+                ..ParserConfig::default()
+            },
+        )
+    }
+
+    /// Creates a new parser using lenient text sanitization before parsing.
+    pub fn new_lenient(input: &'a str) -> Result<Self, LnmpError> {
+        Self::with_config(
+            input,
+            ParserConfig {
+                text_input_mode: TextInputMode::Lenient,
+                ..ParserConfig::default()
+            },
+        )
     }
 
     /// Creates a new parser with specified parsing mode
@@ -32,21 +59,39 @@ impl<'a> Parser<'a> {
 
     /// Creates a new parser with specified configuration
     pub fn with_config(input: &'a str, config: ParserConfig) -> Result<Self, LnmpError> {
-        let mut lexer = Lexer::new(input);
+        let input_cow = match config.text_input_mode {
+            TextInputMode::Strict => Cow::Borrowed(input),
+            TextInputMode::Lenient => sanitize_lnmp_text(input, &SanitizationConfig::default()),
+        };
+
+        if config.mode == ParsingMode::Strict {
+            Self::check_for_comments(input_cow.as_ref())?;
+        }
+
+        let mut lexer = match input_cow {
+            Cow::Borrowed(s) => Lexer::new(s),
+            Cow::Owned(s) => {
+                let span_map = crate::lexer::build_span_map(s.as_str(), input);
+                Lexer::new_owned_with_original(s, input.to_string(), span_map)
+            }
+        };
         let current_token = lexer.next_token()?;
-        let mut parser = Self {
+
+        let normalizer = config
+            .semantic_dictionary
+            .as_ref()
+            .map(|dict| ValueNormalizer::new(crate::normalizer::NormalizationConfig {
+                semantic_dictionary: Some(dict.clone()),
+                ..crate::normalizer::NormalizationConfig::default()
+            }));
+
+        Ok(Self {
             lexer,
             current_token,
             config,
             nesting_depth: 0,
-        };
-        
-        // Check for comments in strict mode
-        if config.mode == ParsingMode::Strict {
-            parser.check_for_comments(input)?;
-        }
-        
-        Ok(parser)
+            normalizer,
+        })
     }
 
     /// Returns the current parsing mode
@@ -65,7 +110,7 @@ impl<'a> Parser<'a> {
         if self.current_token == expected {
             self.advance()
         } else {
-            let (line, column) = self.lexer.position();
+            let (line, column) = self.lexer.position_original();
             Err(LnmpError::UnexpectedToken {
                 expected: format!("{:?}", expected),
                 found: self.current_token.clone(),
@@ -87,17 +132,17 @@ impl<'a> Parser<'a> {
     fn skip_comment(&mut self) -> Result<(), LnmpError> {
         // Consume the Hash token
         self.advance()?;
-        
+
         // Skip until newline or EOF
         while self.current_token != Token::Newline && self.current_token != Token::Eof {
             self.advance()?;
         }
-        
+
         Ok(())
     }
 
     /// Checks if the input contains comments (for strict mode validation)
-    fn check_for_comments(&mut self, input: &str) -> Result<(), LnmpError> {
+    fn check_for_comments(input: &str) -> Result<(), LnmpError> {
         // Check if input contains comment lines (lines starting with #)
         // Note: # after a value is a checksum, not a comment
         for (line_idx, line) in input.lines().enumerate() {
@@ -118,7 +163,7 @@ impl<'a> Parser<'a> {
 impl<'a> Parser<'a> {
     /// Parses a field ID (expects F prefix followed by number)
     fn parse_field_id(&mut self) -> Result<FieldId, LnmpError> {
-        let (line, column) = self.lexer.position();
+        let (line, column) = self.lexer.position_original();
 
         // Expect F prefix
         self.expect(Token::FieldPrefix)?;
@@ -126,18 +171,18 @@ impl<'a> Parser<'a> {
         // Expect number
         match &self.current_token {
             Token::Number(num_str) => {
-            let num_str = num_str.clone();
-            self.advance()?;
+                let num_str = num_str.clone();
+                self.advance()?;
 
-            // Parse as u16
-            match num_str.parse::<u16>() {
-                Ok(fid) => Ok(fid),
-                Err(_) => Err(LnmpError::InvalidFieldId {
-                    value: num_str,
-                    line,
-                    column,
-                }),
-            }
+                // Parse as u16
+                match num_str.parse::<u16>() {
+                    Ok(fid) => Ok(fid),
+                    Err(_) => Err(LnmpError::InvalidFieldId {
+                        value: num_str,
+                        line,
+                        column,
+                    }),
+                }
             }
             Token::UnquotedString(s) => {
                 // 'F' followed by non-numeric characters - invalid field id
@@ -163,8 +208,11 @@ impl<'a> Parser<'a> {
     }
 
     /// Parses a value with an optional type hint to resolve ambiguities
-    fn parse_value_with_hint(&mut self, type_hint: Option<TypeHint>) -> Result<LnmpValue, LnmpError> {
-        let (line, column) = self.lexer.position();
+    fn parse_value_with_hint(
+        &mut self,
+        type_hint: Option<TypeHint>,
+    ) -> Result<LnmpValue, LnmpError> {
+        let (line, column) = self.lexer.position_original();
 
         match &self.current_token {
             Token::Number(num_str) => {
@@ -256,7 +304,10 @@ impl<'a> Parser<'a> {
     }
 
     /// Parses either a string array or nested array with optional type hint
-    fn parse_string_array_or_nested_array_with_hint(&mut self, type_hint: Option<TypeHint>) -> Result<LnmpValue, LnmpError> {
+    fn parse_string_array_or_nested_array_with_hint(
+        &mut self,
+        type_hint: Option<TypeHint>,
+    ) -> Result<LnmpValue, LnmpError> {
         self.expect(Token::LeftBracket)?;
 
         // Handle empty array - use type hint to determine type
@@ -280,7 +331,7 @@ impl<'a> Parser<'a> {
 
     /// Parses a string array [item1, item2, ...]
     fn parse_string_array(&mut self) -> Result<LnmpValue, LnmpError> {
-        let (line, column) = self.lexer.position();
+        let (line, column) = self.lexer.position_original();
         let mut items = Vec::new();
 
         loop {
@@ -330,7 +381,7 @@ impl<'a> Parser<'a> {
 
     /// Parses a nested record {F<id>=<value>;F<id>=<value>}
     fn parse_nested_record(&mut self) -> Result<LnmpValue, LnmpError> {
-        let (line, column) = self.lexer.position();
+        let (line, column) = self.lexer.position_original();
         self.expect(Token::LeftBrace)?;
 
         // Increase nesting depth and enforce maximum if configured
@@ -362,8 +413,9 @@ impl<'a> Parser<'a> {
             loop {
                 let field = self.parse_field_assignment()?;
                 // In strict mode, detect duplicate field IDs in nested records and error early
-                if self.config.mode == ParsingMode::Strict && record.get_field(field.fid).is_some() {
-                    let (line, column) = self.lexer.position();
+                if self.config.mode == ParsingMode::Strict && record.get_field(field.fid).is_some()
+                {
+                    let (line, column) = self.lexer.position_original();
                     return Err(LnmpError::DuplicateFieldId {
                         field_id: field.fid,
                         line,
@@ -411,7 +463,7 @@ impl<'a> Parser<'a> {
 
     /// Parses a nested array [{...}, {...}]
     fn parse_nested_array(&mut self) -> Result<LnmpValue, LnmpError> {
-        let (line, column) = self.lexer.position();
+        let (line, column) = self.lexer.position_original();
 
         // Increase nesting depth for nested array
         self.nesting_depth += 1;
@@ -488,7 +540,7 @@ impl<'a> Parser<'a> {
             match TypeHint::parse(&hint_str) {
                 Some(hint) => Ok(Some(hint)),
                 None => {
-                    let (line, column) = self.lexer.position();
+                    let (line, column) = self.lexer.position_original();
                     Err(LnmpError::InvalidTypeHint {
                         hint: hint_str,
                         line,
@@ -514,7 +566,7 @@ impl<'a> Parser<'a> {
         // Validate type hint if present
         if let Some(hint) = type_hint {
             if !hint.validates(&value) {
-                let (line, column) = self.lexer.position();
+                let (line, column) = self.lexer.position_original();
                 return Err(LnmpError::TypeHintMismatch {
                     field_id: fid,
                     expected_type: hint.as_str().to_string(),
@@ -529,7 +581,7 @@ impl<'a> Parser<'a> {
         if self.current_token == Token::Hash {
             self.parse_and_validate_checksum(fid, type_hint, &value)?;
         } else if self.config.require_checksums {
-            let (line, column) = self.lexer.position();
+            let (line, column) = self.lexer.position_original();
             return Err(LnmpError::ChecksumMismatch {
                 field_id: fid,
                 expected: "checksum required".to_string(),
@@ -539,7 +591,17 @@ impl<'a> Parser<'a> {
             });
         }
 
-        Ok(LnmpField { fid, value })
+        // Apply semantic normalization if configured
+        let normalized_value = if let Some(norm) = &self.normalizer {
+            norm.normalize_with_fid(Some(fid), &value)
+        } else {
+            value
+        };
+
+        Ok(LnmpField {
+            fid,
+            value: normalized_value,
+        })
     }
 
     /// Parses and validates a checksum
@@ -549,15 +611,15 @@ impl<'a> Parser<'a> {
         type_hint: Option<TypeHint>,
         value: &LnmpValue,
     ) -> Result<(), LnmpError> {
-        let (line, column) = self.lexer.position();
-        
+        let (line, column) = self.lexer.position_original();
+
         // Consume the hash token
         self.expect(Token::Hash)?;
 
         // Read the checksum - it might be split across multiple tokens
         // (e.g., "36AAE667" might be tokenized as Number("36") + UnquotedString("AAE") + Number("667"))
         let mut checksum_str = String::new();
-        
+
         // Collect all tokens until we hit a separator (newline, semicolon, EOF)
         loop {
             match &self.current_token {
@@ -581,7 +643,7 @@ impl<'a> Parser<'a> {
                     });
                 }
             }
-            
+
             // Stop after 8 characters
             if checksum_str.len() >= 8 {
                 break;
@@ -589,14 +651,13 @@ impl<'a> Parser<'a> {
         }
 
         // Parse the checksum
-        let provided_checksum = SemanticChecksum::parse(&checksum_str).ok_or_else(|| {
-            LnmpError::InvalidChecksum {
+        let provided_checksum =
+            SemanticChecksum::parse(&checksum_str).ok_or_else(|| LnmpError::InvalidChecksum {
                 field_id: fid,
                 reason: format!("invalid checksum format: {}", checksum_str),
                 line,
                 column,
-            }
-        })?;
+            })?;
 
         // Validate checksum if enabled
         if self.config.validate_checksums {
@@ -620,11 +681,12 @@ impl<'a> Parser<'a> {
         let fields = record.fields();
         for i in 1..fields.len() {
             if fields[i].fid < fields[i - 1].fid {
-                let (line, column) = self.lexer.position();
+                let (line, column) = self.lexer.position_original();
                 return Err(LnmpError::StrictModeViolation {
                     reason: format!(
                         "Fields must be sorted by FID in strict mode (F{} appears after F{})",
-                        fields[i].fid, fields[i - 1].fid
+                        fields[i].fid,
+                        fields[i - 1].fid
                     ),
                     line,
                     column,
@@ -640,7 +702,7 @@ impl<'a> Parser<'a> {
     /// Validates separator (strict mode rejects semicolons)
     fn validate_separator(&self, is_semicolon: bool) -> Result<(), LnmpError> {
         if self.config.mode == ParsingMode::Strict && is_semicolon {
-            let (line, column) = self.lexer.position();
+            let (line, column) = self.lexer.position_original();
             return Err(LnmpError::StrictModeViolation {
                 reason: "Semicolons are not allowed in strict mode (use newlines)".to_string(),
                 line,
@@ -669,7 +731,7 @@ impl<'a> Parser<'a> {
             let field = self.parse_field_assignment()?;
             // In strict mode, detect duplicate field IDs and error early
             if self.config.mode == ParsingMode::Strict && record.get_field(field.fid).is_some() {
-                let (line, column) = self.lexer.position();
+                let (line, column) = self.lexer.position_original();
                 return Err(LnmpError::DuplicateFieldId {
                     field_id: field.fid,
                     line,
@@ -698,7 +760,7 @@ impl<'a> Parser<'a> {
                 }
                 Token::Eof => break,
                 _ => {
-                    let (line, column) = self.lexer.position();
+                    let (line, column) = self.lexer.position_original();
                     return Err(LnmpError::UnexpectedToken {
                         expected: "semicolon, newline, or EOF".to_string(),
                         found: self.current_token.clone(),
@@ -712,6 +774,18 @@ impl<'a> Parser<'a> {
         // Validate field order and duplicate field IDs in strict mode
         if self.config.mode == ParsingMode::Strict {
             self.validate_field_order(&record)?;
+        }
+
+        // Enforce structural limits if provided
+        if let Some(limits) = &self.config.structural_limits {
+            if let Err(err) = limits.validate_record(&record) {
+                let (line, column) = self.lexer.position_original();
+                return Err(LnmpError::InvalidNestedStructure {
+                    reason: format!("structural limits violated: {}", err),
+                    line,
+                    column,
+                });
+            }
         }
 
         Ok(record)
@@ -1427,7 +1501,7 @@ F5:sa=[a,b]"#;
 
         assert_eq!(record.fields().len(), 1);
         let field = record.get_field(50).unwrap();
-        
+
         match &field.value {
             LnmpValue::NestedRecord(nested) => {
                 assert_eq!(nested.fields().len(), 2);
@@ -1449,7 +1523,7 @@ F5:sa=[a,b]"#;
 
         assert_eq!(record.fields().len(), 1);
         let field = record.get_field(50).unwrap();
-        
+
         match &field.value {
             LnmpValue::NestedRecord(nested) => {
                 assert_eq!(nested.fields().len(), 3);
@@ -1473,7 +1547,7 @@ F5:sa=[a,b]"#;
 
         assert_eq!(record.fields().len(), 1);
         let field = record.get_field(50).unwrap();
-        
+
         match &field.value {
             LnmpValue::NestedRecord(nested) => {
                 assert_eq!(nested.fields().len(), 0);
@@ -1490,7 +1564,7 @@ F5:sa=[a,b]"#;
 
         assert_eq!(record.fields().len(), 1);
         let field = record.get_field(100).unwrap();
-        
+
         match &field.value {
             LnmpValue::NestedRecord(nested) => {
                 assert_eq!(nested.fields().len(), 2);
@@ -1498,7 +1572,7 @@ F5:sa=[a,b]"#;
                     nested.get_field(1).unwrap().value,
                     LnmpValue::String("user".to_string())
                 );
-                
+
                 // Check the nested record within
                 match &nested.get_field(2).unwrap().value {
                     LnmpValue::NestedRecord(inner) => {
@@ -1546,7 +1620,7 @@ F5:sa=[a,b]"#;
 
         assert_eq!(record.fields().len(), 1);
         let field = record.get_field(50).unwrap();
-        
+
         match &field.value {
             LnmpValue::NestedRecord(nested) => {
                 assert_eq!(nested.fields().len(), 2);
@@ -1563,11 +1637,14 @@ F5:sa=[a,b]"#;
 
         assert_eq!(record.fields().len(), 1);
         let field = record.get_field(60).unwrap();
-        
+
         match &field.value {
             LnmpValue::NestedArray(records) => {
                 assert_eq!(records.len(), 3);
-                assert_eq!(records[0].get_field(12).unwrap().value, LnmpValue::Bool(true));
+                assert_eq!(
+                    records[0].get_field(12).unwrap().value,
+                    LnmpValue::Bool(true)
+                );
                 assert_eq!(records[1].get_field(12).unwrap().value, LnmpValue::Int(2));
                 assert_eq!(records[2].get_field(12).unwrap().value, LnmpValue::Int(3));
             }
@@ -1583,11 +1660,11 @@ F5:sa=[a,b]"#;
 
         assert_eq!(record.fields().len(), 1);
         let field = record.get_field(200).unwrap();
-        
+
         match &field.value {
             LnmpValue::NestedArray(records) => {
                 assert_eq!(records.len(), 2);
-                
+
                 // First record
                 assert_eq!(
                     records[0].get_field(1).unwrap().value,
@@ -1597,7 +1674,7 @@ F5:sa=[a,b]"#;
                     records[0].get_field(2).unwrap().value,
                     LnmpValue::String("admin".to_string())
                 );
-                
+
                 // Second record
                 assert_eq!(
                     records[1].get_field(1).unwrap().value,
@@ -1620,7 +1697,7 @@ F5:sa=[a,b]"#;
 
         assert_eq!(record.fields().len(), 1);
         let field = record.get_field(60).unwrap();
-        
+
         // Empty array defaults to StringArray
         match &field.value {
             LnmpValue::StringArray(items) => {
@@ -1638,7 +1715,7 @@ F5:sa=[a,b]"#;
 
         assert_eq!(record.fields().len(), 1);
         let field = record.get_field(60).unwrap();
-        
+
         // With :ra type hint, empty array should be NestedArray
         match &field.value {
             LnmpValue::NestedArray(records) => {
@@ -1656,7 +1733,7 @@ F5:sa=[a,b]"#;
 
         assert_eq!(record.fields().len(), 1);
         let field = record.get_field(50).unwrap();
-        
+
         match &field.value {
             LnmpValue::NestedRecord(nested) => {
                 assert_eq!(nested.fields().len(), 2);
@@ -1675,7 +1752,7 @@ F5:sa=[a,b]"#;
 
         assert_eq!(record.fields().len(), 1);
         let field = record.get_field(60).unwrap();
-        
+
         match &field.value {
             LnmpValue::NestedArray(records) => {
                 assert_eq!(records.len(), 2);
@@ -1723,7 +1800,7 @@ F5:sa=[a,b]"#;
         match &field.value {
             LnmpValue::NestedArray(records) => {
                 assert_eq!(records.len(), 2);
-                
+
                 // First record
                 let rec1 = &records[0];
                 assert_eq!(
@@ -1732,7 +1809,7 @@ F5:sa=[a,b]"#;
                 );
                 assert_eq!(rec1.get_field(2).unwrap().value, LnmpValue::Int(30));
                 assert_eq!(rec1.get_field(3).unwrap().value, LnmpValue::Bool(true));
-                
+
                 // Second record
                 let rec2 = &records[1];
                 assert_eq!(
@@ -1777,7 +1854,7 @@ F5:sa=[a,b]"#;
             LnmpValue::NestedArray(records) => {
                 assert_eq!(records.len(), 1);
                 let rec = &records[0];
-                
+
                 // Verify all different value types are supported
                 assert_eq!(rec.get_field(1).unwrap().value, LnmpValue::Int(42));
                 assert_eq!(rec.get_field(2).unwrap().value, LnmpValue::Float(3.14));
@@ -1807,7 +1884,7 @@ F5:sa=[a,b]"#;
             record.get_field(100).unwrap().value,
             LnmpValue::String("test".to_string())
         );
-        
+
         match &record.get_field(50).unwrap().value {
             LnmpValue::NestedRecord(nested) => {
                 assert_eq!(nested.fields().len(), 2);
@@ -1823,7 +1900,7 @@ F5:sa=[a,b]"#;
         let record = parser.parse_record().unwrap();
 
         assert_eq!(record.fields().len(), 1);
-        
+
         // Level 1
         match &record.get_field(1).unwrap().value {
             LnmpValue::NestedRecord(level1) => {
@@ -1861,11 +1938,39 @@ F5:sa=[a,b]"#;
         let result = parser.parse_record();
         assert!(result.is_err());
         match result {
-            Err(LnmpError::NestingTooDeep { max_depth, actual_depth, .. }) => {
+            Err(LnmpError::NestingTooDeep {
+                max_depth,
+                actual_depth,
+                ..
+            }) => {
                 assert_eq!(max_depth, 10);
                 assert!(actual_depth > max_depth);
             }
             _ => panic!("Expected NestingTooDeep error"),
+        }
+    }
+
+    #[test]
+    fn test_structural_limits_rejects_field_count() {
+        use crate::config::ParserConfig;
+        use lnmp_core::StructuralLimits;
+
+        let input = "F1=1\nF2=2";
+        let config = ParserConfig {
+            structural_limits: Some(StructuralLimits {
+                max_fields: 1,
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        let mut parser = Parser::with_config(input, config).unwrap();
+        let result = parser.parse_record();
+        match result {
+            Err(LnmpError::InvalidNestedStructure { reason, .. }) => {
+                assert!(reason.contains("maximum field count exceeded"));
+            }
+            _ => panic!("Expected InvalidNestedStructure due to structural limits"),
         }
     }
 
@@ -1878,13 +1983,13 @@ F5:sa=[a,b]"#;
         let value = LnmpValue::Int(14532);
         let checksum = SemanticChecksum::compute(12, None, &value);
         let checksum_str = SemanticChecksum::format(checksum);
-        
+
         let input = format!("F12=14532#{}", checksum_str);
-        
+
         // Parse without validation (default)
         let mut parser = Parser::new(&input).unwrap();
         let record = parser.parse_record().unwrap();
-        
+
         assert_eq!(record.fields().len(), 1);
         assert_eq!(record.get_field(12).unwrap().value, LnmpValue::Int(14532));
     }
@@ -1898,9 +2003,9 @@ F5:sa=[a,b]"#;
         let value = LnmpValue::Int(14532);
         let checksum = SemanticChecksum::compute(12, None, &value);
         let checksum_str = SemanticChecksum::format(checksum);
-        
+
         let input = format!("F12=14532#{}", checksum_str);
-        
+
         // Parse with validation enabled
         let config = ParserConfig {
             validate_checksums: true,
@@ -1908,7 +2013,7 @@ F5:sa=[a,b]"#;
         };
         let mut parser = Parser::with_config(&input, config).unwrap();
         let record = parser.parse_record().unwrap();
-        
+
         assert_eq!(record.fields().len(), 1);
         assert_eq!(record.get_field(12).unwrap().value, LnmpValue::Int(14532));
     }
@@ -1919,7 +2024,7 @@ F5:sa=[a,b]"#;
 
         // Use wrong checksum
         let input = "F12=14532#DEADBEEF";
-        
+
         // Parse with validation enabled
         let config = ParserConfig {
             validate_checksums: true,
@@ -1927,7 +2032,7 @@ F5:sa=[a,b]"#;
         };
         let mut parser = Parser::with_config(input, config).unwrap();
         let result = parser.parse_record();
-        
+
         assert!(result.is_err());
         match result {
             Err(LnmpError::ChecksumMismatch { field_id, .. }) => {
@@ -1946,9 +2051,9 @@ F5:sa=[a,b]"#;
         let value = LnmpValue::Int(14532);
         let checksum = SemanticChecksum::compute(12, Some(TypeHint::Int), &value);
         let checksum_str = SemanticChecksum::format(checksum);
-        
+
         let input = format!("F12:i=14532#{}", checksum_str);
-        
+
         // Parse with validation enabled
         let config = ParserConfig {
             validate_checksums: true,
@@ -1956,9 +2061,31 @@ F5:sa=[a,b]"#;
         };
         let mut parser = Parser::with_config(&input, config).unwrap();
         let record = parser.parse_record().unwrap();
-        
+
         assert_eq!(record.fields().len(), 1);
         assert_eq!(record.get_field(12).unwrap().value, LnmpValue::Int(14532));
+    }
+
+    #[test]
+    fn test_parse_applies_semantic_dictionary_equivalence() {
+        use crate::config::ParserConfig;
+
+        let mut dict = lnmp_sfe::SemanticDictionary::new();
+        dict.add_equivalence(23, "admin".to_string(), "administrator".to_string());
+
+        let config = ParserConfig {
+            semantic_dictionary: Some(dict),
+            ..Default::default()
+        };
+
+        let mut parser = Parser::with_config("F23=[admin]", config).unwrap();
+        let record = parser.parse_record().unwrap();
+        match record.get_field(23).unwrap().value.clone() {
+            LnmpValue::StringArray(vals) => {
+                assert_eq!(vals, vec!["administrator".to_string()]);
+            }
+            other => panic!("unexpected value {:?}", other),
+        }
     }
 
     #[test]
@@ -1969,13 +2096,13 @@ F5:sa=[a,b]"#;
         let value1 = LnmpValue::Int(14532);
         let checksum1 = SemanticChecksum::compute(12, None, &value1);
         let checksum_str1 = SemanticChecksum::format(checksum1);
-        
+
         let value2 = LnmpValue::Bool(true);
         let checksum2 = SemanticChecksum::compute(7, None, &value2);
         let checksum_str2 = SemanticChecksum::format(checksum2);
-        
+
         let input = format!("F12=14532#{}\nF7=1#{}", checksum_str1, checksum_str2);
-        
+
         // Parse with validation enabled
         let config = ParserConfig {
             validate_checksums: true,
@@ -1983,7 +2110,7 @@ F5:sa=[a,b]"#;
         };
         let mut parser = Parser::with_config(&input, config).unwrap();
         let record = parser.parse_record().unwrap();
-        
+
         assert_eq!(record.fields().len(), 2);
         assert_eq!(record.get_field(12).unwrap().value, LnmpValue::Int(14532));
         assert_eq!(record.get_field(7).unwrap().value, LnmpValue::Bool(true));
@@ -1994,7 +2121,7 @@ F5:sa=[a,b]"#;
         use crate::config::ParserConfig;
 
         let input = "F12=14532";
-        
+
         // Parse with checksums required
         let config = ParserConfig {
             require_checksums: true,
@@ -2002,7 +2129,7 @@ F5:sa=[a,b]"#;
         };
         let mut parser = Parser::with_config(input, config).unwrap();
         let result = parser.parse_record();
-        
+
         assert!(result.is_err());
         match result {
             Err(LnmpError::ChecksumMismatch { field_id, .. }) => {
@@ -2020,9 +2147,9 @@ F5:sa=[a,b]"#;
         let value = LnmpValue::Int(14532);
         let checksum = SemanticChecksum::compute(12, None, &value);
         let checksum_str = SemanticChecksum::format(checksum);
-        
+
         let input = format!("# Comment\nF12=14532#{}", checksum_str);
-        
+
         // Parse with validation enabled
         let config = ParserConfig {
             validate_checksums: true,
@@ -2030,7 +2157,7 @@ F5:sa=[a,b]"#;
         };
         let mut parser = Parser::with_config(&input, config).unwrap();
         let record = parser.parse_record().unwrap();
-        
+
         assert_eq!(record.fields().len(), 1);
         assert_eq!(record.get_field(12).unwrap().value, LnmpValue::Int(14532));
     }
@@ -2062,6 +2189,9 @@ F5:sa=[a,b]"#;
         let mut parser = Parser::with_config(&output, parser_config).unwrap();
         let parsed = parser.parse_record().unwrap();
 
-        assert_eq!(record.get_field(12).unwrap().value, parsed.get_field(12).unwrap().value);
+        assert_eq!(
+            record.get_field(12).unwrap().value,
+            parsed.get_field(12).unwrap().value
+        );
     }
 }

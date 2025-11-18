@@ -3,8 +3,8 @@
 //! This module provides capability exchange and schema version negotiation
 //! between communicating parties to ensure compatibility and detect conflicts.
 
-use std::collections::HashMap;
 use super::types::TypeTag;
+use std::collections::HashMap;
 
 /// Feature flags for optional protocol features
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -497,7 +497,11 @@ impl SchemaNegotiator {
         }
 
         // Store remote capabilities
-        self.remote_capabilities = Some(Capabilities::new(version, features.clone(), supported_types));
+        self.remote_capabilities = Some(Capabilities::new(
+            version,
+            features.clone(),
+            supported_types,
+        ));
         self.state = NegotiationState::CapabilitiesReceived;
 
         // Send acknowledgment
@@ -535,7 +539,7 @@ impl SchemaNegotiator {
             features,
             self.local_capabilities.supported_types.clone(),
         ));
-        
+
         // Transition to SchemaSelected after sending SelectSchema
         self.state = NegotiationState::SchemaSelected;
 
@@ -621,7 +625,7 @@ impl SchemaNegotiator {
     }
 
     /// Detects FID conflicts between two mapping sets
-    /// 
+    ///
     /// Returns a list of all conflicts found
     pub fn detect_conflicts(
         local_mappings: &HashMap<u16, String>,
@@ -645,7 +649,7 @@ impl SchemaNegotiator {
     }
 
     /// Detects type mismatches between expected and actual types for FIDs
-    /// 
+    ///
     /// Returns a list of all type mismatches found
     pub fn detect_type_mismatches(
         expected_types: &HashMap<u16, TypeTag>,
@@ -934,9 +938,7 @@ mod tests {
 
     #[test]
     fn test_negotiation_message_ready() {
-        let msg = NegotiationMessage::Ready {
-            session_id: 12345,
-        };
+        let msg = NegotiationMessage::Ready { session_id: 12345 };
 
         match msg {
             NegotiationMessage::Ready { session_id } => {
@@ -1008,527 +1010,525 @@ mod tests {
     }
 }
 
-    #[test]
-    fn test_detect_type_mismatches_no_mismatches() {
-        let mut expected = HashMap::new();
-        expected.insert(1, TypeTag::Int);
-        expected.insert(2, TypeTag::String);
+#[test]
+fn test_detect_type_mismatches_no_mismatches() {
+    let mut expected = HashMap::new();
+    expected.insert(1, TypeTag::Int);
+    expected.insert(2, TypeTag::String);
 
-        let mut actual = HashMap::new();
-        actual.insert(1, TypeTag::Int);
-        actual.insert(2, TypeTag::String);
+    let mut actual = HashMap::new();
+    actual.insert(1, TypeTag::Int);
+    actual.insert(2, TypeTag::String);
 
-        let mismatches = SchemaNegotiator::detect_type_mismatches(&expected, &actual);
-        assert!(mismatches.is_empty());
-    }
+    let mismatches = SchemaNegotiator::detect_type_mismatches(&expected, &actual);
+    assert!(mismatches.is_empty());
+}
 
-    #[test]
-    fn test_detect_type_mismatches_single_mismatch() {
-        let mut expected = HashMap::new();
-        expected.insert(1, TypeTag::Int);
-        expected.insert(2, TypeTag::String);
+#[test]
+fn test_detect_type_mismatches_single_mismatch() {
+    let mut expected = HashMap::new();
+    expected.insert(1, TypeTag::Int);
+    expected.insert(2, TypeTag::String);
 
-        let mut actual = HashMap::new();
-        actual.insert(1, TypeTag::Float); // Mismatch
-        actual.insert(2, TypeTag::String);
+    let mut actual = HashMap::new();
+    actual.insert(1, TypeTag::Float); // Mismatch
+    actual.insert(2, TypeTag::String);
 
-        let mismatches = SchemaNegotiator::detect_type_mismatches(&expected, &actual);
-        assert_eq!(mismatches.len(), 1);
+    let mismatches = SchemaNegotiator::detect_type_mismatches(&expected, &actual);
+    assert_eq!(mismatches.len(), 1);
 
-        match &mismatches[0] {
-            NegotiationError::TypeMismatch {
-                fid,
-                expected,
-                found,
-            } => {
-                assert_eq!(*fid, 1);
-                assert_eq!(*expected, TypeTag::Int);
-                assert_eq!(*found, TypeTag::Float);
-            }
-            _ => panic!("Expected TypeMismatch"),
+    match &mismatches[0] {
+        NegotiationError::TypeMismatch {
+            fid,
+            expected,
+            found,
+        } => {
+            assert_eq!(*fid, 1);
+            assert_eq!(*expected, TypeTag::Int);
+            assert_eq!(*found, TypeTag::Float);
         }
+        _ => panic!("Expected TypeMismatch"),
     }
+}
 
-    #[test]
-    fn test_detect_type_mismatches_multiple_mismatches() {
-        let mut expected = HashMap::new();
-        expected.insert(1, TypeTag::Int);
-        expected.insert(2, TypeTag::String);
-        expected.insert(3, TypeTag::Bool);
+#[test]
+fn test_detect_type_mismatches_multiple_mismatches() {
+    let mut expected = HashMap::new();
+    expected.insert(1, TypeTag::Int);
+    expected.insert(2, TypeTag::String);
+    expected.insert(3, TypeTag::Bool);
 
-        let mut actual = HashMap::new();
-        actual.insert(1, TypeTag::Float); // Mismatch
-        actual.insert(2, TypeTag::Bool); // Mismatch
-        actual.insert(3, TypeTag::Bool);
+    let mut actual = HashMap::new();
+    actual.insert(1, TypeTag::Float); // Mismatch
+    actual.insert(2, TypeTag::Bool); // Mismatch
+    actual.insert(3, TypeTag::Bool);
 
-        let mismatches = SchemaNegotiator::detect_type_mismatches(&expected, &actual);
-        assert_eq!(mismatches.len(), 2);
-    }
+    let mismatches = SchemaNegotiator::detect_type_mismatches(&expected, &actual);
+    assert_eq!(mismatches.len(), 2);
+}
 
-    #[test]
-    fn test_detect_type_mismatches_partial_overlap() {
-        let mut expected = HashMap::new();
-        expected.insert(1, TypeTag::Int);
-        expected.insert(2, TypeTag::String);
+#[test]
+fn test_detect_type_mismatches_partial_overlap() {
+    let mut expected = HashMap::new();
+    expected.insert(1, TypeTag::Int);
+    expected.insert(2, TypeTag::String);
 
-        let mut actual = HashMap::new();
-        actual.insert(2, TypeTag::String);
-        actual.insert(3, TypeTag::Bool); // Not in expected, no mismatch
+    let mut actual = HashMap::new();
+    actual.insert(2, TypeTag::String);
+    actual.insert(3, TypeTag::Bool); // Not in expected, no mismatch
 
-        let mismatches = SchemaNegotiator::detect_type_mismatches(&expected, &actual);
-        assert!(mismatches.is_empty());
-    }
+    let mismatches = SchemaNegotiator::detect_type_mismatches(&expected, &actual);
+    assert!(mismatches.is_empty());
+}
 
-    #[test]
-    fn test_detect_type_mismatches_empty_types() {
-        let expected = HashMap::new();
-        let actual = HashMap::new();
+#[test]
+fn test_detect_type_mismatches_empty_types() {
+    let expected = HashMap::new();
+    let actual = HashMap::new();
 
-        let mismatches = SchemaNegotiator::detect_type_mismatches(&expected, &actual);
-        assert!(mismatches.is_empty());
-    }
+    let mismatches = SchemaNegotiator::detect_type_mismatches(&expected, &actual);
+    assert!(mismatches.is_empty());
+}
 
-    #[test]
-    fn test_detect_type_mismatches_nested_types() {
-        let mut expected = HashMap::new();
-        expected.insert(1, TypeTag::NestedRecord);
-        expected.insert(2, TypeTag::NestedArray);
+#[test]
+fn test_detect_type_mismatches_nested_types() {
+    let mut expected = HashMap::new();
+    expected.insert(1, TypeTag::NestedRecord);
+    expected.insert(2, TypeTag::NestedArray);
 
-        let mut actual = HashMap::new();
-        actual.insert(1, TypeTag::String); // Mismatch
-        actual.insert(2, TypeTag::NestedArray);
+    let mut actual = HashMap::new();
+    actual.insert(1, TypeTag::String); // Mismatch
+    actual.insert(2, TypeTag::NestedArray);
 
-        let mismatches = SchemaNegotiator::detect_type_mismatches(&expected, &actual);
-        assert_eq!(mismatches.len(), 1);
+    let mismatches = SchemaNegotiator::detect_type_mismatches(&expected, &actual);
+    assert_eq!(mismatches.len(), 1);
 
-        match &mismatches[0] {
-            NegotiationError::TypeMismatch {
-                fid,
-                expected,
-                found,
-            } => {
-                assert_eq!(*fid, 1);
-                assert_eq!(*expected, TypeTag::NestedRecord);
-                assert_eq!(*found, TypeTag::String);
-            }
-            _ => panic!("Expected TypeMismatch"),
+    match &mismatches[0] {
+        NegotiationError::TypeMismatch {
+            fid,
+            expected,
+            found,
+        } => {
+            assert_eq!(*fid, 1);
+            assert_eq!(*expected, TypeTag::NestedRecord);
+            assert_eq!(*found, TypeTag::String);
         }
+        _ => panic!("Expected TypeMismatch"),
     }
+}
 
-    #[test]
-    fn test_detect_conflicts_no_conflicts() {
-        let mut local = HashMap::new();
-        local.insert(1, "user_id".to_string());
-        local.insert(2, "username".to_string());
+#[test]
+fn test_detect_conflicts_no_conflicts() {
+    let mut local = HashMap::new();
+    local.insert(1, "user_id".to_string());
+    local.insert(2, "username".to_string());
 
-        let mut remote = HashMap::new();
-        remote.insert(1, "user_id".to_string());
-        remote.insert(2, "username".to_string());
+    let mut remote = HashMap::new();
+    remote.insert(1, "user_id".to_string());
+    remote.insert(2, "username".to_string());
 
-        let conflicts = SchemaNegotiator::detect_conflicts(&local, &remote);
-        assert!(conflicts.is_empty());
-    }
+    let conflicts = SchemaNegotiator::detect_conflicts(&local, &remote);
+    assert!(conflicts.is_empty());
+}
 
-    #[test]
-    fn test_detect_conflicts_single_conflict() {
-        let mut local = HashMap::new();
-        local.insert(1, "user_id".to_string());
-        local.insert(2, "username".to_string());
+#[test]
+fn test_detect_conflicts_single_conflict() {
+    let mut local = HashMap::new();
+    local.insert(1, "user_id".to_string());
+    local.insert(2, "username".to_string());
 
-        let mut remote = HashMap::new();
-        remote.insert(1, "userId".to_string()); // Conflict
-        remote.insert(2, "username".to_string());
+    let mut remote = HashMap::new();
+    remote.insert(1, "userId".to_string()); // Conflict
+    remote.insert(2, "username".to_string());
 
-        let conflicts = SchemaNegotiator::detect_conflicts(&local, &remote);
-        assert_eq!(conflicts.len(), 1);
+    let conflicts = SchemaNegotiator::detect_conflicts(&local, &remote);
+    assert_eq!(conflicts.len(), 1);
 
-        match &conflicts[0] {
-            NegotiationError::FidConflict { fid, name1, name2 } => {
-                assert_eq!(*fid, 1);
-                assert_eq!(name1, "user_id");
-                assert_eq!(name2, "userId");
-            }
-            _ => panic!("Expected FidConflict"),
+    match &conflicts[0] {
+        NegotiationError::FidConflict { fid, name1, name2 } => {
+            assert_eq!(*fid, 1);
+            assert_eq!(name1, "user_id");
+            assert_eq!(name2, "userId");
         }
+        _ => panic!("Expected FidConflict"),
     }
+}
 
-    #[test]
-    fn test_detect_conflicts_multiple_conflicts() {
-        let mut local = HashMap::new();
-        local.insert(1, "user_id".to_string());
-        local.insert(2, "username".to_string());
-        local.insert(3, "email".to_string());
+#[test]
+fn test_detect_conflicts_multiple_conflicts() {
+    let mut local = HashMap::new();
+    local.insert(1, "user_id".to_string());
+    local.insert(2, "username".to_string());
+    local.insert(3, "email".to_string());
 
-        let mut remote = HashMap::new();
-        remote.insert(1, "userId".to_string()); // Conflict
-        remote.insert(2, "userName".to_string()); // Conflict
-        remote.insert(3, "email".to_string());
+    let mut remote = HashMap::new();
+    remote.insert(1, "userId".to_string()); // Conflict
+    remote.insert(2, "userName".to_string()); // Conflict
+    remote.insert(3, "email".to_string());
 
-        let conflicts = SchemaNegotiator::detect_conflicts(&local, &remote);
-        assert_eq!(conflicts.len(), 2);
-    }
+    let conflicts = SchemaNegotiator::detect_conflicts(&local, &remote);
+    assert_eq!(conflicts.len(), 2);
+}
 
-    #[test]
-    fn test_detect_conflicts_partial_overlap() {
-        let mut local = HashMap::new();
-        local.insert(1, "user_id".to_string());
-        local.insert(2, "username".to_string());
+#[test]
+fn test_detect_conflicts_partial_overlap() {
+    let mut local = HashMap::new();
+    local.insert(1, "user_id".to_string());
+    local.insert(2, "username".to_string());
 
-        let mut remote = HashMap::new();
-        remote.insert(2, "username".to_string());
-        remote.insert(3, "email".to_string()); // Not in local, no conflict
+    let mut remote = HashMap::new();
+    remote.insert(2, "username".to_string());
+    remote.insert(3, "email".to_string()); // Not in local, no conflict
 
-        let conflicts = SchemaNegotiator::detect_conflicts(&local, &remote);
-        assert!(conflicts.is_empty());
-    }
+    let conflicts = SchemaNegotiator::detect_conflicts(&local, &remote);
+    assert!(conflicts.is_empty());
+}
 
-    #[test]
-    fn test_detect_conflicts_empty_mappings() {
-        let local = HashMap::new();
-        let remote = HashMap::new();
+#[test]
+fn test_detect_conflicts_empty_mappings() {
+    let local = HashMap::new();
+    let remote = HashMap::new();
 
-        let conflicts = SchemaNegotiator::detect_conflicts(&local, &remote);
-        assert!(conflicts.is_empty());
-    }
+    let conflicts = SchemaNegotiator::detect_conflicts(&local, &remote);
+    assert!(conflicts.is_empty());
+}
 
-    #[test]
-    fn test_negotiation_state_equality() {
-        assert_eq!(NegotiationState::Initial, NegotiationState::Initial);
-        assert_eq!(
-            NegotiationState::CapabilitiesSent,
-            NegotiationState::CapabilitiesSent
-        );
-        assert_ne!(NegotiationState::Initial, NegotiationState::Ready);
-    }
+#[test]
+fn test_negotiation_state_equality() {
+    assert_eq!(NegotiationState::Initial, NegotiationState::Initial);
+    assert_eq!(
+        NegotiationState::CapabilitiesSent,
+        NegotiationState::CapabilitiesSent
+    );
+    assert_ne!(NegotiationState::Initial, NegotiationState::Ready);
+}
 
-    #[test]
-    fn test_negotiation_session_new() {
-        let local_caps = Capabilities::v0_5();
-        let remote_caps = Capabilities::v0_5();
-        let mut mappings = HashMap::new();
-        mappings.insert(1, "user_id".to_string());
+#[test]
+fn test_negotiation_session_new() {
+    let local_caps = Capabilities::v0_5();
+    let remote_caps = Capabilities::v0_5();
+    let mut mappings = HashMap::new();
+    mappings.insert(1, "user_id".to_string());
 
-        let session = NegotiationSession::new(123, local_caps.clone(), remote_caps.clone(), mappings.clone());
+    let session = NegotiationSession::new(
+        123,
+        local_caps.clone(),
+        remote_caps.clone(),
+        mappings.clone(),
+    );
 
-        assert_eq!(session.session_id, 123);
-        assert_eq!(session.local_caps, local_caps);
-        assert_eq!(session.remote_caps, remote_caps);
-        assert_eq!(session.fid_mappings, mappings);
-        assert!(session.agreed_features.supports_nested);
-    }
+    assert_eq!(session.session_id, 123);
+    assert_eq!(session.local_caps, local_caps);
+    assert_eq!(session.remote_caps, remote_caps);
+    assert_eq!(session.fid_mappings, mappings);
+    assert!(session.agreed_features.supports_nested);
+}
 
-    #[test]
-    fn test_schema_negotiator_new() {
-        let caps = Capabilities::v0_5();
-        let negotiator = SchemaNegotiator::new(caps.clone());
+#[test]
+fn test_schema_negotiator_new() {
+    let caps = Capabilities::v0_5();
+    let negotiator = SchemaNegotiator::new(caps.clone());
 
-        assert_eq!(negotiator.local_capabilities(), &caps);
-        assert_eq!(negotiator.state(), &NegotiationState::Initial);
-        assert!(negotiator.remote_capabilities().is_none());
-        assert!(!negotiator.is_ready());
-    }
+    assert_eq!(negotiator.local_capabilities(), &caps);
+    assert_eq!(negotiator.state(), &NegotiationState::Initial);
+    assert!(negotiator.remote_capabilities().is_none());
+    assert!(!negotiator.is_ready());
+}
 
-    #[test]
-    fn test_schema_negotiator_v0_5() {
-        let negotiator = SchemaNegotiator::v0_5();
-        assert_eq!(negotiator.local_capabilities().version, 0x05);
-        assert!(negotiator.local_capabilities().features.supports_nested);
-    }
+#[test]
+fn test_schema_negotiator_v0_5() {
+    let negotiator = SchemaNegotiator::v0_5();
+    assert_eq!(negotiator.local_capabilities().version, 0x05);
+    assert!(negotiator.local_capabilities().features.supports_nested);
+}
 
-    #[test]
-    fn test_schema_negotiator_v0_4() {
-        let negotiator = SchemaNegotiator::v0_4();
-        assert_eq!(negotiator.local_capabilities().version, 0x04);
-        assert!(!negotiator.local_capabilities().features.supports_nested);
-    }
+#[test]
+fn test_schema_negotiator_v0_4() {
+    let negotiator = SchemaNegotiator::v0_4();
+    assert_eq!(negotiator.local_capabilities().version, 0x04);
+    assert!(!negotiator.local_capabilities().features.supports_nested);
+}
 
-    #[test]
-    fn test_schema_negotiator_with_fid_mappings() {
-        let mut mappings = HashMap::new();
-        mappings.insert(1, "user_id".to_string());
-        mappings.insert(2, "username".to_string());
+#[test]
+fn test_schema_negotiator_with_fid_mappings() {
+    let mut mappings = HashMap::new();
+    mappings.insert(1, "user_id".to_string());
+    mappings.insert(2, "username".to_string());
 
-        let negotiator = SchemaNegotiator::v0_5().with_fid_mappings(mappings.clone());
-        assert_eq!(negotiator.fid_mappings, mappings);
-    }
+    let negotiator = SchemaNegotiator::v0_5().with_fid_mappings(mappings.clone());
+    assert_eq!(negotiator.fid_mappings, mappings);
+}
 
-    #[test]
-    fn test_schema_negotiator_initiate() {
-        let mut negotiator = SchemaNegotiator::v0_5();
-        let result = negotiator.initiate();
+#[test]
+fn test_schema_negotiator_initiate() {
+    let mut negotiator = SchemaNegotiator::v0_5();
+    let result = negotiator.initiate();
 
-        assert!(result.is_ok());
-        assert_eq!(negotiator.state(), &NegotiationState::CapabilitiesSent);
+    assert!(result.is_ok());
+    assert_eq!(negotiator.state(), &NegotiationState::CapabilitiesSent);
 
-        match result.unwrap() {
-            NegotiationMessage::Capabilities { version, .. } => {
-                assert_eq!(version, 0x05);
-            }
-            _ => panic!("Expected Capabilities message"),
+    match result.unwrap() {
+        NegotiationMessage::Capabilities { version, .. } => {
+            assert_eq!(version, 0x05);
         }
+        _ => panic!("Expected Capabilities message"),
     }
+}
 
-    #[test]
-    fn test_schema_negotiator_initiate_invalid_state() {
-        let mut negotiator = SchemaNegotiator::v0_5();
-        negotiator.initiate().unwrap();
+#[test]
+fn test_schema_negotiator_initiate_invalid_state() {
+    let mut negotiator = SchemaNegotiator::v0_5();
+    negotiator.initiate().unwrap();
 
-        // Try to initiate again
-        let result = negotiator.initiate();
-        assert!(result.is_err());
-        match result {
-            Err(NegotiationError::InvalidState { .. }) => {}
-            _ => panic!("Expected InvalidState error"),
+    // Try to initiate again
+    let result = negotiator.initiate();
+    assert!(result.is_err());
+    match result {
+        Err(NegotiationError::InvalidState { .. }) => {}
+        _ => panic!("Expected InvalidState error"),
+    }
+}
+
+#[test]
+fn test_schema_negotiator_handle_capabilities() {
+    let mut negotiator = SchemaNegotiator::v0_5();
+
+    let msg = NegotiationMessage::Capabilities {
+        version: 0x05,
+        features: FeatureFlags::v0_5_full(),
+        supported_types: vec![TypeTag::Int, TypeTag::String],
+    };
+
+    let result = negotiator.handle_message(msg);
+    assert!(result.is_ok());
+    assert_eq!(negotiator.state(), &NegotiationState::CapabilitiesReceived);
+
+    match result.unwrap() {
+        NegotiationResponse::SendMessage(NegotiationMessage::CapabilitiesAck {
+            version, ..
+        }) => {
+            assert_eq!(version, 0x05);
         }
+        _ => panic!("Expected SendMessage with CapabilitiesAck"),
     }
+}
 
-    #[test]
-    fn test_schema_negotiator_handle_capabilities() {
-        let mut negotiator = SchemaNegotiator::v0_5();
+#[test]
+fn test_schema_negotiator_handle_capabilities_version_mismatch() {
+    let mut negotiator = SchemaNegotiator::v0_5();
 
-        let msg = NegotiationMessage::Capabilities {
-            version: 0x05,
-            features: FeatureFlags::v0_5_full(),
-            supported_types: vec![TypeTag::Int, TypeTag::String],
-        };
+    let msg = NegotiationMessage::Capabilities {
+        version: 0x04, // Mismatch
+        features: FeatureFlags::v0_4_compatible(),
+        supported_types: vec![TypeTag::Int],
+    };
 
-        let result = negotiator.handle_message(msg);
-        assert!(result.is_ok());
-        assert_eq!(
-            negotiator.state(),
-            &NegotiationState::CapabilitiesReceived
-        );
-
-        match result.unwrap() {
-            NegotiationResponse::SendMessage(NegotiationMessage::CapabilitiesAck {
-                version,
-                ..
-            }) => {
-                assert_eq!(version, 0x05);
-            }
-            _ => panic!("Expected SendMessage with CapabilitiesAck"),
+    let result = negotiator.handle_message(msg);
+    assert!(result.is_err());
+    match result {
+        Err(NegotiationError::ProtocolVersionMismatch { local, remote }) => {
+            assert_eq!(local, 0x05);
+            assert_eq!(remote, 0x04);
         }
+        _ => panic!("Expected ProtocolVersionMismatch error"),
     }
+}
 
-    #[test]
-    fn test_schema_negotiator_handle_capabilities_version_mismatch() {
-        let mut negotiator = SchemaNegotiator::v0_5();
+#[test]
+fn test_schema_negotiator_handle_capabilities_ack() {
+    let mut negotiator = SchemaNegotiator::v0_5();
+    negotiator.initiate().unwrap();
 
-        let msg = NegotiationMessage::Capabilities {
-            version: 0x04, // Mismatch
-            features: FeatureFlags::v0_4_compatible(),
-            supported_types: vec![TypeTag::Int],
-        };
+    let msg = NegotiationMessage::CapabilitiesAck {
+        version: 0x05,
+        features: FeatureFlags::v0_5_full(),
+    };
 
-        let result = negotiator.handle_message(msg);
-        assert!(result.is_err());
-        match result {
-            Err(NegotiationError::ProtocolVersionMismatch { local, remote }) => {
-                assert_eq!(local, 0x05);
-                assert_eq!(remote, 0x04);
-            }
-            _ => panic!("Expected ProtocolVersionMismatch error"),
+    let result = negotiator.handle_message(msg);
+    assert!(result.is_ok());
+    assert_eq!(negotiator.state(), &NegotiationState::SchemaSelected);
+
+    match result.unwrap() {
+        NegotiationResponse::SendMessage(NegotiationMessage::SelectSchema { .. }) => {}
+        _ => panic!("Expected SendMessage with SelectSchema"),
+    }
+}
+
+#[test]
+fn test_schema_negotiator_handle_select_schema() {
+    let mut negotiator = SchemaNegotiator::v0_5();
+
+    // Simulate receiving capabilities first
+    negotiator.state = NegotiationState::CapabilitiesReceived;
+    negotiator.remote_capabilities = Some(Capabilities::v0_5());
+
+    let mut mappings = HashMap::new();
+    mappings.insert(1, "user_id".to_string());
+
+    let msg = NegotiationMessage::SelectSchema {
+        schema_id: "test_schema".to_string(),
+        fid_mappings: mappings,
+    };
+
+    let result = negotiator.handle_message(msg);
+    assert!(result.is_ok());
+    assert_eq!(negotiator.state(), &NegotiationState::SchemaSelected);
+
+    match result.unwrap() {
+        NegotiationResponse::SendMessage(NegotiationMessage::Ready { session_id }) => {
+            assert_eq!(session_id, 1);
         }
+        _ => panic!("Expected SendMessage with Ready"),
     }
+}
 
-    #[test]
-    fn test_schema_negotiator_handle_capabilities_ack() {
-        let mut negotiator = SchemaNegotiator::v0_5();
-        negotiator.initiate().unwrap();
+#[test]
+fn test_schema_negotiator_handle_select_schema_fid_conflict() {
+    let mut local_mappings = HashMap::new();
+    local_mappings.insert(1, "user_id".to_string());
 
-        let msg = NegotiationMessage::CapabilitiesAck {
-            version: 0x05,
-            features: FeatureFlags::v0_5_full(),
-        };
+    let mut negotiator = SchemaNegotiator::v0_5().with_fid_mappings(local_mappings);
 
-        let result = negotiator.handle_message(msg);
-        assert!(result.is_ok());
-        assert_eq!(
-            negotiator.state(),
-            &NegotiationState::SchemaSelected
-        );
+    // Simulate receiving capabilities first
+    negotiator.state = NegotiationState::CapabilitiesReceived;
+    negotiator.remote_capabilities = Some(Capabilities::v0_5());
 
-        match result.unwrap() {
-            NegotiationResponse::SendMessage(NegotiationMessage::SelectSchema { .. }) => {}
-            _ => panic!("Expected SendMessage with SelectSchema"),
+    let mut remote_mappings = HashMap::new();
+    remote_mappings.insert(1, "username".to_string()); // Conflict!
+
+    let msg = NegotiationMessage::SelectSchema {
+        schema_id: "test_schema".to_string(),
+        fid_mappings: remote_mappings,
+    };
+
+    let result = negotiator.handle_message(msg);
+    assert!(result.is_err());
+    match result {
+        Err(NegotiationError::FidConflict { fid, name1, name2 }) => {
+            assert_eq!(fid, 1);
+            assert_eq!(name1, "user_id");
+            assert_eq!(name2, "username");
         }
+        _ => panic!("Expected FidConflict error"),
     }
+}
 
-    #[test]
-    fn test_schema_negotiator_handle_select_schema() {
-        let mut negotiator = SchemaNegotiator::v0_5();
+#[test]
+fn test_schema_negotiator_handle_ready() {
+    let mut negotiator = SchemaNegotiator::v0_5();
 
-        // Simulate receiving capabilities first
-        negotiator.state = NegotiationState::CapabilitiesReceived;
-        negotiator.remote_capabilities = Some(Capabilities::v0_5());
+    // Simulate schema selected state
+    negotiator.state = NegotiationState::SchemaSelected;
+    negotiator.remote_capabilities = Some(Capabilities::v0_5());
 
-        let mut mappings = HashMap::new();
-        mappings.insert(1, "user_id".to_string());
+    let msg = NegotiationMessage::Ready { session_id: 42 };
 
-        let msg = NegotiationMessage::SelectSchema {
-            schema_id: "test_schema".to_string(),
-            fid_mappings: mappings,
-        };
+    let result = negotiator.handle_message(msg);
+    assert!(result.is_ok());
+    assert_eq!(negotiator.state(), &NegotiationState::Ready);
+    assert!(negotiator.is_ready());
 
-        let result = negotiator.handle_message(msg);
-        assert!(result.is_ok());
-        assert_eq!(negotiator.state(), &NegotiationState::SchemaSelected);
-
-        match result.unwrap() {
-            NegotiationResponse::SendMessage(NegotiationMessage::Ready { session_id }) => {
-                assert_eq!(session_id, 1);
-            }
-            _ => panic!("Expected SendMessage with Ready"),
+    match result.unwrap() {
+        NegotiationResponse::Complete(session) => {
+            assert_eq!(session.session_id, 42);
         }
+        _ => panic!("Expected Complete response"),
     }
+}
 
-    #[test]
-    fn test_schema_negotiator_handle_select_schema_fid_conflict() {
-        let mut local_mappings = HashMap::new();
-        local_mappings.insert(1, "user_id".to_string());
+#[test]
+fn test_schema_negotiator_handle_error() {
+    let mut negotiator = SchemaNegotiator::v0_5();
 
-        let mut negotiator = SchemaNegotiator::v0_5().with_fid_mappings(local_mappings);
+    let msg = NegotiationMessage::Error {
+        code: ErrorCode::Generic,
+        message: "Test error".to_string(),
+    };
 
-        // Simulate receiving capabilities first
-        negotiator.state = NegotiationState::CapabilitiesReceived;
-        negotiator.remote_capabilities = Some(Capabilities::v0_5());
+    let result = negotiator.handle_message(msg);
+    assert!(result.is_ok());
 
-        let mut remote_mappings = HashMap::new();
-        remote_mappings.insert(1, "username".to_string()); // Conflict!
-
-        let msg = NegotiationMessage::SelectSchema {
-            schema_id: "test_schema".to_string(),
-            fid_mappings: remote_mappings,
-        };
-
-        let result = negotiator.handle_message(msg);
-        assert!(result.is_err());
-        match result {
-            Err(NegotiationError::FidConflict { fid, name1, name2 }) => {
-                assert_eq!(fid, 1);
-                assert_eq!(name1, "user_id");
-                assert_eq!(name2, "username");
-            }
-            _ => panic!("Expected FidConflict error"),
+    match negotiator.state() {
+        NegotiationState::Failed(msg) => {
+            assert_eq!(msg, "Test error");
         }
+        _ => panic!("Expected Failed state"),
     }
 
-    #[test]
-    fn test_schema_negotiator_handle_ready() {
-        let mut negotiator = SchemaNegotiator::v0_5();
-
-        // Simulate schema selected state
-        negotiator.state = NegotiationState::SchemaSelected;
-        negotiator.remote_capabilities = Some(Capabilities::v0_5());
-
-        let msg = NegotiationMessage::Ready { session_id: 42 };
-
-        let result = negotiator.handle_message(msg);
-        assert!(result.is_ok());
-        assert_eq!(negotiator.state(), &NegotiationState::Ready);
-        assert!(negotiator.is_ready());
-
-        match result.unwrap() {
-            NegotiationResponse::Complete(session) => {
-                assert_eq!(session.session_id, 42);
-            }
-            _ => panic!("Expected Complete response"),
+    match result.unwrap() {
+        NegotiationResponse::Failed(msg) => {
+            assert_eq!(msg, "Test error");
         }
+        _ => panic!("Expected Failed response"),
     }
+}
 
-    #[test]
-    fn test_schema_negotiator_handle_error() {
-        let mut negotiator = SchemaNegotiator::v0_5();
+#[test]
+fn test_negotiation_error_display() {
+    let err = NegotiationError::FidConflict {
+        fid: 7,
+        name1: "field_a".to_string(),
+        name2: "field_b".to_string(),
+    };
+    let msg = format!("{}", err);
+    assert!(msg.contains("FID 7"));
+    assert!(msg.contains("field_a"));
+    assert!(msg.contains("field_b"));
+}
 
-        let msg = NegotiationMessage::Error {
-            code: ErrorCode::Generic,
-            message: "Test error".to_string(),
-        };
+#[test]
+fn test_full_negotiation_flow_client_initiated() {
+    // Client side
+    let mut client = SchemaNegotiator::v0_5();
+    let mut client_mappings = HashMap::new();
+    client_mappings.insert(1, "user_id".to_string());
+    client = client.with_fid_mappings(client_mappings.clone());
 
-        let result = negotiator.handle_message(msg);
-        assert!(result.is_ok());
+    // Server side
+    let mut server = SchemaNegotiator::v0_5();
+    server = server.with_fid_mappings(client_mappings.clone());
 
-        match negotiator.state() {
-            NegotiationState::Failed(msg) => {
-                assert_eq!(msg, "Test error");
-            }
-            _ => panic!("Expected Failed state"),
+    // Step 1: Client initiates
+    let caps_msg = client.initiate().unwrap();
+    assert_eq!(client.state(), &NegotiationState::CapabilitiesSent);
+
+    // Step 2: Server receives capabilities and sends ack
+    let server_response = server.handle_message(caps_msg).unwrap();
+    assert_eq!(server.state(), &NegotiationState::CapabilitiesReceived);
+
+    let ack_msg = match server_response {
+        NegotiationResponse::SendMessage(msg) => msg,
+        _ => panic!("Expected SendMessage"),
+    };
+
+    // Step 3: Client receives ack and sends schema selection
+    let client_response = client.handle_message(ack_msg).unwrap();
+    assert_eq!(client.state(), &NegotiationState::SchemaSelected);
+
+    let select_msg = match client_response {
+        NegotiationResponse::SendMessage(msg) => msg,
+        _ => panic!("Expected SendMessage"),
+    };
+
+    // Step 4: Server receives schema selection and sends ready
+    let server_response = server.handle_message(select_msg).unwrap();
+    assert_eq!(server.state(), &NegotiationState::SchemaSelected);
+
+    let ready_msg = match server_response {
+        NegotiationResponse::SendMessage(msg) => msg,
+        _ => panic!("Expected SendMessage"),
+    };
+
+    // Step 5: Client receives ready and completes
+    let client_response = client.handle_message(ready_msg).unwrap();
+    assert_eq!(client.state(), &NegotiationState::Ready);
+    assert!(client.is_ready());
+
+    match client_response {
+        NegotiationResponse::Complete(session) => {
+            assert_eq!(session.session_id, 1);
+            assert!(session.agreed_features.supports_nested);
         }
-
-        match result.unwrap() {
-            NegotiationResponse::Failed(msg) => {
-                assert_eq!(msg, "Test error");
-            }
-            _ => panic!("Expected Failed response"),
-        }
+        _ => panic!("Expected Complete response"),
     }
-
-    #[test]
-    fn test_negotiation_error_display() {
-        let err = NegotiationError::FidConflict {
-            fid: 7,
-            name1: "field_a".to_string(),
-            name2: "field_b".to_string(),
-        };
-        let msg = format!("{}", err);
-        assert!(msg.contains("FID 7"));
-        assert!(msg.contains("field_a"));
-        assert!(msg.contains("field_b"));
-    }
-
-    #[test]
-    fn test_full_negotiation_flow_client_initiated() {
-        // Client side
-        let mut client = SchemaNegotiator::v0_5();
-        let mut client_mappings = HashMap::new();
-        client_mappings.insert(1, "user_id".to_string());
-        client = client.with_fid_mappings(client_mappings.clone());
-
-        // Server side
-        let mut server = SchemaNegotiator::v0_5();
-        server = server.with_fid_mappings(client_mappings.clone());
-
-        // Step 1: Client initiates
-        let caps_msg = client.initiate().unwrap();
-        assert_eq!(client.state(), &NegotiationState::CapabilitiesSent);
-
-        // Step 2: Server receives capabilities and sends ack
-        let server_response = server.handle_message(caps_msg).unwrap();
-        assert_eq!(server.state(), &NegotiationState::CapabilitiesReceived);
-
-        let ack_msg = match server_response {
-            NegotiationResponse::SendMessage(msg) => msg,
-            _ => panic!("Expected SendMessage"),
-        };
-
-        // Step 3: Client receives ack and sends schema selection
-        let client_response = client.handle_message(ack_msg).unwrap();
-        assert_eq!(client.state(), &NegotiationState::SchemaSelected);
-
-        let select_msg = match client_response {
-            NegotiationResponse::SendMessage(msg) => msg,
-            _ => panic!("Expected SendMessage"),
-        };
-
-        // Step 4: Server receives schema selection and sends ready
-        let server_response = server.handle_message(select_msg).unwrap();
-        assert_eq!(server.state(), &NegotiationState::SchemaSelected);
-
-        let ready_msg = match server_response {
-            NegotiationResponse::SendMessage(msg) => msg,
-            _ => panic!("Expected SendMessage"),
-        };
-
-        // Step 5: Client receives ready and completes
-        let client_response = client.handle_message(ready_msg).unwrap();
-        assert_eq!(client.state(), &NegotiationState::Ready);
-        assert!(client.is_ready());
-
-        match client_response {
-            NegotiationResponse::Complete(session) => {
-                assert_eq!(session.session_id, 1);
-                assert!(session.agreed_features.supports_nested);
-            }
-            _ => panic!("Expected Complete response"),
-        }
-    }
+}

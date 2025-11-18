@@ -1,5 +1,4 @@
 use lnmp_core::types::FieldId;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -10,21 +9,91 @@ use std::path::Path;
 pub struct SemanticDictionary {
     field_names: HashMap<FieldId, String>,
     equivalences: HashMap<FieldId, HashMap<String, String>>,
+    normalized_equivalences: HashMap<FieldId, HashMap<String, String>>,
 }
 
-/// Internal structure for deserializing YAML dictionary files
-#[derive(Debug, Deserialize, Serialize)]
-struct DictionaryFile {
-    fields: HashMap<u16, FieldDefinition>,
+fn validate_field_type(fid: u16, field_type: &str) -> Result<(), DictionaryError> {
+    // Current accepted types; expand as needed.
+    const ALLOWED: &[&str] = &[
+        "integer",
+        "float",
+        "boolean",
+        "string",
+        "string_array",
+        "record",
+        "record_array",
+    ];
+    if ALLOWED.iter().any(|t| t.eq_ignore_ascii_case(field_type)) {
+        Ok(())
+    } else {
+        Err(DictionaryError::InvalidFieldType {
+            fid,
+            field_type: field_type.to_string(),
+        })
+    }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct FieldDefinition {
-    name: String,
-    #[serde(rename = "type")]
-    field_type: Option<String>,
-    #[serde(default)]
-    equivalences: HashMap<String, String>,
+fn scalar_to_string(val: &serde_yaml::Value) -> Option<String> {
+    match val {
+        serde_yaml::Value::String(s) => Some(s.clone()),
+        serde_yaml::Value::Number(n) => Some(n.to_string()),
+        serde_yaml::Value::Bool(b) => Some(b.to_string()),
+        _ => None,
+    }
+}
+
+fn detect_duplicate_field_ids(raw: &str) -> Option<FieldId> {
+    let mut in_fields = false;
+    let mut seen = std::collections::HashSet::new();
+    let mut field_indent: Option<usize> = None;
+
+    for line in raw.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with('#') {
+            continue;
+        }
+        if trimmed.starts_with("fields:") {
+            in_fields = true;
+            continue;
+        }
+        if !in_fields {
+            continue;
+        }
+        let indent = line.len() - trimmed.len();
+        if field_indent.is_none() && trimmed.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false) {
+            field_indent = Some(indent);
+        }
+        if let Some(target_indent) = field_indent {
+            if indent < target_indent {
+                // out of fields block
+                in_fields = false;
+                continue;
+            }
+            if indent == target_indent {
+                let mut parts = trimmed.splitn(2, ':');
+                if let (Some(id_part), Some(_)) = (parts.next(), parts.next()) {
+                    if let Ok(num) = id_part.trim().parse::<u16>() {
+                        if !seen.insert(num) {
+                            return Some(num);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+fn normalize_key(s: &str) -> String {
+    s.trim().to_ascii_lowercase()
+}
+
+fn normalize_equivalences(map: &HashMap<String, String>) -> HashMap<String, String> {
+    let mut out = HashMap::new();
+    for (k, v) in map {
+        out.insert(normalize_key(k), v.clone());
+    }
+    out
 }
 
 impl SemanticDictionary {
@@ -33,6 +102,7 @@ impl SemanticDictionary {
         Self {
             field_names: HashMap::new(),
             equivalences: HashMap::new(),
+            normalized_equivalences: HashMap::new(),
         }
     }
 
@@ -72,18 +142,77 @@ impl SemanticDictionary {
         let content = fs::read_to_string(path.as_ref())
             .map_err(|e| DictionaryError::IoError(e.to_string()))?;
 
-        let dict_file: DictionaryFile = serde_yaml::from_str(&content)
-            .map_err(|e| DictionaryError::ParseError(e.to_string()))?;
+        if let Some(dup) = detect_duplicate_field_ids(&content) {
+            return Err(DictionaryError::DuplicateFieldId(dup));
+        }
+
+        let root: serde_yaml::Value =
+            serde_yaml::from_str(&content).map_err(|e| DictionaryError::ParseError(e.to_string()))?;
+
+        let fields_mapping = root
+            .get("fields")
+            .and_then(|v| v.as_mapping())
+            .ok_or_else(|| DictionaryError::ParseError("missing 'fields' map".to_string()))?;
 
         let mut dictionary = Self::new();
+        let mut seen = std::collections::HashSet::new();
 
-        for (fid, field_def) in dict_file.fields {
-            dictionary.field_names.insert(fid, field_def.name);
+        for (key, value) in fields_mapping {
+            let fid_num = key
+                .as_u64()
+                .ok_or_else(|| DictionaryError::ParseError("field id must be an integer".into()))?;
+            if fid_num > u16::MAX as u64 {
+                return Err(DictionaryError::ParseError(
+                    "field id out of range (u16)".into(),
+                ));
+            }
+            let fid = fid_num as u16;
 
-            if !field_def.equivalences.is_empty() {
-                dictionary
-                    .equivalences
-                    .insert(fid, field_def.equivalences);
+            if !seen.insert(fid) {
+                return Err(DictionaryError::DuplicateFieldId(fid));
+            }
+
+            let field_map = value
+                .as_mapping()
+                .ok_or_else(|| DictionaryError::ParseError("field entry must be a mapping".into()))?;
+
+            let name_val = field_map
+                .get(&serde_yaml::Value::String("name".to_string()))
+                .ok_or_else(|| DictionaryError::ParseError("field entry missing 'name'".into()))?;
+            let name = scalar_to_string(name_val)
+                .ok_or_else(|| DictionaryError::ParseError("field 'name' must be a scalar".into()))?;
+
+            let field_type = field_map
+                .get(&serde_yaml::Value::String("type".to_string()))
+                .and_then(|v| scalar_to_string(v));
+            if let Some(ref kind) = field_type {
+                validate_field_type(fid, kind)?;
+            }
+
+            let mut equivalences_map: HashMap<String, String> = HashMap::new();
+            if let Some(eq_val) = field_map.get(&serde_yaml::Value::String("equivalences".to_string())) {
+                if let Some(mapping) = eq_val.as_mapping() {
+                    for (k, v) in mapping {
+                        let from = scalar_to_string(k).ok_or_else(|| {
+                            DictionaryError::ParseError("equivalence key must be scalar".into())
+                        })?;
+                        let to = scalar_to_string(v).ok_or_else(|| {
+                            DictionaryError::ParseError("equivalence value must be scalar".into())
+                        })?;
+                        equivalences_map.insert(from, to);
+                    }
+                } else {
+                    return Err(DictionaryError::ParseError(
+                        "equivalences must be a mapping".into(),
+                    ));
+                }
+            }
+
+            dictionary.field_names.insert(fid, name);
+
+            if !equivalences_map.is_empty() {
+                dictionary.normalized_equivalences.insert(fid, normalize_equivalences(&equivalences_map));
+                dictionary.equivalences.insert(fid, equivalences_map);
             }
         }
 
@@ -121,6 +250,15 @@ impl SemanticDictionary {
             .map(|s| s.as_str())
     }
 
+    /// Normalized lookup (trim + lowercase) for lenient matching of user/LLM inputs.
+    pub fn get_equivalence_normalized(&self, fid: FieldId, value: &str) -> Option<&str> {
+        let key = normalize_key(value);
+        self.normalized_equivalences
+            .get(&fid)
+            .and_then(|mappings| mappings.get(&key))
+            .map(|s| s.as_str())
+    }
+
     /// Adds a field name mapping
     ///
     /// # Arguments
@@ -142,7 +280,11 @@ impl SemanticDictionary {
         self.equivalences
             .entry(fid)
             .or_default()
-            .insert(from, to);
+            .insert(from.clone(), to.clone());
+        self.normalized_equivalences
+            .entry(fid)
+            .or_default()
+            .insert(normalize_key(&from), to);
     }
 
     /// Returns the number of fields defined in the dictionary
@@ -154,6 +296,13 @@ impl SemanticDictionary {
     pub fn equivalence_count(&self) -> usize {
         self.equivalences.len()
     }
+
+    /// Iterator over (fid, field_name) pairs.
+    pub fn field_name_entries(&self) -> impl Iterator<Item = (FieldId, &str)> {
+        self.field_names
+            .iter()
+            .map(|(fid, name)| (*fid, name.as_str()))
+    }
 }
 
 /// Errors that can occur when working with semantic dictionaries
@@ -163,6 +312,10 @@ pub enum DictionaryError {
     IoError(String),
     /// Error parsing the YAML content
     ParseError(String),
+    /// Duplicate field ID encountered
+    DuplicateFieldId(FieldId),
+    /// Invalid or unsupported field type in YAML
+    InvalidFieldType { fid: FieldId, field_type: String },
 }
 
 impl std::fmt::Display for DictionaryError {
@@ -170,6 +323,16 @@ impl std::fmt::Display for DictionaryError {
         match self {
             DictionaryError::IoError(msg) => write!(f, "I/O error: {}", msg),
             DictionaryError::ParseError(msg) => write!(f, "Parse error: {}", msg),
+            DictionaryError::DuplicateFieldId(fid) => {
+                write!(f, "Duplicate field ID in dictionary: {}", fid)
+            }
+            DictionaryError::InvalidFieldType { fid, field_type } => {
+                write!(
+                    f,
+                    "Invalid field type '{}' for field ID {} (expected one of integer/float/boolean/string/string_array/record/record_array)",
+                    field_type, fid
+                )
+            }
         }
     }
 }
@@ -202,7 +365,7 @@ mod tests {
         let mut dict = SemanticDictionary::new();
         dict.add_equivalence(7, "yes".to_string(), "1".to_string());
         dict.add_equivalence(7, "true".to_string(), "1".to_string());
-        
+
         assert_eq!(dict.get_equivalence(7, "yes"), Some("1"));
         assert_eq!(dict.get_equivalence(7, "true"), Some("1"));
         assert_eq!(dict.get_equivalence(7, "no"), None);
@@ -286,7 +449,7 @@ fields:
 
     #[test]
     fn test_load_from_invalid_yaml() {
-        let yaml_content = "invalid: yaml: content: [[[";
+        let yaml_content = "invalid: yaml: content: [[["; 
 
         let mut temp_file = NamedTempFile::new().unwrap();
         temp_file.write_all(yaml_content.as_bytes()).unwrap();
@@ -298,5 +461,57 @@ fields:
             Err(DictionaryError::ParseError(_)) => {}
             _ => panic!("Expected ParseError"),
         }
+    }
+
+    #[test]
+    fn test_load_duplicate_field_id_rejected() {
+        let yaml_content = r#"
+fields:
+  1:
+    name: first
+  1:
+    name: second
+"#;
+
+        let mut temp_file = NamedTempFile::new().unwrap();
+        temp_file.write_all(yaml_content.as_bytes()).unwrap();
+        temp_file.flush().unwrap();
+
+        let result = SemanticDictionary::load_from_file(temp_file.path());
+        match result {
+            Err(DictionaryError::DuplicateFieldId(fid)) => assert_eq!(fid, 1),
+            _ => panic!("Expected DuplicateFieldId error"),
+        }
+    }
+
+    #[test]
+    fn test_load_invalid_field_type_rejected() {
+        let yaml_content = r#"
+fields:
+  5:
+    name: bad_type
+    type: made_up
+"#;
+
+        let mut temp_file = NamedTempFile::new().unwrap();
+        temp_file.write_all(yaml_content.as_bytes()).unwrap();
+        temp_file.flush().unwrap();
+
+        let result = SemanticDictionary::load_from_file(temp_file.path());
+        match result {
+            Err(DictionaryError::InvalidFieldType { fid, .. }) => assert_eq!(fid, 5),
+            _ => panic!("Expected InvalidFieldType error"),
+        }
+    }
+
+    #[test]
+    fn test_get_equivalence_normalized() {
+        let mut dict = SemanticDictionary::new();
+        dict.add_equivalence(7, "Yes".to_string(), "1".to_string());
+        dict.add_equivalence(7, "No".to_string(), "0".to_string());
+
+        assert_eq!(dict.get_equivalence_normalized(7, " yes "), Some("1"));
+        assert_eq!(dict.get_equivalence_normalized(7, "NO"), Some("0"));
+        assert_eq!(dict.get_equivalence_normalized(7, "maybe"), None);
     }
 }

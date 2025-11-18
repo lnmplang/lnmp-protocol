@@ -39,7 +39,7 @@ pub enum Token {
 
 /// Lexer for LNMP text format
 pub struct Lexer<'a> {
-    input: &'a str,
+    input: Input<'a>,
     position: usize,
     line: usize,
     column: usize,
@@ -49,7 +49,35 @@ impl<'a> Lexer<'a> {
     /// Creates a new lexer for the given input
     pub fn new(input: &'a str) -> Self {
         Self {
-            input,
+            input: Input::Borrowed(input),
+            position: 0,
+            line: 1,
+            column: 1,
+        }
+    }
+
+    /// Creates a new lexer owning its input (used after sanitization)
+    pub fn new_owned(input: String) -> Self {
+        Self {
+            input: Input::Owned {
+                sanitized: input,
+                original: None,
+                span_map: None,
+            },
+            position: 0,
+            line: 1,
+            column: 1,
+        }
+    }
+
+    /// Creates a new lexer owning sanitized input and carrying original for span mapping.
+    pub fn new_owned_with_original(sanitized: String, original: String, span_map: SpanMap) -> Self {
+        Self {
+            input: Input::Owned {
+                sanitized,
+                original: Some(original),
+                span_map: Some(span_map),
+            },
             position: 0,
             line: 1,
             column: 1,
@@ -61,14 +89,27 @@ impl<'a> Lexer<'a> {
         (self.line, self.column)
     }
 
+    /// Returns position mapped to original input if available (lenient mode).
+    pub fn position_original(&self) -> (usize, usize) {
+        let offset = match self.input.span_map() {
+            Some(map) => map.map_offset(self.position),
+            None => self.position,
+        };
+        if let Some(orig) = self.input.original_str() {
+            compute_line_col(orig, offset)
+        } else {
+            (self.line, self.column)
+        }
+    }
+
     /// Peeks at the current character without consuming it
     fn peek(&self) -> Option<char> {
-        self.input[self.position..].chars().next()
+        self.input.as_str()[self.position..].chars().next()
     }
 
     /// Peeks at the character at offset from current position
     fn peek_ahead(&self, offset: usize) -> Option<char> {
-        self.input[self.position..].chars().nth(offset)
+        self.input.as_str()[self.position..].chars().nth(offset)
     }
 
     /// Advances to the next character and returns it
@@ -303,6 +344,63 @@ impl<'a> Lexer<'a> {
 /// Checks if a character is valid in an unquoted string
 fn is_unquoted_char(ch: char) -> bool {
     ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || ch == '.'
+}
+
+/// Builds a best-effort mapping from sanitized byte offsets to original byte offsets.
+pub fn build_span_map(sanitized: &str, original: &str) -> SpanMap {
+    let mut map = Vec::with_capacity(sanitized.len() + 1);
+    let mut iter_s = sanitized.char_indices().peekable();
+    let mut iter_o = original.char_indices().peekable();
+
+    let mut current_o = 0;
+
+    while let Some((idx_s, ch_s)) = iter_s.next() {
+        if let Some(&(idx_o, ch_o)) = iter_o.peek() {
+            if ch_s == ch_o {
+                current_o = idx_o;
+                iter_o.next();
+            } else {
+                // Advance original by one char as best-effort alignment
+                current_o = idx_o;
+                iter_o.next();
+            }
+        }
+
+        // For each byte of this char, map to current original offset
+        for b in 0..ch_s.len_utf8() {
+            let pos = idx_s + b;
+            if pos >= map.len() {
+                map.resize(pos, current_o);
+            }
+            map.push(current_o);
+        }
+    }
+
+    // Ensure map has entry for sanitized.len()
+    if map.len() < sanitized.len() + 1 {
+        map.resize(sanitized.len() + 1, current_o);
+    }
+
+    SpanMap {
+        sanitized_to_original: map,
+    }
+}
+
+fn compute_line_col(text: &str, offset: usize) -> (usize, usize) {
+    let mut line = 1;
+    let mut col = 1;
+    for (i, ch) in text.char_indices() {
+        if i >= offset {
+            break;
+        }
+        if ch == '\n' {
+            line += 1;
+            col = 1;
+        } else {
+            col += 1;
+        }
+    }
+    (line, col)
 }
 
 #[cfg(test)]
@@ -561,7 +659,10 @@ mod tests {
         let mut lexer = Lexer::new("F12:i=14532");
         assert_eq!(lexer.next_token().unwrap(), Token::FieldPrefix);
         assert_eq!(lexer.next_token().unwrap(), Token::Number("12".to_string()));
-        assert_eq!(lexer.next_token().unwrap(), Token::TypeHint("i".to_string()));
+        assert_eq!(
+            lexer.next_token().unwrap(),
+            Token::TypeHint("i".to_string())
+        );
         assert_eq!(lexer.next_token().unwrap(), Token::Equals);
         assert_eq!(
             lexer.next_token().unwrap(),
@@ -573,19 +674,31 @@ mod tests {
     fn test_all_type_hint_codes() {
         // Test integer type hint
         let mut lexer = Lexer::new(":i");
-        assert_eq!(lexer.next_token().unwrap(), Token::TypeHint("i".to_string()));
+        assert_eq!(
+            lexer.next_token().unwrap(),
+            Token::TypeHint("i".to_string())
+        );
 
         // Test float type hint
         let mut lexer = Lexer::new(":f");
-        assert_eq!(lexer.next_token().unwrap(), Token::TypeHint("f".to_string()));
+        assert_eq!(
+            lexer.next_token().unwrap(),
+            Token::TypeHint("f".to_string())
+        );
 
         // Test boolean type hint
         let mut lexer = Lexer::new(":b");
-        assert_eq!(lexer.next_token().unwrap(), Token::TypeHint("b".to_string()));
+        assert_eq!(
+            lexer.next_token().unwrap(),
+            Token::TypeHint("b".to_string())
+        );
 
         // Test string type hint
         let mut lexer = Lexer::new(":s");
-        assert_eq!(lexer.next_token().unwrap(), Token::TypeHint("s".to_string()));
+        assert_eq!(
+            lexer.next_token().unwrap(),
+            Token::TypeHint("s".to_string())
+        );
 
         // Test string array type hint
         let mut lexer = Lexer::new(":sa");
@@ -624,7 +737,10 @@ mod tests {
         let mut lexer = Lexer::new("F7:b=1");
         assert_eq!(lexer.next_token().unwrap(), Token::FieldPrefix);
         assert_eq!(lexer.next_token().unwrap(), Token::Number("7".to_string()));
-        assert_eq!(lexer.next_token().unwrap(), Token::TypeHint("b".to_string()));
+        assert_eq!(
+            lexer.next_token().unwrap(),
+            Token::TypeHint("b".to_string())
+        );
         assert_eq!(lexer.next_token().unwrap(), Token::Equals);
         assert_eq!(lexer.next_token().unwrap(), Token::Number("1".to_string()));
 
@@ -632,7 +748,10 @@ mod tests {
         let mut lexer = Lexer::new("F5:f=3.14");
         assert_eq!(lexer.next_token().unwrap(), Token::FieldPrefix);
         assert_eq!(lexer.next_token().unwrap(), Token::Number("5".to_string()));
-        assert_eq!(lexer.next_token().unwrap(), Token::TypeHint("f".to_string()));
+        assert_eq!(
+            lexer.next_token().unwrap(),
+            Token::TypeHint("f".to_string())
+        );
         assert_eq!(lexer.next_token().unwrap(), Token::Equals);
         assert_eq!(
             lexer.next_token().unwrap(),
@@ -643,7 +762,10 @@ mod tests {
         let mut lexer = Lexer::new(r#"F10:s="test""#);
         assert_eq!(lexer.next_token().unwrap(), Token::FieldPrefix);
         assert_eq!(lexer.next_token().unwrap(), Token::Number("10".to_string()));
-        assert_eq!(lexer.next_token().unwrap(), Token::TypeHint("s".to_string()));
+        assert_eq!(
+            lexer.next_token().unwrap(),
+            Token::TypeHint("s".to_string())
+        );
         assert_eq!(lexer.next_token().unwrap(), Token::Equals);
         assert_eq!(
             lexer.next_token().unwrap(),
@@ -668,11 +790,74 @@ mod tests {
         let mut lexer = Lexer::new("F12 :i =14532");
         assert_eq!(lexer.next_token().unwrap(), Token::FieldPrefix);
         assert_eq!(lexer.next_token().unwrap(), Token::Number("12".to_string()));
-        assert_eq!(lexer.next_token().unwrap(), Token::TypeHint("i".to_string()));
+        assert_eq!(
+            lexer.next_token().unwrap(),
+            Token::TypeHint("i".to_string())
+        );
         assert_eq!(lexer.next_token().unwrap(), Token::Equals);
         assert_eq!(
             lexer.next_token().unwrap(),
             Token::Number("14532".to_string())
         );
+    }
+
+    #[test]
+    fn test_span_map_alignment_with_trimmed_space() {
+        let original = "F1= hello";
+        let sanitized = "F1=hello";
+        let map = build_span_map(sanitized, original);
+        // Sanitized offset at 'h' should point to original offset 4 (after trimmed space)
+        assert_eq!(map.map_offset(3), 4);
+    }
+}
+/// Lexer input ownership model
+#[derive(Debug, Clone)]
+enum Input<'a> {
+    Borrowed(&'a str),
+    Owned {
+        sanitized: String,
+        original: Option<String>,
+        span_map: Option<SpanMap>,
+    },
+}
+
+impl<'a> Input<'a> {
+    fn as_str(&self) -> &str {
+        match self {
+            Input::Borrowed(s) => s,
+            Input::Owned { sanitized, .. } => sanitized.as_str(),
+        }
+    }
+
+    fn original_str(&self) -> Option<&str> {
+        match self {
+            Input::Borrowed(_) => None,
+            Input::Owned { original, .. } => original.as_deref(),
+        }
+    }
+
+    fn span_map(&self) -> Option<&SpanMap> {
+        match self {
+            Input::Borrowed(_) => None,
+            Input::Owned { span_map, .. } => span_map.as_ref(),
+        }
+    }
+}
+
+/// Maps positions between sanitized and original input for lenient mode
+#[derive(Debug, Clone)]
+pub struct SpanMap {
+    /// offset in sanitized -> offset in original
+    pub sanitized_to_original: Vec<usize>,
+}
+
+impl SpanMap {
+    /// Maps a sanitized byte offset to a best-effort original byte offset.
+    pub fn map_offset(&self, sanitized: usize) -> usize {
+        if sanitized < self.sanitized_to_original.len() {
+            self.sanitized_to_original[sanitized]
+        } else {
+            sanitized
+        }
     }
 }

@@ -234,30 +234,30 @@ impl LnmpError {
     /// Formats the error with source context for rich error messages
     pub fn format_with_source(&self, source: &str) -> String {
         let (line, column) = self.position();
-        
+
         let error_msg = format!("{}", self);
         let mut output = String::new();
-        
+
         output.push_str(&format!("Error: {}\n", error_msg));
         output.push_str("  |\n");
-        
+
         // Add source lines with line numbers
         let lines: Vec<&str> = source.lines().collect();
         let start = line.saturating_sub(2);
         let end = (line + 1).min(lines.len());
-        
+
         for line_num in start..end {
             let actual_line = line_num + 1; // 1-indexed for display
             let line_content = lines.get(line_num).unwrap_or(&"");
             output.push_str(&format!("{} | {}\n", actual_line, line_content));
-            
+
             // Add error indicator on the error line
             if line_num + 1 == line {
                 let spaces = " ".repeat(column.saturating_sub(1));
                 output.push_str(&format!("  | {}^ here\n", spaces));
             }
         }
-        
+
         output.push_str("  |\n");
         output
     }

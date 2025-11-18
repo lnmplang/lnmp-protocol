@@ -7,6 +7,7 @@
 //! - String: Apply case transformation based on configuration
 
 use lnmp_core::LnmpValue;
+use lnmp_sfe::SemanticDictionary;
 
 /// String case transformation rules
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -31,6 +32,8 @@ pub struct NormalizationConfig {
     pub float_precision: Option<usize>,
     /// Whether to remove trailing zeros from floats
     pub remove_trailing_zeros: bool,
+    /// Optional semantic dictionary for equivalence normalization
+    pub semantic_dictionary: Option<SemanticDictionary>,
 }
 
 impl Default for NormalizationConfig {
@@ -39,11 +42,13 @@ impl Default for NormalizationConfig {
             string_case: StringCaseRule::None,
             float_precision: None,
             remove_trailing_zeros: true,
+            semantic_dictionary: None,
         }
     }
 }
 
 /// Value normalizer for semantic equivalence
+#[derive(Debug)]
 pub struct ValueNormalizer {
     config: NormalizationConfig,
 }
@@ -54,25 +59,27 @@ impl ValueNormalizer {
         Self { config }
     }
 
-    /// Normalizes a value to its canonical form
+    /// Normalizes a value to its canonical form (no field context).
     pub fn normalize(&self, value: &LnmpValue) -> LnmpValue {
+        self.normalize_with_fid(None, value)
+    }
+
+    /// Normalizes a value with field context for dictionary-based mapping.
+    pub fn normalize_with_fid(&self, fid: Option<u16>, value: &LnmpValue) -> LnmpValue {
         match value {
             LnmpValue::Int(i) => LnmpValue::Int(*i),
             LnmpValue::Float(f) => LnmpValue::Float(self.normalize_float(*f)),
             LnmpValue::Bool(b) => LnmpValue::Bool(*b),
-            LnmpValue::String(s) => LnmpValue::String(self.normalize_string(s)),
+            LnmpValue::String(s) => LnmpValue::String(self.normalize_string_for(fid, s)),
             LnmpValue::StringArray(arr) => {
-                LnmpValue::StringArray(arr.iter().map(|s| self.normalize_string(s)).collect())
+                LnmpValue::StringArray(
+                    arr.iter()
+                        .map(|s| self.normalize_string_for(fid, s))
+                        .collect(),
+                )
             }
-            LnmpValue::NestedRecord(record) => {
-                // For nested records, we don't normalize the structure itself
-                // Normalization happens at the field value level
-                LnmpValue::NestedRecord(record.clone())
-            }
-            LnmpValue::NestedArray(records) => {
-                // For nested arrays, we don't normalize the structure itself
-                LnmpValue::NestedArray(records.clone())
-            }
+            LnmpValue::NestedRecord(record) => LnmpValue::NestedRecord(record.clone()),
+            LnmpValue::NestedArray(records) => LnmpValue::NestedArray(records.clone()),
         }
     }
 
@@ -110,7 +117,16 @@ impl ValueNormalizer {
     /// Normalizes string representations
     ///
     /// Applies case transformation based on configuration
-    fn normalize_string(&self, s: &str) -> String {
+    fn normalize_string_for(&self, fid: Option<u16>, s: &str) -> String {
+        if let (Some(dict), Some(fid)) = (&self.config.semantic_dictionary, fid) {
+            if let Some(eq) = dict.get_equivalence(fid, s) {
+                return eq.to_string();
+            }
+            if let Some(eq) = dict.get_equivalence_normalized(fid, s) {
+                return eq.to_string();
+            }
+        }
+
         match self.config.string_case {
             StringCaseRule::Lower => s.to_lowercase(),
             StringCaseRule::Upper => s.to_uppercase(),
@@ -125,7 +141,7 @@ impl ValueNormalizer {
         }
 
         let s = f.to_string();
-        
+
         // If there's no decimal point, return as-is
         if !s.contains('.') {
             return s;
@@ -174,21 +190,21 @@ mod tests {
     #[test]
     fn test_normalize_bool_from_string() {
         let normalizer = ValueNormalizer::default();
-        
+
         assert_eq!(normalizer.normalize_bool("true"), Some(true));
         assert_eq!(normalizer.normalize_bool("True"), Some(true));
         assert_eq!(normalizer.normalize_bool("TRUE"), Some(true));
         assert_eq!(normalizer.normalize_bool("yes"), Some(true));
         assert_eq!(normalizer.normalize_bool("Yes"), Some(true));
         assert_eq!(normalizer.normalize_bool("1"), Some(true));
-        
+
         assert_eq!(normalizer.normalize_bool("false"), Some(false));
         assert_eq!(normalizer.normalize_bool("False"), Some(false));
         assert_eq!(normalizer.normalize_bool("FALSE"), Some(false));
         assert_eq!(normalizer.normalize_bool("no"), Some(false));
         assert_eq!(normalizer.normalize_bool("No"), Some(false));
         assert_eq!(normalizer.normalize_bool("0"), Some(false));
-        
+
         assert_eq!(normalizer.normalize_bool("invalid"), None);
         assert_eq!(normalizer.normalize_bool(""), None);
     }
@@ -223,9 +239,10 @@ mod tests {
             string_case: StringCaseRule::None,
             float_precision: Some(2),
             remove_trailing_zeros: true,
+            semantic_dictionary: None,
         };
         let normalizer = ValueNormalizer::new(config);
-        
+
         let value = LnmpValue::Float(3.14159);
         let normalized = normalizer.normalize(&value);
         assert_eq!(normalized, LnmpValue::Float(3.14));
@@ -234,7 +251,7 @@ mod tests {
     #[test]
     fn test_format_float_remove_trailing_zeros() {
         let normalizer = ValueNormalizer::default();
-        
+
         assert_eq!(normalizer.format_float(3.140), "3.14");
         assert_eq!(normalizer.format_float(3.100), "3.1");
         assert_eq!(normalizer.format_float(3.000), "3");
@@ -248,9 +265,10 @@ mod tests {
             string_case: StringCaseRule::None,
             float_precision: None,
             remove_trailing_zeros: false,
+            semantic_dictionary: None,
         };
         let normalizer = ValueNormalizer::new(config);
-        
+
         let formatted = normalizer.format_float(3.14);
         assert!(formatted.starts_with("3.14"));
     }
@@ -269,9 +287,10 @@ mod tests {
             string_case: StringCaseRule::Lower,
             float_precision: None,
             remove_trailing_zeros: true,
+            semantic_dictionary: None,
         };
         let normalizer = ValueNormalizer::new(config);
-        
+
         let value = LnmpValue::String("TeSt".to_string());
         let normalized = normalizer.normalize(&value);
         assert_eq!(normalized, LnmpValue::String("test".to_string()));
@@ -283,9 +302,10 @@ mod tests {
             string_case: StringCaseRule::Upper,
             float_precision: None,
             remove_trailing_zeros: true,
+            semantic_dictionary: None,
         };
         let normalizer = ValueNormalizer::new(config);
-        
+
         let value = LnmpValue::String("TeSt".to_string());
         let normalized = normalizer.normalize(&value);
         assert_eq!(normalized, LnmpValue::String("TEST".to_string()));
@@ -297,16 +317,17 @@ mod tests {
             string_case: StringCaseRule::Lower,
             float_precision: None,
             remove_trailing_zeros: true,
+            semantic_dictionary: None,
         };
         let normalizer = ValueNormalizer::new(config);
-        
+
         let value = LnmpValue::StringArray(vec![
             "Admin".to_string(),
             "Developer".to_string(),
             "USER".to_string(),
         ]);
         let normalized = normalizer.normalize(&value);
-        
+
         assert_eq!(
             normalized,
             LnmpValue::StringArray(vec![
@@ -320,18 +341,18 @@ mod tests {
     #[test]
     fn test_normalize_nested_record() {
         use lnmp_core::{LnmpField, LnmpRecord};
-        
+
         let normalizer = ValueNormalizer::default();
-        
+
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(42),
         });
-        
+
         let value = LnmpValue::NestedRecord(Box::new(record.clone()));
         let normalized = normalizer.normalize(&value);
-        
+
         // Nested records are not modified by normalization
         assert_eq!(normalized, LnmpValue::NestedRecord(Box::new(record)));
     }
@@ -339,18 +360,18 @@ mod tests {
     #[test]
     fn test_normalize_nested_array() {
         use lnmp_core::{LnmpField, LnmpRecord};
-        
+
         let normalizer = ValueNormalizer::default();
-        
+
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 1,
             value: LnmpValue::Int(42),
         });
-        
+
         let value = LnmpValue::NestedArray(vec![record.clone()]);
         let normalized = normalizer.normalize(&value);
-        
+
         // Nested arrays are not modified by normalization
         assert_eq!(normalized, LnmpValue::NestedArray(vec![record]));
     }

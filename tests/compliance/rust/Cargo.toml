@@ -11,6 +11,7 @@ publish = false
 [dependencies]
 lnmp-core = { workspace = true }
 lnmp-codec = { path = "../../../crates/lnmp-codec" }
+lnmp-sanitize = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 

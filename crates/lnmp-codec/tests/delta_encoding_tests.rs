@@ -446,7 +446,10 @@ fn test_delta_no_changes() {
 #[test]
 fn test_compute_delta_disabled_errors() {
     let mut old_record = LnmpRecord::new();
-    old_record.add_field(LnmpField { fid: 1, value: LnmpValue::Int(1) });
+    old_record.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(1),
+    });
 
     let mut new_record = old_record.clone();
     new_record.remove_field(1);
@@ -460,10 +463,16 @@ fn test_compute_delta_disabled_errors() {
 #[test]
 fn test_decode_delta_disabled_errors() {
     let mut old_record = LnmpRecord::new();
-    old_record.add_field(LnmpField { fid: 1, value: LnmpValue::Int(1) });
+    old_record.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(1),
+    });
 
     let mut new_record = old_record.clone();
-    new_record.add_field(LnmpField { fid: 2, value: LnmpValue::Int(2) });
+    new_record.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::Int(2),
+    });
 
     // Use an enabled encoder to compute bytes
     let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
@@ -479,10 +488,16 @@ fn test_decode_delta_disabled_errors() {
 #[test]
 fn test_apply_delta_disabled_errors() {
     let mut base_record = LnmpRecord::new();
-    base_record.add_field(LnmpField { fid: 1, value: LnmpValue::Int(1) });
+    base_record.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(1),
+    });
 
     let mut new_record = base_record.clone();
-    new_record.add_field(LnmpField { fid: 2, value: LnmpValue::Int(2) });
+    new_record.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::Int(2),
+    });
 
     let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
     let ops = encoder.compute_delta(&base_record, &new_record).unwrap();
@@ -518,8 +533,8 @@ fn test_delta_multiple_changes() {
         fid: 4,
         value: LnmpValue::Float(3.14),
     }); // Added
-                                            // Field 2 deleted
-                                            // Field 3 deleted
+        // Field 2 deleted
+        // Field 3 deleted
 
     let encoder = DeltaEncoder::with_config(DeltaConfig::new().with_enable_delta(true));
     let decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));

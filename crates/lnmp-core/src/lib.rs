@@ -66,6 +66,8 @@
 pub mod checksum;
 pub mod record;
 pub mod types;
+pub mod limits;
 
 pub use record::{LnmpField, LnmpRecord};
+pub use limits::{StructuralError, StructuralLimits};
 pub use types::{FieldId, LnmpValue, TypeHint};

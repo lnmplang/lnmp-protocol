@@ -99,6 +99,11 @@ pub enum BinaryError {
         /// Reason why the structure is invalid
         reason: String,
     },
+    /// Unsupported feature flag (future v0.5 functionality)
+    UnsupportedFeature {
+        /// Name of the unsupported feature
+        feature: String,
+    },
     /// Delta encoder/decoder related failure
     DeltaError {
         /// Reason describing the delta error
@@ -175,6 +180,9 @@ impl std::fmt::Display for BinaryError {
             BinaryError::InvalidNestedStructure { reason } => {
                 write!(f, "Invalid nested structure: {}", reason)
             }
+            BinaryError::UnsupportedFeature { feature } => {
+                write!(f, "Unsupported binary feature: {}", feature)
+            }
             BinaryError::DeltaError { reason } => {
                 write!(f, "Delta error: {}", reason)
             }
@@ -192,6 +200,8 @@ impl From<LnmpError> for BinaryError {
 
 impl From<crate::binary::delta::DeltaError> for BinaryError {
     fn from(err: crate::binary::delta::DeltaError) -> Self {
-        BinaryError::DeltaError { reason: format!("{}", err) }
+        BinaryError::DeltaError {
+            reason: format!("{}", err),
+        }
     }
 }

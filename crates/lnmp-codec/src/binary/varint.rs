@@ -32,14 +32,14 @@ pub fn encode(value: i64) -> Vec<u8> {
     if (-64..=63).contains(&value) {
         return vec![(value & 0x7F) as u8];
     }
-    
+
     // Fast path for two-byte encoding: [-8192, 8191]
     if (-8192..=8191).contains(&value) {
         let byte1 = ((value & 0x7F) | 0x80) as u8;
         let byte2 = ((value >> 7) & 0x7F) as u8;
         return vec![byte1, byte2];
     }
-    
+
     // General case for larger values
     encode_general(value)
 }
@@ -49,7 +49,7 @@ pub fn encode(value: i64) -> Vec<u8> {
 fn encode_general(value: i64) -> Vec<u8> {
     let mut result = Vec::with_capacity(4); // Most values fit in 4 bytes or less
     let mut val = value;
-    
+
     loop {
         // Take the lower 7 bits
         let byte = (val & 0x7F) as u8;
@@ -109,7 +109,7 @@ pub fn decode(bytes: &[u8]) -> Result<(i64, usize), BinaryError> {
     }
 
     let first_byte = bytes[0];
-    
+
     // Fast path: single-byte value (no continuation bit)
     if (first_byte & 0x80) == 0 {
         let mut value = (first_byte & 0x7F) as i64;
@@ -119,7 +119,7 @@ pub fn decode(bytes: &[u8]) -> Result<(i64, usize), BinaryError> {
         }
         return Ok((value, 1));
     }
-    
+
     // Fast path: two-byte value
     if bytes.len() >= 2 {
         let second_byte = bytes[1];
@@ -132,7 +132,7 @@ pub fn decode(bytes: &[u8]) -> Result<(i64, usize), BinaryError> {
             return Ok((value, 2));
         }
     }
-    
+
     // General case for 3+ bytes
     decode_general(bytes)
 }
@@ -281,7 +281,7 @@ mod tests {
         let enc_neg1 = encode(-1);
         let enc_neg2 = encode(-2);
         let enc_neg64 = encode(-64);
-        
+
         assert_eq!(decode(&enc_neg1).unwrap(), (-1, enc_neg1.len()));
         assert_eq!(decode(&enc_neg2).unwrap(), (-2, enc_neg2.len()));
         assert_eq!(decode(&enc_neg64).unwrap(), (-64, enc_neg64.len()));
@@ -358,8 +358,8 @@ mod tests {
         // Small values should use minimal bytes
         // For signed LEB128, single byte range is -64 to 63
         assert_eq!(encode(0).len(), 1);
-        assert_eq!(encode(63).len(), 1);  // Largest single-byte positive
-        assert_eq!(encode(64).len(), 2);  // Needs 2 bytes
+        assert_eq!(encode(63).len(), 1); // Largest single-byte positive
+        assert_eq!(encode(64).len(), 2); // Needs 2 bytes
         assert_eq!(encode(127).len(), 2); // Needs 2 bytes
         assert_eq!(encode(128).len(), 2);
         assert_eq!(encode(-1).len(), 1);

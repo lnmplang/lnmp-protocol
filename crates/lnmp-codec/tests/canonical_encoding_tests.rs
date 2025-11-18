@@ -1,12 +1,18 @@
 use lnmp_codec::Encoder;
-use lnmp_core::{LnmpRecord, LnmpField, LnmpValue};
+use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 
 #[test]
 fn test_encoder_new_is_canonical() {
     // Build a record with two top-level fields
     let mut record = LnmpRecord::new();
-    record.add_field(LnmpField { fid: 2, value: LnmpValue::String("b".to_string()) });
-    record.add_field(LnmpField { fid: 1, value: LnmpValue::String("a".to_string()) });
+    record.add_field(LnmpField {
+        fid: 2,
+        value: LnmpValue::String("b".to_string()),
+    });
+    record.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::String("a".to_string()),
+    });
 
     // Encoder::new() should default to canonical representation where top-level
     // fields are separated by newlines (each field on its own line in canonical)

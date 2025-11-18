@@ -16,11 +16,11 @@ use std::process;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    
+
     // Parse command line arguments
     let mut category_filter: Option<String> = None;
     let mut verbose = false;
-    
+
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -55,7 +55,10 @@ fn main() {
     let suite = match TestSuite::load_from_file(test_file) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("Error: Failed to load test suite from '{}': {}", test_file, e);
+            eprintln!(
+                "Error: Failed to load test suite from '{}': {}",
+                test_file, e
+            );
             process::exit(1);
         }
     };
@@ -65,7 +68,7 @@ fn main() {
 
     // Create runner and execute tests
     let mut runner = TestRunner::new(suite);
-    
+
     if let Some(category) = category_filter {
         println!("Running tests in category: {}", category);
         run_category(&mut runner, &category);

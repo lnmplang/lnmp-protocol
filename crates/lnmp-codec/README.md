@@ -12,6 +12,7 @@ Parser and encoder implementations for LNMP (LLM Native Minimal Protocol) v0.3 t
 - **Semantic checksums**: Optional SC32 checksums for drift prevention (v0.3)
 - **Value normalization**: Canonical value transformations (v0.3)
 - **Equivalence mapping**: Synonym recognition (v0.3)
+- **Semantic dictionary (optional)**: Apply `lnmp-sfe` dictionaries during parse/encode to map values to canonical equivalents
 - **Strict mode**: Validates canonical format compliance
 - **Loose mode**: Accepts format variations (default)
 - **Round-trip stability**: `parse(encode(parse(x))) == parse(encode(x))`
@@ -42,6 +43,35 @@ let record = parser.parse_record().unwrap();
 let encoder = Encoder::new();
 let output = encoder.encode(&record);
 // Output: F7=1\nF12=14532\nF23=[admin,dev]  (sorted by FID)
+```
+
+### Semantic Dictionary Normalization (optional)
+
+```rust
+use lnmp_codec::{Parser, Encoder};
+use lnmp_sfe::SemanticDictionary;
+
+// Build a dictionary: map Admin/ADMIN -> admin for field 23
+let mut dict = SemanticDictionary::new();
+dict.add_equivalence(23, "Admin".to_string(), "admin".to_string());
+
+// Parse with dictionary (applies equivalence during parse)
+let mut parser = Parser::with_config(
+    "F23=[Admin]",
+    lnmp_codec::config::ParserConfig {
+        semantic_dictionary: Some(dict.clone()),
+        ..Default::default()
+    },
+)
+.unwrap();
+let record = parser.parse_record().unwrap();
+
+// Encode with the same dictionary (ensures canonical output)
+let encoder = Encoder::with_config(
+    lnmp_codec::config::EncoderConfig::new().with_semantic_dictionary(dict),
+);
+let output = encoder.encode(&record);
+assert_eq!(output, "F23=[admin]");
 ```
 
 ### Binary Format (v0.4)

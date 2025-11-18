@@ -12,9 +12,12 @@ categories = ["encoding", "parser-implementations"]
 
 [dependencies]
 lnmp-core = { workspace = true }
+lnmp-sanitize = { workspace = true }
+lnmp-sfe = { workspace = true }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
 
 [[bench]]
 name = "v05_performance"

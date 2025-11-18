@@ -103,19 +103,20 @@ impl StreamingEncoder {
                 let frame = StreamingFrame::begin();
                 self.encode_frame(&frame)
             }
-            StreamingState::Streaming { .. } => {
-                Err(StreamingError::UnexpectedFrame {
-                    expected: FrameType::Chunk,
-                    found: FrameType::Begin,
-                })
-            }
+            StreamingState::Streaming { .. } => Err(StreamingError::UnexpectedFrame {
+                expected: FrameType::Chunk,
+                found: FrameType::Begin,
+            }),
         }
     }
 
     /// Segments data and emits CHUNK frames
     pub fn write_chunk(&mut self, data: &[u8]) -> Result<Vec<u8>, StreamingError> {
         match &self.state {
-            StreamingState::Streaming { bytes_sent, chunks_sent } => {
+            StreamingState::Streaming {
+                bytes_sent,
+                chunks_sent,
+            } => {
                 if data.len() > self.config.chunk_size {
                     return Err(StreamingError::ChunkSizeExceeded {
                         size: data.len(),
@@ -125,7 +126,7 @@ impl StreamingEncoder {
 
                 let has_more = false; // Caller determines if more chunks follow
                 let frame = StreamingFrame::chunk(data.to_vec(), has_more);
-                
+
                 // Update state
                 self.state = StreamingState::Streaming {
                     bytes_sent: bytes_sent + data.len(),
@@ -258,27 +259,26 @@ impl StreamingDecoder {
         let frame = self.decode_frame(frame_bytes)?;
 
         match frame.frame_type {
-            FrameType::Begin => {
-                match &self.state {
-                    StreamingState::Idle | StreamingState::Complete | StreamingState::Error(_) => {
-                        self.state = StreamingState::Streaming {
-                            bytes_sent: 0,
-                            chunks_sent: 0,
-                        };
-                        self.buffer.clear();
-                        Ok(StreamingEvent::StreamStarted)
-                    }
-                    StreamingState::Streaming { .. } => {
-                        Err(StreamingError::UnexpectedFrame {
-                            expected: FrameType::Chunk,
-                            found: FrameType::Begin,
-                        })
-                    }
+            FrameType::Begin => match &self.state {
+                StreamingState::Idle | StreamingState::Complete | StreamingState::Error(_) => {
+                    self.state = StreamingState::Streaming {
+                        bytes_sent: 0,
+                        chunks_sent: 0,
+                    };
+                    self.buffer.clear();
+                    Ok(StreamingEvent::StreamStarted)
                 }
-            }
+                StreamingState::Streaming { .. } => Err(StreamingError::UnexpectedFrame {
+                    expected: FrameType::Chunk,
+                    found: FrameType::Begin,
+                }),
+            },
             FrameType::Chunk => {
                 match &self.state {
-                    StreamingState::Streaming { bytes_sent, chunks_sent } => {
+                    StreamingState::Streaming {
+                        bytes_sent,
+                        chunks_sent,
+                    } => {
                         // Validate checksum if enabled
                         if self.config.enable_checksums {
                             frame.validate_checksum()?;
@@ -304,21 +304,19 @@ impl StreamingDecoder {
                     }),
                 }
             }
-            FrameType::End => {
-                match &self.state {
-                    StreamingState::Streaming { bytes_sent, .. } => {
-                        let total_bytes = *bytes_sent;
-                        self.state = StreamingState::Complete;
-                        Ok(StreamingEvent::StreamComplete { total_bytes })
-                    }
-                    StreamingState::Idle => Err(StreamingError::StreamNotStarted),
-                    StreamingState::Complete => Err(StreamingError::StreamAlreadyComplete),
-                    StreamingState::Error(_) => Err(StreamingError::UnexpectedFrame {
-                        expected: FrameType::End,
-                        found: FrameType::Error,
-                    }),
+            FrameType::End => match &self.state {
+                StreamingState::Streaming { bytes_sent, .. } => {
+                    let total_bytes = *bytes_sent;
+                    self.state = StreamingState::Complete;
+                    Ok(StreamingEvent::StreamComplete { total_bytes })
                 }
-            }
+                StreamingState::Idle => Err(StreamingError::StreamNotStarted),
+                StreamingState::Complete => Err(StreamingError::StreamAlreadyComplete),
+                StreamingState::Error(_) => Err(StreamingError::UnexpectedFrame {
+                    expected: FrameType::End,
+                    found: FrameType::Error,
+                }),
+            },
             FrameType::Error => {
                 let message = String::from_utf8_lossy(&frame.payload).to_string();
                 self.state = StreamingState::Error(message.clone());
@@ -371,7 +369,8 @@ impl StreamingDecoder {
                 found: bytes.len(),
             }));
         }
-        let checksum = u32::from_le_bytes([bytes[pos], bytes[pos + 1], bytes[pos + 2], bytes[pos + 3]]);
+        let checksum =
+            u32::from_le_bytes([bytes[pos], bytes[pos + 1], bytes[pos + 2], bytes[pos + 3]]);
         pos += 4;
 
         // PAYLOAD (variable)
@@ -994,9 +993,12 @@ mod tests {
         let mut encoder = StreamingEncoder::new();
         let result = encoder.begin_stream();
         assert!(result.is_ok());
-        
+
         match encoder.state {
-            StreamingState::Streaming { bytes_sent, chunks_sent } => {
+            StreamingState::Streaming {
+                bytes_sent,
+                chunks_sent,
+            } => {
                 assert_eq!(bytes_sent, 0);
                 assert_eq!(chunks_sent, 0);
             }
@@ -1008,13 +1010,16 @@ mod tests {
     fn test_streaming_encoder_write_chunk() {
         let mut encoder = StreamingEncoder::new();
         encoder.begin_stream().unwrap();
-        
+
         let data = vec![1, 2, 3, 4, 5];
         let result = encoder.write_chunk(&data);
         assert!(result.is_ok());
-        
+
         match encoder.state {
-            StreamingState::Streaming { bytes_sent, chunks_sent } => {
+            StreamingState::Streaming {
+                bytes_sent,
+                chunks_sent,
+            } => {
                 assert_eq!(bytes_sent, 5);
                 assert_eq!(chunks_sent, 1);
             }
@@ -1035,17 +1040,20 @@ mod tests {
         let config = StreamingConfig::new().with_chunk_size(10);
         let mut encoder = StreamingEncoder::with_config(config);
         encoder.begin_stream().unwrap();
-        
+
         let data = vec![0u8; 20]; // Exceeds chunk size
         let result = encoder.write_chunk(&data);
-        assert!(matches!(result, Err(StreamingError::ChunkSizeExceeded { .. })));
+        assert!(matches!(
+            result,
+            Err(StreamingError::ChunkSizeExceeded { .. })
+        ));
     }
 
     #[test]
     fn test_streaming_encoder_end_stream() {
         let mut encoder = StreamingEncoder::new();
         encoder.begin_stream().unwrap();
-        
+
         let result = encoder.end_stream();
         assert!(result.is_ok());
         assert_eq!(encoder.state, StreamingState::Complete);
@@ -1063,7 +1071,7 @@ mod tests {
         let mut encoder = StreamingEncoder::new();
         let result = encoder.error_frame("Test error");
         assert!(result.is_ok());
-        
+
         match encoder.state {
             StreamingState::Error(msg) => {
                 assert_eq!(msg, "Test error");
@@ -1075,24 +1083,24 @@ mod tests {
     #[test]
     fn test_streaming_encoder_full_flow() {
         let mut encoder = StreamingEncoder::new();
-        
+
         // Begin
         let begin_bytes = encoder.begin_stream().unwrap();
         assert!(!begin_bytes.is_empty());
-        
+
         // Write chunks
         let chunk1 = vec![1, 2, 3];
         let chunk1_bytes = encoder.write_chunk(&chunk1).unwrap();
         assert!(!chunk1_bytes.is_empty());
-        
+
         let chunk2 = vec![4, 5, 6];
         let chunk2_bytes = encoder.write_chunk(&chunk2).unwrap();
         assert!(!chunk2_bytes.is_empty());
-        
+
         // End
         let end_bytes = encoder.end_stream().unwrap();
         assert!(!end_bytes.is_empty());
-        
+
         assert_eq!(encoder.state, StreamingState::Complete);
     }
 
@@ -1101,7 +1109,7 @@ mod tests {
         let encoder = StreamingEncoder::new();
         let frame = StreamingFrame::begin();
         let bytes = encoder.encode_frame(&frame).unwrap();
-        
+
         // Should have: FRAME_ID (1) + FLAGS (1) + CHUNK_SIZE (VarInt) + CHECKSUM (4)
         assert!(bytes.len() >= 7);
         assert_eq!(bytes[0], FrameType::Begin.to_u8());
@@ -1113,7 +1121,7 @@ mod tests {
         let payload = vec![1, 2, 3, 4, 5];
         let frame = StreamingFrame::chunk(payload.clone(), false);
         let bytes = encoder.encode_frame(&frame).unwrap();
-        
+
         // Should have: FRAME_ID (1) + FLAGS (1) + CHUNK_SIZE (VarInt) + CHECKSUM (4) + PAYLOAD
         assert!(bytes.len() >= 7 + payload.len());
         assert_eq!(bytes[0], FrameType::Chunk.to_u8());
@@ -1123,15 +1131,18 @@ mod tests {
     fn test_streaming_encoder_multiple_chunks() {
         let mut encoder = StreamingEncoder::new();
         encoder.begin_stream().unwrap();
-        
+
         for i in 0..5 {
             let data = vec![i; 10];
             let result = encoder.write_chunk(&data);
             assert!(result.is_ok());
         }
-        
+
         match encoder.state {
-            StreamingState::Streaming { bytes_sent, chunks_sent } => {
+            StreamingState::Streaming {
+                bytes_sent,
+                chunks_sent,
+            } => {
                 assert_eq!(bytes_sent, 50);
                 assert_eq!(chunks_sent, 5);
             }
@@ -1150,10 +1161,10 @@ mod tests {
     fn test_streaming_decoder_feed_begin() {
         let mut encoder = StreamingEncoder::new();
         let begin_bytes = encoder.begin_stream().unwrap();
-        
+
         let mut decoder = StreamingDecoder::new();
         let event = decoder.feed_frame(&begin_bytes).unwrap();
-        
+
         assert_eq!(event, StreamingEvent::StreamStarted);
         match decoder.state {
             StreamingState::Streaming { .. } => {}
@@ -1165,13 +1176,15 @@ mod tests {
     fn test_streaming_decoder_feed_chunk() {
         let mut encoder = StreamingEncoder::new();
         encoder.begin_stream().unwrap();
-        
+
         let data = vec![1, 2, 3, 4, 5];
         let chunk_bytes = encoder.write_chunk(&data).unwrap();
-        
+
         let mut decoder = StreamingDecoder::new();
-        decoder.feed_frame(&encoder.encode_frame(&StreamingFrame::begin()).unwrap()).unwrap();
-        
+        decoder
+            .feed_frame(&encoder.encode_frame(&StreamingFrame::begin()).unwrap())
+            .unwrap();
+
         let event = decoder.feed_frame(&chunk_bytes).unwrap();
         assert_eq!(event, StreamingEvent::ChunkReceived { bytes: 5 });
     }
@@ -1181,10 +1194,12 @@ mod tests {
         let mut encoder = StreamingEncoder::new();
         encoder.begin_stream().unwrap();
         let end_bytes = encoder.end_stream().unwrap();
-        
+
         let mut decoder = StreamingDecoder::new();
-        decoder.feed_frame(&encoder.encode_frame(&StreamingFrame::begin()).unwrap()).unwrap();
-        
+        decoder
+            .feed_frame(&encoder.encode_frame(&StreamingFrame::begin()).unwrap())
+            .unwrap();
+
         let event = decoder.feed_frame(&end_bytes).unwrap();
         match event {
             StreamingEvent::StreamComplete { total_bytes } => {
@@ -1198,10 +1213,10 @@ mod tests {
     fn test_streaming_decoder_feed_error() {
         let mut encoder = StreamingEncoder::new();
         let error_bytes = encoder.error_frame("Test error").unwrap();
-        
+
         let mut decoder = StreamingDecoder::new();
         let event = decoder.feed_frame(&error_bytes).unwrap();
-        
+
         match event {
             StreamingEvent::StreamError { message } => {
                 assert_eq!(message, "Test error");
@@ -1215,7 +1230,7 @@ mod tests {
         let mut encoder = StreamingEncoder::new();
         encoder.begin_stream().unwrap();
         let chunk_bytes = encoder.write_chunk(&[1, 2, 3]).unwrap();
-        
+
         let mut decoder = StreamingDecoder::new();
         let result = decoder.feed_frame(&chunk_bytes);
         assert!(matches!(result, Err(StreamingError::StreamNotStarted)));
@@ -1225,20 +1240,22 @@ mod tests {
     fn test_streaming_decoder_get_complete_payload() {
         let mut encoder = StreamingEncoder::new();
         encoder.begin_stream().unwrap();
-        
+
         let data1 = vec![1, 2, 3];
         let data2 = vec![4, 5, 6];
-        
+
         let chunk1_bytes = encoder.write_chunk(&data1).unwrap();
         let chunk2_bytes = encoder.write_chunk(&data2).unwrap();
         let end_bytes = encoder.end_stream().unwrap();
-        
+
         let mut decoder = StreamingDecoder::new();
-        decoder.feed_frame(&encoder.encode_frame(&StreamingFrame::begin()).unwrap()).unwrap();
+        decoder
+            .feed_frame(&encoder.encode_frame(&StreamingFrame::begin()).unwrap())
+            .unwrap();
         decoder.feed_frame(&chunk1_bytes).unwrap();
         decoder.feed_frame(&chunk2_bytes).unwrap();
         decoder.feed_frame(&end_bytes).unwrap();
-        
+
         let payload = decoder.get_complete_payload().unwrap();
         assert_eq!(payload, &[1, 2, 3, 4, 5, 6]);
     }
@@ -1247,11 +1264,11 @@ mod tests {
     fn test_streaming_decoder_get_complete_payload_before_end() {
         let mut decoder = StreamingDecoder::new();
         assert!(decoder.get_complete_payload().is_none());
-        
+
         let mut encoder = StreamingEncoder::new();
         let begin_bytes = encoder.begin_stream().unwrap();
         decoder.feed_frame(&begin_bytes).unwrap();
-        
+
         assert!(decoder.get_complete_payload().is_none());
     }
 
@@ -1259,23 +1276,23 @@ mod tests {
     fn test_streaming_round_trip() {
         let mut encoder = StreamingEncoder::new();
         let mut decoder = StreamingDecoder::new();
-        
+
         // Begin
         let begin_bytes = encoder.begin_stream().unwrap();
         let event = decoder.feed_frame(&begin_bytes).unwrap();
         assert_eq!(event, StreamingEvent::StreamStarted);
-        
+
         // Chunks
         let data1 = vec![1, 2, 3, 4, 5];
         let chunk1_bytes = encoder.write_chunk(&data1).unwrap();
         let event = decoder.feed_frame(&chunk1_bytes).unwrap();
         assert_eq!(event, StreamingEvent::ChunkReceived { bytes: 5 });
-        
+
         let data2 = vec![6, 7, 8];
         let chunk2_bytes = encoder.write_chunk(&data2).unwrap();
         let event = decoder.feed_frame(&chunk2_bytes).unwrap();
         assert_eq!(event, StreamingEvent::ChunkReceived { bytes: 3 });
-        
+
         // End
         let end_bytes = encoder.end_stream().unwrap();
         let event = decoder.feed_frame(&end_bytes).unwrap();
@@ -1285,7 +1302,7 @@ mod tests {
             }
             _ => panic!("Expected StreamComplete event"),
         }
-        
+
         // Verify payload
         let payload = decoder.get_complete_payload().unwrap();
         assert_eq!(payload, &[1, 2, 3, 4, 5, 6, 7, 8]);
@@ -1296,19 +1313,24 @@ mod tests {
         let config = StreamingConfig::new().with_checksums(true);
         let mut encoder = StreamingEncoder::with_config(config.clone());
         let mut decoder = StreamingDecoder::with_config(config);
-        
+
         encoder.begin_stream().unwrap();
         let data = vec![1, 2, 3, 4, 5];
         let mut chunk_bytes = encoder.write_chunk(&data).unwrap();
-        
+
         // Corrupt the checksum
         if chunk_bytes.len() > 10 {
             chunk_bytes[5] ^= 0xFF;
         }
-        
-        decoder.feed_frame(&encoder.encode_frame(&StreamingFrame::begin()).unwrap()).unwrap();
+
+        decoder
+            .feed_frame(&encoder.encode_frame(&StreamingFrame::begin()).unwrap())
+            .unwrap();
         let result = decoder.feed_frame(&chunk_bytes);
-        assert!(matches!(result, Err(StreamingError::ChecksumMismatch { .. })));
+        assert!(matches!(
+            result,
+            Err(StreamingError::ChecksumMismatch { .. })
+        ));
     }
 
     #[test]
@@ -1338,10 +1360,10 @@ mod tests {
     fn test_backpressure_controller_can_send() {
         let mut controller = BackpressureController::with_window_size(1000);
         assert!(controller.can_send());
-        
+
         controller.on_chunk_sent(500);
         assert!(controller.can_send());
-        
+
         controller.on_chunk_sent(500);
         assert!(!controller.can_send());
     }
@@ -1350,10 +1372,10 @@ mod tests {
     fn test_backpressure_controller_available_window() {
         let mut controller = BackpressureController::with_window_size(1000);
         assert_eq!(controller.available_window(), 1000);
-        
+
         controller.on_chunk_sent(300);
         assert_eq!(controller.available_window(), 700);
-        
+
         controller.on_chunk_sent(400);
         assert_eq!(controller.available_window(), 300);
     }
@@ -1362,10 +1384,10 @@ mod tests {
     fn test_backpressure_controller_on_chunk_sent() {
         let mut controller = BackpressureController::new();
         assert_eq!(controller.bytes_in_flight(), 0);
-        
+
         controller.on_chunk_sent(100);
         assert_eq!(controller.bytes_in_flight(), 100);
-        
+
         controller.on_chunk_sent(200);
         assert_eq!(controller.bytes_in_flight(), 300);
     }
@@ -1375,10 +1397,10 @@ mod tests {
         let mut controller = BackpressureController::new();
         controller.on_chunk_sent(500);
         assert_eq!(controller.bytes_in_flight(), 500);
-        
+
         controller.on_chunk_acked(200);
         assert_eq!(controller.bytes_in_flight(), 300);
-        
+
         controller.on_chunk_acked(300);
         assert_eq!(controller.bytes_in_flight(), 0);
     }
@@ -1388,7 +1410,7 @@ mod tests {
         let mut controller = BackpressureController::new();
         controller.on_chunk_sent(1000);
         assert_eq!(controller.bytes_in_flight(), 1000);
-        
+
         controller.reset();
         assert_eq!(controller.bytes_in_flight(), 0);
         assert!(controller.can_send());
@@ -1407,30 +1429,30 @@ mod tests {
         let mut controller = BackpressureController::new();
         controller.on_chunk_sent(100);
         controller.on_chunk_acked(200); // Ack more than sent
-        // Should saturate at 0, not underflow
+                                        // Should saturate at 0, not underflow
         assert_eq!(controller.bytes_in_flight(), 0);
     }
 
     #[test]
     fn test_backpressure_controller_flow_control_scenario() {
         let mut controller = BackpressureController::with_window_size(10000);
-        
+
         // Send chunks until window is full
         let chunk_size = 2000;
         let mut chunks_sent = 0;
-        
+
         while controller.can_send() && controller.available_window() >= chunk_size {
             controller.on_chunk_sent(chunk_size);
             chunks_sent += 1;
         }
-        
+
         assert_eq!(chunks_sent, 5); // 5 * 2000 = 10000
         assert!(!controller.can_send());
-        
+
         // Acknowledge some chunks
         controller.on_chunk_acked(chunk_size);
         controller.on_chunk_acked(chunk_size);
-        
+
         // Should be able to send again
         assert!(controller.can_send());
         assert_eq!(controller.available_window(), 4000);

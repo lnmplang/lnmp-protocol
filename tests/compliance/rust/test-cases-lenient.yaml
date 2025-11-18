@@ -1,0 +1,145 @@
+- name: lenient_auto_quote
+  input: 'F1=Hello "world";F2=ok'
+  expected:
+    fields:
+      - fid: 1
+        type: string
+        value: Hello "world"
+      - fid: 2
+        type: string
+        value: ok
+  config:
+    lenient_mode: true
+
+- name: lenient_trailing_backslash
+  input: 'F1="hello\\'
+  expected_error:
+    error: Unexpected end of input
+    message: Unterminated string
+  config:
+    lenient_mode: true
+
+- name: lenient_nested_with_comments
+  input: |
+    # leading comment
+    F1={F2= "ok"; F3=1 } ; F9=42
+  expected:
+    fields:
+      - fid: 1
+        type: record
+        value:
+          fields:
+            - fid: 2
+              type: string
+              value: ok
+            - fid: 3
+              type: int
+              value: 1
+      - fid: 9
+        type: int
+        value: 42
+  config:
+    lenient_mode: true
+
+- name: lenient_array_unquoted_items
+  input: 'F10=[a, "b", c];F11=done'
+  expected:
+    fields:
+      - fid: 10
+        type: string_array
+        value: [a, b, c]
+      - fid: 11
+        type: string
+        value: done
+  config:
+    lenient_mode: true
+
+- name: lenient_checksum_ignored
+  input: 'F12=14532#DEADBEEF'
+  expected:
+    fields:
+      - fid: 12
+        type: int
+        value: 14532
+  config:
+    lenient_mode: true
+
+- name: lenient_multiline_extra_semicolons
+  input: |
+    F1=hello;;
+    F2=world;
+  expected:
+    fields:
+      - fid: 1
+        type: string
+        value: hello
+      - fid: 2
+        type: string
+        value: world
+  config:
+    lenient_mode: true
+
+- name: lenient_checksum_validation_failure
+  input: 'F7=1#BADC0DE'
+  expected_error:
+    error: Checksum mismatch
+    message: ChecksumMismatch
+  config:
+    lenient_mode: true
+    validate_checksums: true
+
+- name: lenient_mixed_newlines_and_spaces
+  input: "F1 = foo \r\n F2=\tbar\nF3= baz  "
+  expected:
+    fields:
+      - fid: 1
+        type: string
+        value: foo
+      - fid: 2
+        type: string
+        value: bar
+      - fid: 3
+        type: string
+        value: baz
+  config:
+    lenient_mode: true
+
+- name: lenient_nested_array_with_quotes
+  input: 'F5=[{F1="hello "world""},{F2=bye}]'
+  expected:
+    fields:
+      - fid: 5
+        type: record_array
+        value:
+          - fields:
+              - fid: 1
+                type: string
+                value: hello "world"
+          - fields:
+              - fid: 2
+                type: string
+                value: bye
+  config:
+    lenient_mode: true
+
+- name: lenient_unquoted_bool_and_number_normalization
+  input: 'F8=yes;F9=00042'
+  expected:
+    fields:
+      - fid: 8
+        type: bool
+        value: true
+      - fid: 9
+        type: int
+        value: 42
+  config:
+    lenient_mode: true
+    normalize_values: true
+
+- name: lenient_nested_unterminated_quote
+  input: 'F1={F2="oops}'
+  expected_error:
+    error: Unexpected end of input
+    message: Unterminated string
+  config:
+    lenient_mode: true

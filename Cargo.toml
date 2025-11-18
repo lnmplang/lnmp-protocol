@@ -5,7 +5,8 @@ members = [
     "crates/lnmp-codec",
     "crates/lnmp-sfe",
     "crates/lnmp-llb",
-    "examples",
+    "crates/lnmp-sanitize",
+    "examples/examples",
     "tests/compliance/rust",
 ]
 
@@ -18,3 +19,7 @@ license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 lnmp-core = { path = "crates/lnmp-core" }
+lnmp-sanitize = { path = "crates/lnmp-sanitize" }
+lnmp-codec = { path = "crates/lnmp-codec" }
+lnmp-llb = { path = "crates/lnmp-llb" }
+lnmp-sfe = { path = "crates/lnmp-sfe" }

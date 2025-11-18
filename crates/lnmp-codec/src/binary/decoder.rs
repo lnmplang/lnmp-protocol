@@ -3,10 +3,10 @@
 //! The BinaryDecoder converts LNMP records from binary format (v0.4) to text format (v0.3).
 //! It validates the binary structure and ensures canonical form compliance.
 
-use lnmp_core::LnmpRecord;
 use super::error::BinaryError;
 use super::frame::BinaryFrame;
 use crate::encoder::Encoder;
+use lnmp_core::LnmpRecord;
 
 /// Configuration for binary decoding
 #[derive(Debug, Clone)]
@@ -15,7 +15,7 @@ pub struct DecoderConfig {
     pub validate_ordering: bool,
     /// Whether to check for trailing data
     pub strict_parsing: bool,
-    
+
     // v0.5 fields
     /// Whether to allow streaming frame processing (v0.5)
     pub allow_streaming: bool,
@@ -58,27 +58,27 @@ impl DecoderConfig {
         self.strict_parsing = strict;
         self
     }
-    
+
     // v0.5 builder methods
-    
+
     /// Enables streaming frame processing (v0.5)
     pub fn with_streaming(mut self, allow: bool) -> Self {
         self.allow_streaming = allow;
         self
     }
-    
+
     /// Enables nesting validation (v0.5)
     pub fn with_validate_nesting(mut self, validate: bool) -> Self {
         self.validate_nesting = validate;
         self
     }
-    
+
     /// Enables delta packet processing (v0.5)
     pub fn with_delta(mut self, allow: bool) -> Self {
         self.allow_delta = allow;
         self
     }
-    
+
     /// Sets maximum nesting depth for nested structures (v0.5)
     pub fn with_max_depth(mut self, depth: usize) -> Self {
         self.max_depth = depth;
@@ -161,15 +161,15 @@ impl BinaryDecoder {
     pub fn decode(&self, bytes: &[u8]) -> Result<LnmpRecord, BinaryError> {
         // Decode the binary frame
         let frame = BinaryFrame::decode(bytes)?;
-        
+
         // Convert frame to record
         let record = frame.to_record();
-        
+
         // Validate field ordering if enabled
         if self.config.validate_ordering {
             self.validate_field_ordering(&record)?;
         }
-        
+
         // Check for trailing data if strict parsing is enabled
         if self.config.strict_parsing {
             // Calculate how many bytes were consumed
@@ -180,7 +180,7 @@ impl BinaryDecoder {
                 });
             }
         }
-        
+
         Ok(record)
     }
 
@@ -217,7 +217,7 @@ impl BinaryDecoder {
     pub fn decode_to_text(&self, bytes: &[u8]) -> Result<String, BinaryError> {
         // Decode to LnmpRecord
         let record = self.decode(bytes)?;
-        
+
         // Encode to canonical text format using v0.3 encoder
         let encoder = Encoder::new();
         Ok(encoder.encode(&record))
@@ -226,18 +226,19 @@ impl BinaryDecoder {
     /// Validates that fields are in ascending FID order (canonical form)
     fn validate_field_ordering(&self, record: &LnmpRecord) -> Result<(), BinaryError> {
         let fields = record.fields();
-        
+
         for i in 1..fields.len() {
             if fields[i].fid < fields[i - 1].fid {
                 return Err(BinaryError::CanonicalViolation {
                     reason: format!(
                         "Fields not in ascending FID order: F{} appears after F{}",
-                        fields[i].fid, fields[i - 1].fid
+                        fields[i].fid,
+                        fields[i - 1].fid
                     ),
                 });
             }
         }
-        
+
         Ok(())
     }
 
@@ -246,7 +247,7 @@ impl BinaryDecoder {
         // Decode the frame to determine its size
         // We need to re-decode to track the exact number of bytes consumed
         let mut offset = 0;
-        
+
         // VERSION (1 byte)
         if bytes.is_empty() {
             return Err(BinaryError::UnexpectedEof {
@@ -255,7 +256,7 @@ impl BinaryDecoder {
             });
         }
         offset += 1;
-        
+
         // FLAGS (1 byte)
         if bytes.len() < offset + 1 {
             return Err(BinaryError::UnexpectedEof {
@@ -264,14 +265,14 @@ impl BinaryDecoder {
             });
         }
         offset += 1;
-        
+
         // ENTRY_COUNT (VarInt)
-        let (entry_count, consumed) = super::varint::decode(&bytes[offset..])
-            .map_err(|_| BinaryError::InvalidVarInt {
+        let (entry_count, consumed) =
+            super::varint::decode(&bytes[offset..]).map_err(|_| BinaryError::InvalidVarInt {
                 reason: "Invalid entry count VarInt".to_string(),
             })?;
         offset += consumed;
-        
+
         if entry_count < 0 {
             return Err(BinaryError::InvalidValue {
                 field_id: 0,
@@ -279,15 +280,15 @@ impl BinaryDecoder {
                 reason: format!("Negative entry count: {}", entry_count),
             });
         }
-        
+
         let entry_count = entry_count as usize;
-        
+
         // Decode each entry to calculate size
         for _ in 0..entry_count {
             let (_, consumed) = super::entry::BinaryEntry::decode(&bytes[offset..])?;
             offset += consumed;
         }
-        
+
         Ok(offset)
     }
 
@@ -355,38 +356,38 @@ impl BinaryDecoder {
     pub fn supports_nested(&self, bytes: &[u8]) -> bool {
         // Try to parse the frame and check for v0.5 type tags
         // We need to scan through entries looking for type tags >= 0x06
-        
+
         if bytes.len() < 3 {
             return false; // Too short to contain any entries
         }
-        
+
         let mut offset = 0;
-        
+
         // Skip VERSION (1 byte)
         offset += 1;
-        
+
         // Skip FLAGS (1 byte)
         offset += 1;
-        
+
         // Read ENTRY_COUNT (VarInt)
         let (entry_count, consumed) = match super::varint::decode(&bytes[offset..]) {
             Ok(result) => result,
             Err(_) => return false,
         };
         offset += consumed;
-        
+
         if entry_count < 0 {
             return false;
         }
-        
+
         let entry_count = entry_count as usize;
-        
+
         // Scan each entry for v0.5 type tags
         for _ in 0..entry_count {
             if offset >= bytes.len() {
                 return false;
             }
-            
+
             // Try to decode the entry
             match super::entry::BinaryEntry::decode(&bytes[offset..]) {
                 Ok((entry, consumed)) => {
@@ -400,7 +401,7 @@ impl BinaryDecoder {
                 Err(_) => return false,
             }
         }
-        
+
         false
     }
 }
@@ -413,8 +414,8 @@ impl Default for BinaryDecoder {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::encoder::BinaryEncoder;
+    use super::*;
     use lnmp_core::{LnmpField, LnmpValue};
 
     #[test]
@@ -434,7 +435,7 @@ mod tests {
         let config = DecoderConfig::new()
             .with_validate_ordering(true)
             .with_strict_parsing(true);
-        
+
         let decoder = BinaryDecoder::with_config(config);
         assert!(decoder.config.validate_ordering);
         assert!(decoder.config.strict_parsing);
@@ -445,10 +446,10 @@ mod tests {
         let encoder = BinaryEncoder::new();
         let record = LnmpRecord::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(decoded.fields().len(), 0);
     }
 
@@ -459,13 +460,13 @@ mod tests {
             fid: 7,
             value: LnmpValue::Bool(true),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(decoded.fields().len(), 1);
         assert_eq!(decoded.get_field(7).unwrap().value, LnmpValue::Bool(true));
     }
@@ -485,13 +486,13 @@ mod tests {
             fid: 23,
             value: LnmpValue::StringArray(vec!["admin".to_string(), "dev".to_string()]),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(decoded.fields().len(), 3);
         assert_eq!(decoded.get_field(7).unwrap().value, LnmpValue::Bool(true));
         assert_eq!(decoded.get_field(12).unwrap().value, LnmpValue::Int(14532));
@@ -524,17 +525,23 @@ mod tests {
             fid: 5,
             value: LnmpValue::StringArray(vec!["a".to_string(), "b".to_string()]),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::Int(-42));
-        assert_eq!(decoded.get_field(2).unwrap().value, LnmpValue::Float(3.14159));
+        assert_eq!(
+            decoded.get_field(2).unwrap().value,
+            LnmpValue::Float(3.14159)
+        );
         assert_eq!(decoded.get_field(3).unwrap().value, LnmpValue::Bool(false));
-        assert_eq!(decoded.get_field(4).unwrap().value, LnmpValue::String("hello".to_string()));
+        assert_eq!(
+            decoded.get_field(4).unwrap().value,
+            LnmpValue::String("hello".to_string())
+        );
         assert_eq!(
             decoded.get_field(5).unwrap().value,
             LnmpValue::StringArray(vec!["a".to_string(), "b".to_string()])
@@ -546,7 +553,7 @@ mod tests {
         let bytes = vec![0x99, 0x00, 0x00]; // Invalid version
         let decoder = BinaryDecoder::new();
         let result = decoder.decode(&bytes);
-        
+
         assert!(matches!(
             result,
             Err(BinaryError::UnsupportedVersion { found: 0x99, .. })
@@ -558,7 +565,7 @@ mod tests {
         let bytes = vec![0x04, 0x00, 0x00]; // Valid version, empty record
         let decoder = BinaryDecoder::new();
         let result = decoder.decode(&bytes);
-        
+
         assert!(result.is_ok());
     }
 
@@ -569,13 +576,13 @@ mod tests {
             fid: 7,
             value: LnmpValue::Bool(true),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let text = decoder.decode_to_text(&binary).unwrap();
-        
+
         assert_eq!(text, "F7=1");
     }
 
@@ -594,13 +601,13 @@ mod tests {
             fid: 23,
             value: LnmpValue::StringArray(vec!["admin".to_string(), "dev".to_string()]),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let text = decoder.decode_to_text(&binary).unwrap();
-        
+
         // Fields should be in canonical order (sorted by FID)
         assert_eq!(text, "F7=1\nF12=14532\nF23=[admin,dev]");
     }
@@ -621,13 +628,13 @@ mod tests {
             fid: 12,
             value: LnmpValue::Int(14532),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let text = decoder.decode_to_text(&binary).unwrap();
-        
+
         // Should be sorted by FID
         assert_eq!(text, "F7=1\nF12=14532\nF23=[admin]");
     }
@@ -643,14 +650,14 @@ mod tests {
             fid: 12,
             value: LnmpValue::Int(14532),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let config = DecoderConfig::new().with_validate_ordering(true);
         let decoder = BinaryDecoder::with_config(config);
         let result = decoder.decode(&binary);
-        
+
         assert!(result.is_ok());
     }
 
@@ -661,17 +668,17 @@ mod tests {
             fid: 7,
             value: LnmpValue::Bool(true),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let mut binary = encoder.encode(&record).unwrap();
-        
+
         // Add trailing data
         binary.extend_from_slice(&[0xDE, 0xAD, 0xBE, 0xEF]);
-        
+
         let config = DecoderConfig::new().with_strict_parsing(true);
         let decoder = BinaryDecoder::with_config(config);
         let result = decoder.decode(&binary);
-        
+
         assert!(matches!(
             result,
             Err(BinaryError::TrailingData { bytes_remaining: 4 })
@@ -685,16 +692,16 @@ mod tests {
             fid: 7,
             value: LnmpValue::Bool(true),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let mut binary = encoder.encode(&record).unwrap();
-        
+
         // Add trailing data
         binary.extend_from_slice(&[0xDE, 0xAD, 0xBE, 0xEF]);
-        
+
         let decoder = BinaryDecoder::new(); // strict_parsing = false
         let result = decoder.decode(&binary);
-        
+
         // Should succeed without strict parsing
         assert!(result.is_ok());
     }
@@ -702,18 +709,18 @@ mod tests {
     #[test]
     fn test_roundtrip_binary_to_text_to_binary() {
         let original_text = "F7=1\nF12=14532\nF23=[admin,dev]";
-        
+
         // Text -> Binary
         let encoder = BinaryEncoder::new();
         let binary1 = encoder.encode_text(original_text).unwrap();
-        
+
         // Binary -> Text
         let decoder = BinaryDecoder::new();
         let text = decoder.decode_to_text(&binary1).unwrap();
-        
+
         // Text -> Binary again
         let binary2 = encoder.encode_text(&text).unwrap();
-        
+
         // Binary representations should be identical
         assert_eq!(binary1, binary2);
     }
@@ -721,15 +728,15 @@ mod tests {
     #[test]
     fn test_roundtrip_text_to_binary_to_text() {
         let original_text = "F7=1\nF12=14532\nF23=[admin,dev]";
-        
+
         // Text -> Binary
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode_text(original_text).unwrap();
-        
+
         // Binary -> Text
         let decoder = BinaryDecoder::new();
         let decoded_text = decoder.decode_to_text(&binary).unwrap();
-        
+
         // Should produce identical canonical text
         assert_eq!(decoded_text, original_text);
     }
@@ -737,15 +744,15 @@ mod tests {
     #[test]
     fn test_roundtrip_unsorted_text() {
         let unsorted_text = "F23=[admin]\nF7=1\nF12=14532";
-        
+
         // Text -> Binary
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode_text(unsorted_text).unwrap();
-        
+
         // Binary -> Text
         let decoder = BinaryDecoder::new();
         let decoded_text = decoder.decode_to_text(&binary).unwrap();
-        
+
         // Should be sorted in canonical form
         assert_eq!(decoded_text, "F7=1\nF12=14532\nF23=[admin]");
     }
@@ -761,14 +768,14 @@ mod tests {
             ("F6=[\"a\",\"b\",\"c\"]", "F6=[a,b,c]"), // Simple strings don't need quotes
             ("F7=[]", ""), // Empty arrays are omitted during canonicalization (Requirement 9.3)
         ];
-        
+
         for (input, expected) in test_cases {
             let encoder = BinaryEncoder::new();
             let binary = encoder.encode_text(input).unwrap();
-            
+
             let decoder = BinaryDecoder::new();
             let decoded = decoder.decode_to_text(&binary).unwrap();
-            
+
             assert_eq!(decoded, expected, "Failed for: {}", input);
         }
     }
@@ -776,17 +783,17 @@ mod tests {
     #[test]
     fn test_roundtrip_stability() {
         let text = "F7=1\nF12=14532";
-        
+
         let encoder = BinaryEncoder::new();
         let decoder = BinaryDecoder::new();
-        
+
         // Multiple round-trips should be stable
         let mut current = text.to_string();
         for _ in 0..5 {
             let binary = encoder.encode_text(&current).unwrap();
             current = decoder.decode_to_text(&binary).unwrap();
         }
-        
+
         assert_eq!(current, text);
     }
 
@@ -795,7 +802,7 @@ mod tests {
         let bytes = vec![0x04]; // Only version, no flags
         let decoder = BinaryDecoder::new();
         let result = decoder.decode(&bytes);
-        
+
         assert!(matches!(result, Err(BinaryError::UnexpectedEof { .. })));
     }
 
@@ -804,7 +811,7 @@ mod tests {
         let bytes = vec![0x04, 0x00, 0x80]; // Incomplete VarInt
         let decoder = BinaryDecoder::new();
         let result = decoder.decode(&bytes);
-        
+
         assert!(matches!(result, Err(BinaryError::InvalidVarInt { .. })));
     }
 
@@ -815,14 +822,17 @@ mod tests {
             fid: 1,
             value: LnmpValue::String("".to_string()),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
-        assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::String("".to_string()));
+
+        assert_eq!(
+            decoded.get_field(1).unwrap().value,
+            LnmpValue::String("".to_string())
+        );
     }
 
     #[test]
@@ -832,14 +842,17 @@ mod tests {
             fid: 1,
             value: LnmpValue::StringArray(vec![]),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
-        assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::StringArray(vec![]));
+
+        assert_eq!(
+            decoded.get_field(1).unwrap().value,
+            LnmpValue::StringArray(vec![])
+        );
     }
 
     #[test]
@@ -857,16 +870,25 @@ mod tests {
             fid: 3,
             value: LnmpValue::String("say \"hello\"".to_string()),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
-        assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::String("hello\nworld".to_string()));
-        assert_eq!(decoded.get_field(2).unwrap().value, LnmpValue::String("path\\to\\file".to_string()));
-        assert_eq!(decoded.get_field(3).unwrap().value, LnmpValue::String("say \"hello\"".to_string()));
+
+        assert_eq!(
+            decoded.get_field(1).unwrap().value,
+            LnmpValue::String("hello\nworld".to_string())
+        );
+        assert_eq!(
+            decoded.get_field(2).unwrap().value,
+            LnmpValue::String("path\\to\\file".to_string())
+        );
+        assert_eq!(
+            decoded.get_field(3).unwrap().value,
+            LnmpValue::String("say \"hello\"".to_string())
+        );
     }
 
     #[test]
@@ -876,14 +898,17 @@ mod tests {
             fid: 1,
             value: LnmpValue::String("emoji: 🎯".to_string()),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
-        assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::String("emoji: 🎯".to_string()));
+
+        assert_eq!(
+            decoded.get_field(1).unwrap().value,
+            LnmpValue::String("emoji: 🎯".to_string())
+        );
     }
 
     #[test]
@@ -898,11 +923,11 @@ mod tests {
         let config = DecoderConfig::new()
             .with_validate_ordering(true)
             .with_strict_parsing(true);
-        
+
         assert!(config.validate_ordering);
         assert!(config.strict_parsing);
     }
-    
+
     #[test]
     fn test_decoder_config_v05_fields() {
         let config = DecoderConfig::new()
@@ -910,55 +935,55 @@ mod tests {
             .with_validate_nesting(true)
             .with_delta(true)
             .with_max_depth(64);
-        
+
         assert!(config.allow_streaming);
         assert!(config.validate_nesting);
         assert!(config.allow_delta);
         assert_eq!(config.max_depth, 64);
     }
-    
+
     #[test]
     fn test_decoder_config_v05_defaults() {
         let config = DecoderConfig::default();
-        
+
         assert!(!config.allow_streaming);
         assert!(!config.validate_nesting);
         assert!(!config.allow_delta);
         assert_eq!(config.max_depth, 32);
     }
-    
+
     #[test]
     fn test_decoder_config_backward_compatibility() {
         // v0.4 configurations should work without any changes
         let v04_config = DecoderConfig::new()
             .with_validate_ordering(true)
             .with_strict_parsing(true);
-        
+
         // v0.4 fields should work as before
         assert!(v04_config.validate_ordering);
         assert!(v04_config.strict_parsing);
-        
+
         // v0.5 fields should have safe defaults (disabled)
         assert!(!v04_config.allow_streaming);
         assert!(!v04_config.validate_nesting);
         assert!(!v04_config.allow_delta);
     }
-    
+
     #[test]
     fn test_decoder_config_mixed_v04_v05() {
         // Test that v0.4 and v0.5 configurations can be mixed
         let config = DecoderConfig::new()
-            .with_validate_ordering(true)   // v0.4
-            .with_streaming(true)            // v0.5
-            .with_strict_parsing(true)       // v0.4
-            .with_delta(true);               // v0.5
-        
+            .with_validate_ordering(true) // v0.4
+            .with_streaming(true) // v0.5
+            .with_strict_parsing(true) // v0.4
+            .with_delta(true); // v0.5
+
         assert!(config.validate_ordering);
         assert!(config.strict_parsing);
         assert!(config.allow_streaming);
         assert!(config.allow_delta);
     }
-    
+
     #[test]
     fn test_decoder_v04_mode_decoding() {
         // Test that decoder with v0.5 disabled behaves like v0.4
@@ -966,31 +991,31 @@ mod tests {
             .with_streaming(false)
             .with_validate_nesting(false)
             .with_delta(false);
-        
+
         let decoder = BinaryDecoder::with_config(config);
-        
+
         // Should decode a v0.4 record just like before
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: 7,
             value: LnmpValue::Bool(true),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         // Should decode correctly
         assert_eq!(decoded.fields().len(), 1);
         assert_eq!(decoded.get_field(7).unwrap().value, LnmpValue::Bool(true));
     }
-    
+
     #[test]
     fn test_decoder_v04_compatibility_with_existing_binary() {
         // Test that v0.5 decoder can decode v0.4 binary format
         let v05_decoder = BinaryDecoder::new(); // All v0.5 features disabled by default
-        
+
         // Create a v0.4 binary (no nested structures)
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
@@ -1001,13 +1026,13 @@ mod tests {
             fid: 12,
             value: LnmpValue::Int(14532),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let v04_binary = encoder.encode(&record).unwrap();
-        
+
         // v0.5 decoder should decode v0.4 binary without issues
         let decoded = v05_decoder.decode(&v04_binary).unwrap();
-        
+
         assert_eq!(decoded.fields().len(), 2);
         assert_eq!(decoded.get_field(7).unwrap().value, LnmpValue::Bool(true));
         assert_eq!(decoded.get_field(12).unwrap().value, LnmpValue::Int(14532));
@@ -1020,13 +1045,13 @@ mod tests {
             fid: 65535,
             value: LnmpValue::Int(42),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
+
         assert_eq!(decoded.get_field(65535).unwrap().value, LnmpValue::Int(42));
     }
 
@@ -1037,14 +1062,17 @@ mod tests {
             fid: 1,
             value: LnmpValue::Int(i64::MAX),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
-        assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::Int(i64::MAX));
+
+        assert_eq!(
+            decoded.get_field(1).unwrap().value,
+            LnmpValue::Int(i64::MAX)
+        );
     }
 
     #[test]
@@ -1054,13 +1082,16 @@ mod tests {
             fid: 1,
             value: LnmpValue::Int(i64::MIN),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let decoded = decoder.decode(&binary).unwrap();
-        
-        assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::Int(i64::MIN));
+
+        assert_eq!(
+            decoded.get_field(1).unwrap().value,
+            LnmpValue::Int(i64::MIN)
+        );
     }
 }

@@ -3,8 +3,8 @@
 //! This module provides efficient delta encoding for transmitting only changed fields
 //! in record updates, minimizing bandwidth usage for incremental changes.
 
-use lnmp_core::{FieldId, LnmpRecord, LnmpValue};
 use super::error::BinaryError;
+use lnmp_core::{FieldId, LnmpRecord, LnmpValue};
 
 /// Delta operation types for partial updates
 #[repr(u8)]
@@ -192,11 +192,17 @@ impl DeltaEncoder {
     /// # Returns
     ///
     /// A vector of delta operations representing the changes
-    pub fn compute_delta(&self, old: &LnmpRecord, new: &LnmpRecord) -> Result<Vec<DeltaOp>, DeltaError> {
+    pub fn compute_delta(
+        &self,
+        old: &LnmpRecord,
+        new: &LnmpRecord,
+    ) -> Result<Vec<DeltaOp>, DeltaError> {
         // If delta is not enabled in the config, we return an error.
-        
+
         if !self.config.enable_delta {
-            return Err(DeltaError::DeltaApplicationFailed { reason: "Delta is disabled in configuration".to_string() });
+            return Err(DeltaError::DeltaApplicationFailed {
+                reason: "Delta is disabled in configuration".to_string(),
+            });
         }
 
         self.diff_records(old, new)
@@ -205,21 +211,21 @@ impl DeltaEncoder {
     /// Identifies changed, added, and deleted fields between two records
     fn diff_records(&self, old: &LnmpRecord, new: &LnmpRecord) -> Result<Vec<DeltaOp>, DeltaError> {
         use std::collections::HashSet;
-        
+
         let mut ops = Vec::new();
-        
+
         // Get all FIDs from both records
         let old_fids: HashSet<FieldId> = old.fields().iter().map(|f| f.fid).collect();
         let new_fids: HashSet<FieldId> = new.fields().iter().map(|f| f.fid).collect();
-        
+
         // Process fields in sorted order for deterministic output
         let mut all_fids: Vec<FieldId> = old_fids.union(&new_fids).copied().collect();
         all_fids.sort_unstable();
-        
+
         for fid in all_fids {
             let old_field = old.get_field(fid);
             let new_field = new.get_field(fid);
-            
+
             match (old_field, new_field) {
                 (None, Some(new_f)) => {
                     // Field added - use SET_FIELD
@@ -235,7 +241,10 @@ impl DeltaEncoder {
                     if old_f.value != new_f.value {
                         // Check if both are nested records - use MERGE_RECORD
                         match (&old_f.value, &new_f.value) {
-                            (LnmpValue::NestedRecord(old_rec), LnmpValue::NestedRecord(new_rec)) => {
+                            (
+                                LnmpValue::NestedRecord(old_rec),
+                                LnmpValue::NestedRecord(new_rec),
+                            ) => {
                                 // Recursively compute delta for nested record
                                 let nested_ops = self.diff_records(old_rec, new_rec)?;
                                 let payload = self.encode_nested_ops(&nested_ops)?;
@@ -256,7 +265,7 @@ impl DeltaEncoder {
                 }
             }
         }
-        
+
         Ok(ops)
     }
 
@@ -264,16 +273,16 @@ impl DeltaEncoder {
     fn encode_value(&self, value: &LnmpValue) -> Result<Vec<u8>, DeltaError> {
         use super::entry::BinaryEntry;
         use super::types::BinaryValue;
-        
+
         // Convert LnmpValue to BinaryValue
         let binary_value = BinaryValue::from_lnmp_value(value)?;
-        
+
         // Create a temporary entry to encode the value
         let entry = BinaryEntry::new(0, binary_value);
-        
+
         // Encode just the value part (skip FID)
         let full_encoding = entry.encode();
-        
+
         // Skip the FID bytes (2 bytes) and return just the type tag + value
         if full_encoding.len() >= 2 {
             Ok(full_encoding[2..].to_vec())
@@ -287,30 +296,30 @@ impl DeltaEncoder {
     /// Encodes nested delta operations
     fn encode_nested_ops(&self, ops: &[DeltaOp]) -> Result<Vec<u8>, DeltaError> {
         use super::varint;
-        
+
         let mut result = Vec::new();
-        
+
         // Encode operation count
         let count_bytes = varint::encode(ops.len() as i64);
         result.extend_from_slice(&count_bytes);
-        
+
         // Encode each operation
         for op in ops {
             // Encode FID
             let fid_bytes = varint::encode(op.target_fid as i64);
             result.extend_from_slice(&fid_bytes);
-            
+
             // Encode operation code
             result.push(op.operation.to_u8());
-            
+
             // Encode payload length
             let payload_len_bytes = varint::encode(op.payload.len() as i64);
             result.extend_from_slice(&payload_len_bytes);
-            
+
             // Encode payload
             result.extend_from_slice(&op.payload);
         }
-        
+
         Ok(result)
     }
 
@@ -325,34 +334,33 @@ impl DeltaEncoder {
     /// A vector of bytes representing the encoded delta packet
     pub fn encode_delta(&self, ops: &[DeltaOp]) -> Result<Vec<u8>, DeltaError> {
         use super::varint;
-        
-        
+
         let mut result = Vec::new();
-        
+
         // Write DELTA_TAG
         result.push(DELTA_TAG);
-        
+
         // Encode operation count
         let count_bytes = varint::encode(ops.len() as i64);
         result.extend_from_slice(&count_bytes);
-        
+
         // Encode each operation
         for op in ops {
             // Encode TARGET_FID
             let fid_bytes = varint::encode(op.target_fid as i64);
             result.extend_from_slice(&fid_bytes);
-            
+
             // Encode OP_CODE
             result.push(op.operation.to_u8());
-            
+
             // Encode payload length
             let payload_len_bytes = varint::encode(op.payload.len() as i64);
             result.extend_from_slice(&payload_len_bytes);
-            
+
             // Encode payload
             result.extend_from_slice(&op.payload);
         }
-        
+
         Ok(result)
     }
 }
@@ -396,52 +404,55 @@ impl DeltaDecoder {
     /// Returns `DeltaError` if the packet is malformed
     pub fn decode_delta(&self, bytes: &[u8]) -> Result<Vec<DeltaOp>, DeltaError> {
         if !self.config.enable_delta {
-            return Err(DeltaError::DeltaApplicationFailed { reason: "Delta is disabled in configuration".to_string() });
+            return Err(DeltaError::DeltaApplicationFailed {
+                reason: "Delta is disabled in configuration".to_string(),
+            });
         }
         use super::varint;
-        
+
         if bytes.is_empty() {
             return Err(DeltaError::DeltaApplicationFailed {
                 reason: "Empty delta packet".to_string(),
             });
         }
-        
+
         let mut offset = 0;
-        
+
         // Read DELTA_TAG
         if bytes[offset] != DELTA_TAG {
             return Err(DeltaError::DeltaApplicationFailed {
-                reason: format!("Invalid delta tag: expected 0xB0, found 0x{:02X}", bytes[offset]),
+                reason: format!(
+                    "Invalid delta tag: expected 0xB0, found 0x{:02X}",
+                    bytes[offset]
+                ),
             });
         }
         offset += 1;
-        
+
         // Read operation count
         let (count, consumed) = varint::decode(&bytes[offset..])?;
         offset += consumed;
-        
+
         if count < 0 {
             return Err(DeltaError::DeltaApplicationFailed {
                 reason: format!("Negative operation count: {}", count),
             });
         }
-        
+
         let count = count as usize;
         let mut ops = Vec::with_capacity(count);
-        
+
         // Decode each operation
         for _ in 0..count {
             // Read TARGET_FID
             let (fid, consumed) = varint::decode(&bytes[offset..])?;
             offset += consumed;
-            
+
             if fid < 0 || fid > u16::MAX as i64 {
-                return Err(DeltaError::InvalidTargetFid {
-                    fid: fid as u16,
-                });
+                return Err(DeltaError::InvalidTargetFid { fid: fid as u16 });
             }
             let target_fid = fid as u16;
-            
+
             // Read OP_CODE
             if offset >= bytes.len() {
                 return Err(DeltaError::DeltaApplicationFailed {
@@ -450,31 +461,31 @@ impl DeltaDecoder {
             }
             let operation = DeltaOperation::from_u8(bytes[offset])?;
             offset += 1;
-            
+
             // Read payload length
             let (payload_len, consumed) = varint::decode(&bytes[offset..])?;
             offset += consumed;
-            
+
             if payload_len < 0 {
                 return Err(DeltaError::DeltaApplicationFailed {
                     reason: format!("Negative payload length: {}", payload_len),
                 });
             }
-            
+
             let payload_len = payload_len as usize;
             if offset + payload_len > bytes.len() {
                 return Err(DeltaError::DeltaApplicationFailed {
                     reason: "Payload length exceeds available data".to_string(),
                 })?;
             }
-            
+
             // Read payload
             let payload = bytes[offset..offset + payload_len].to_vec();
             offset += payload_len;
-            
+
             ops.push(DeltaOp::new(target_fid, operation, payload));
         }
-        
+
         Ok(ops)
     }
 
@@ -493,23 +504,23 @@ impl DeltaDecoder {
     /// - A merge conflict occurs
     pub fn apply_delta(&self, base: &mut LnmpRecord, ops: &[DeltaOp]) -> Result<(), DeltaError> {
         if !self.config.enable_delta {
-            return Err(DeltaError::DeltaApplicationFailed { reason: "Delta is disabled in configuration".to_string() });
+            return Err(DeltaError::DeltaApplicationFailed {
+                reason: "Delta is disabled in configuration".to_string(),
+            });
         }
         use lnmp_core::LnmpField;
-        
+
         for op in ops {
             // Validate target FID exists for operations that require it
             match op.operation {
                 DeltaOperation::UpdateField | DeltaOperation::MergeRecord => {
                     if base.get_field(op.target_fid).is_none() {
-                        return Err(DeltaError::InvalidTargetFid {
-                            fid: op.target_fid,
-                        });
+                        return Err(DeltaError::InvalidTargetFid { fid: op.target_fid });
                     }
                 }
                 _ => {}
             }
-            
+
             match op.operation {
                 DeltaOperation::SetField => {
                     // Decode value from payload and set field
@@ -537,20 +548,19 @@ impl DeltaDecoder {
                 }
                 DeltaOperation::MergeRecord => {
                     // Get existing nested record
-                    let existing_field = base.get_field(op.target_fid)
-                        .ok_or(DeltaError::InvalidTargetFid {
-                            fid: op.target_fid,
-                        })?;
-                    
+                    let existing_field = base
+                        .get_field(op.target_fid)
+                        .ok_or(DeltaError::InvalidTargetFid { fid: op.target_fid })?;
+
                     match &existing_field.value {
                         LnmpValue::NestedRecord(existing_rec) => {
                             // Decode nested operations
                             let nested_ops = self.decode_nested_ops(&op.payload)?;
-                            
+
                             // Apply nested operations to a mutable copy
                             let mut updated_rec = (**existing_rec).clone();
                             self.apply_delta(&mut updated_rec, &nested_ops)?;
-                            
+
                             // Remove old field and add updated one
                             base.remove_field(op.target_fid);
                             base.add_field(LnmpField {
@@ -568,26 +578,26 @@ impl DeltaDecoder {
                 }
             }
         }
-        
+
         Ok(())
     }
 
     /// Decodes a value from payload bytes
     fn decode_value(&self, payload: &[u8]) -> Result<LnmpValue, DeltaError> {
         use super::entry::BinaryEntry;
-        
+
         if payload.is_empty() {
             return Err(DeltaError::DeltaApplicationFailed {
                 reason: "Empty value payload".to_string(),
             });
         }
-        
+
         // Payload format: TYPE_TAG + VALUE_DATA
         // We need to reconstruct a full entry to decode it
         // Prepend a dummy FID (0x00, 0x00) to make it a valid entry
         let mut entry_bytes = vec![0x00, 0x00]; // Dummy FID
         entry_bytes.extend_from_slice(payload);
-        
+
         let (entry, _) = BinaryEntry::decode(&entry_bytes)?;
         Ok(entry.value.to_lnmp_value())
     }
@@ -595,35 +605,33 @@ impl DeltaDecoder {
     /// Decodes nested delta operations from payload
     fn decode_nested_ops(&self, payload: &[u8]) -> Result<Vec<DeltaOp>, DeltaError> {
         use super::varint;
-        
+
         let mut offset = 0;
-        
+
         // Read operation count
         let (count, consumed) = varint::decode(&payload[offset..])?;
         offset += consumed;
-        
+
         if count < 0 {
             return Err(DeltaError::DeltaApplicationFailed {
                 reason: format!("Negative nested operation count: {}", count),
             });
         }
-        
+
         let count = count as usize;
         let mut ops = Vec::with_capacity(count);
-        
+
         // Decode each operation
         for _ in 0..count {
             // Read FID
             let (fid, consumed) = varint::decode(&payload[offset..])?;
             offset += consumed;
-            
+
             if fid < 0 || fid > u16::MAX as i64 {
-                return Err(DeltaError::InvalidTargetFid {
-                    fid: fid as u16,
-                });
+                return Err(DeltaError::InvalidTargetFid { fid: fid as u16 });
             }
             let target_fid = fid as u16;
-            
+
             // Read operation code
             if offset >= payload.len() {
                 return Err(DeltaError::DeltaApplicationFailed {
@@ -632,31 +640,31 @@ impl DeltaDecoder {
             }
             let operation = DeltaOperation::from_u8(payload[offset])?;
             offset += 1;
-            
+
             // Read payload length
             let (payload_len, consumed) = varint::decode(&payload[offset..])?;
             offset += consumed;
-            
+
             if payload_len < 0 {
                 return Err(DeltaError::DeltaApplicationFailed {
                     reason: format!("Negative nested payload length: {}", payload_len),
                 });
             }
-            
+
             let payload_len = payload_len as usize;
             if offset + payload_len > payload.len() {
                 return Err(DeltaError::DeltaApplicationFailed {
                     reason: "Nested payload length exceeds available data".to_string(),
                 })?;
             }
-            
+
             // Read payload
             let op_payload = payload[offset..offset + payload_len].to_vec();
             offset += payload_len;
-            
+
             ops.push(DeltaOp::new(target_fid, operation, op_payload));
         }
-        
+
         Ok(ops)
     }
 }
@@ -770,12 +778,21 @@ mod tests {
         use lnmp_core::{LnmpField, LnmpValue};
 
         let mut base = LnmpRecord::new();
-        base.add_field(LnmpField { fid: 1, value: LnmpValue::Int(1) });
-        base.add_field(LnmpField { fid: 2, value: LnmpValue::String("a".to_string()) });
+        base.add_field(LnmpField {
+            fid: 1,
+            value: LnmpValue::Int(1),
+        });
+        base.add_field(LnmpField {
+            fid: 2,
+            value: LnmpValue::String("a".to_string()),
+        });
 
         let mut updated = base.clone();
         updated.remove_field(1);
-        updated.add_field(LnmpField { fid: 1, value: LnmpValue::Int(2) });
+        updated.add_field(LnmpField {
+            fid: 1,
+            value: LnmpValue::Int(2),
+        });
 
         let config = DeltaConfig::new().with_enable_delta(true);
         let encoder = DeltaEncoder::with_config(config);

@@ -33,7 +33,7 @@ fn main() {
     // 1. Binary ↔ ShortForm conversion
     println!("1. Binary ↔ ShortForm Conversion");
     println!("   Original record: F7=1, F12=14532, F23=[admin,dev]");
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
     println!("   Binary size: {} bytes", binary.len());
@@ -87,7 +87,7 @@ fn main() {
     });
 
     println!("   Original nested: F10:r={{F1=42;F2=test}}");
-    
+
     let config = LlbConfig::new().with_flattening(true);
     let converter_flatten = LlbConverter::new(config);
     let flattened = converter_flatten.flatten_nested(&nested_record).unwrap();
@@ -109,7 +109,7 @@ fn main() {
     let config = LlbConfig::new().with_collision_safe_ids(true);
     let converter_ids = LlbConverter::new(config);
     let ids = converter_ids.generate_short_ids(&field_names).unwrap();
-    
+
     println!("   Field name → Short ID mapping:");
     for (name, id) in &ids {
         println!("     {} → {}", name, id);

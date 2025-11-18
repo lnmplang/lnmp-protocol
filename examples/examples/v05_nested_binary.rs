@@ -9,8 +9,7 @@
 //! - Size and depth limit enforcement
 
 use lnmp_codec::binary::{
-    BinaryNestedEncoder, BinaryNestedDecoder,
-    NestedEncoderConfig, NestedDecoderConfig,
+    BinaryNestedDecoder, BinaryNestedEncoder, NestedDecoderConfig, NestedEncoderConfig,
 };
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 
@@ -82,7 +81,7 @@ fn simple_nested_binary() {
     let config = NestedEncoderConfig::new();
     let encoder = BinaryNestedEncoder::with_config(config);
     let binary = encoder.encode_nested_record(&user).unwrap();
-    
+
     println!("   Original record: user with nested address");
     println!("   Binary size: {} bytes", binary.len());
     println!("   Binary (hex): {}", hex_preview(&binary, 32));
@@ -91,7 +90,7 @@ fn simple_nested_binary() {
     let decoder_config = NestedDecoderConfig::new();
     let decoder = BinaryNestedDecoder::with_config(decoder_config);
     let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
-    
+
     println!("   Decoded successfully: {} fields", decoded.fields().len());
     if let Some(field) = decoded.get_field(20) {
         if let LnmpValue::NestedRecord(nested) = &field.value {
@@ -142,7 +141,7 @@ fn nested_array_binary() {
     let config = NestedEncoderConfig::new();
     let encoder = BinaryNestedEncoder::with_config(config);
     let binary = encoder.encode_nested_record(&record).unwrap();
-    
+
     println!("   Array of 3 users");
     println!("   Binary size: {} bytes", binary.len());
     println!("   Binary (hex): {}", hex_preview(&binary, 32));
@@ -151,7 +150,7 @@ fn nested_array_binary() {
     let decoder_config = NestedDecoderConfig::new();
     let decoder = BinaryNestedDecoder::with_config(decoder_config);
     let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
-    
+
     if let Some(field) = decoded.get_field(100) {
         if let LnmpValue::NestedArray(users) = &field.value {
             println!("   Decoded {} users successfully", users.len());
@@ -195,21 +194,19 @@ fn multi_level_nesting() {
     });
 
     // Encode with nested support
-    let config = NestedEncoderConfig::new()
-        .with_max_depth(32);
+    let config = NestedEncoderConfig::new().with_max_depth(32);
     let encoder = BinaryNestedEncoder::with_config(config);
     let binary = encoder.encode_nested_record(&company).unwrap();
-    
+
     println!("   3-level structure: company -> department -> employee");
     println!("   Binary size: {} bytes", binary.len());
     println!("   Nesting depth: {}", get_max_depth(&company));
 
     // Decode back
-    let decoder_config = NestedDecoderConfig::new()
-        .with_max_depth(32);
+    let decoder_config = NestedDecoderConfig::new().with_max_depth(32);
     let decoder = BinaryNestedDecoder::with_config(decoder_config);
     let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
-    
+
     println!("   Decoded successfully");
     println!("   Round-trip depth: {}", get_max_depth(&decoded));
 }
@@ -236,23 +233,24 @@ fn depth_limit_example() {
         current = parent;
     }
 
-    println!("   Created structure with depth: {}", get_max_depth(&current));
+    println!(
+        "   Created structure with depth: {}",
+        get_max_depth(&current)
+    );
 
     // Try encoding with low depth limit
-    let config = NestedEncoderConfig::new()
-        .with_max_depth(3);
+    let config = NestedEncoderConfig::new().with_max_depth(3);
     let encoder = BinaryNestedEncoder::with_config(config);
-    
+
     match encoder.encode_nested_record(&current) {
         Ok(_) => println!("   ✗ Unexpected success with depth limit 3"),
         Err(e) => println!("   ✓ Correctly rejected: {}", e),
     }
 
     // Try with sufficient depth limit
-    let config = NestedEncoderConfig::new()
-        .with_max_depth(10);
+    let config = NestedEncoderConfig::new().with_max_depth(10);
     let encoder = BinaryNestedEncoder::with_config(config);
-    
+
     match encoder.encode_nested_record(&current) {
         Ok(binary) => println!("   ✓ Accepted with depth limit 10 ({} bytes)", binary.len()),
         Err(e) => println!("   ✗ Unexpected error: {}", e),
@@ -269,23 +267,24 @@ fn size_limit_example() {
         });
     }
 
-    println!("   Created record with {} fields", large_record.fields().len());
+    println!(
+        "   Created record with {} fields",
+        large_record.fields().len()
+    );
 
     // Try encoding with small size limit
-    let config = NestedEncoderConfig::new()
-        .with_max_record_size(Some(500));
+    let config = NestedEncoderConfig::new().with_max_record_size(Some(500));
     let encoder = BinaryNestedEncoder::with_config(config);
-    
+
     match encoder.encode_nested_record(&large_record) {
         Ok(_) => println!("   ✗ Unexpected success with 500 byte limit"),
         Err(e) => println!("   ✓ Correctly rejected: {}", e),
     }
 
     // Try with no size limit
-    let config = NestedEncoderConfig::new()
-        .with_max_record_size(None);
+    let config = NestedEncoderConfig::new().with_max_record_size(None);
     let encoder = BinaryNestedEncoder::with_config(config);
-    
+
     match encoder.encode_nested_record(&large_record) {
         Ok(binary) => println!("   ✓ Accepted with no size limit ({} bytes)", binary.len()),
         Err(e) => println!("   ✗ Unexpected error: {}", e),
@@ -327,23 +326,22 @@ fn canonical_ordering_example() {
     println!("     Inner: F30, F10, F20 (unsorted)");
 
     // Encode to binary (automatically canonicalizes)
-    let config = NestedEncoderConfig::new()
-        .with_validate_canonical(true);
+    let config = NestedEncoderConfig::new().with_validate_canonical(true);
     let encoder = BinaryNestedEncoder::with_config(config);
     let binary = encoder.encode_nested_record(&outer).unwrap();
-    
+
     // Decode back
     let decoder_config = NestedDecoderConfig::new();
     let decoder = BinaryNestedDecoder::with_config(decoder_config);
     let (decoded, _) = decoder.decode_nested_record(&binary).unwrap();
-    
+
     println!("   Canonical field order after round-trip:");
     print!("     Outer: ");
     for field in decoded.fields() {
         print!("F{} ", field.fid);
     }
     println!();
-    
+
     if let Some(field) = decoded.get_field(50) {
         if let LnmpValue::NestedRecord(nested) = &field.value {
             print!("     Inner: ");
@@ -353,7 +351,7 @@ fn canonical_ordering_example() {
             println!();
         }
     }
-    
+
     println!("   ✓ Fields automatically sorted at all nesting levels");
 }
 
@@ -366,7 +364,7 @@ fn hex_preview(bytes: &[u8], max_len: usize) -> String {
         .map(|b| format!("{:02x}", b))
         .collect::<Vec<_>>()
         .join(" ");
-    
+
     if bytes.len() > max_len {
         format!("{}...", hex)
     } else {

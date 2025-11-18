@@ -10,10 +10,10 @@ use lnmp_core::{LnmpField, LnmpValue};
 pub struct PromptOptConfig {
     /// Minimize unnecessary symbols (e.g., quotes, whitespace)
     pub minimize_symbols: bool,
-    
+
     /// Optimize patterns to align with common tokenizer boundaries
     pub align_token_boundaries: bool,
-    
+
     /// Use compact format for arrays
     pub optimize_arrays: bool,
 }
@@ -183,7 +183,8 @@ fn needs_quotes(s: &str) -> bool {
     // Check for special characters
     for ch in s.chars() {
         match ch {
-            ' ' | '\t' | '\n' | '\r' | ',' | ';' | '[' | ']' | '{' | '}' | '"' | '\\' | '#' | '=' => {
+            ' ' | '\t' | '\n' | '\r' | ',' | ';' | '[' | ']' | '{' | '}' | '"' | '\\' | '#'
+            | '=' => {
                 return true;
             }
             _ => {}
@@ -505,7 +506,7 @@ mod tests {
             optimize_arrays: false,
         };
         let optimizer = PromptOptimizer::new(config);
-        
+
         let field = LnmpField {
             fid: 1,
             value: LnmpValue::String("admin".to_string()),
@@ -519,10 +520,7 @@ mod tests {
         let optimizer = PromptOptimizer::default();
         let field = LnmpField {
             fid: 23,
-            value: LnmpValue::StringArray(vec![
-                "admin".to_string(),
-                "developer".to_string(),
-            ]),
+            value: LnmpValue::StringArray(vec!["admin".to_string(), "developer".to_string()]),
         };
         assert_eq!(optimizer.optimize_field(&field), "[admin,developer]");
     }

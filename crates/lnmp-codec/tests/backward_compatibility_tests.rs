@@ -173,7 +173,9 @@ fn test_v04_decoder_rejects_v05_nested_record() {
     // Should get an error about nested structures not being supported
     assert!(result.is_err());
     match result {
-        Err(BinaryError::InvalidValue { type_tag, reason, .. }) => {
+        Err(BinaryError::InvalidValue {
+            type_tag, reason, ..
+        }) => {
             assert_eq!(type_tag, 0x06);
             assert!(reason.contains("not yet implemented") || reason.contains("not supported"));
         }
@@ -202,7 +204,9 @@ fn test_v04_decoder_rejects_v05_nested_array() {
     // Should get an error about nested structures not being supported
     assert!(result.is_err());
     match result {
-        Err(BinaryError::InvalidValue { type_tag, reason, .. }) => {
+        Err(BinaryError::InvalidValue {
+            type_tag, reason, ..
+        }) => {
             assert_eq!(type_tag, 0x07);
             assert!(reason.contains("not yet implemented") || reason.contains("not supported"));
         }
@@ -234,7 +238,11 @@ fn test_v05_encoder_rejects_nested_in_v04_mode() {
     // Should fail with clear error message
     assert!(result.is_err());
     match result {
-        Err(BinaryError::InvalidValue { field_id, type_tag, reason }) => {
+        Err(BinaryError::InvalidValue {
+            field_id,
+            type_tag,
+            reason,
+        }) => {
             assert_eq!(field_id, 10);
             assert_eq!(type_tag, 0x06);
             assert!(reason.contains("not supported in v0.4"));
@@ -362,7 +370,10 @@ fn test_all_v04_types_in_v05() {
     // All fields should match
     assert_eq!(decoded.fields().len(), 5);
     assert_eq!(decoded.get_field(1).unwrap().value, LnmpValue::Int(-42));
-    assert_eq!(decoded.get_field(2).unwrap().value, LnmpValue::Float(3.14159));
+    assert_eq!(
+        decoded.get_field(2).unwrap().value,
+        LnmpValue::Float(3.14159)
+    );
     assert_eq!(decoded.get_field(3).unwrap().value, LnmpValue::Bool(false));
     assert_eq!(
         decoded.get_field(4).unwrap().value,

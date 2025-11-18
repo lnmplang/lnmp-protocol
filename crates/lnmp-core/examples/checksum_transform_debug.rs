@@ -1,16 +1,6 @@
 use crc::{
-    Crc,
-    CRC_32_AIXM,
-    CRC_32_AUTOSAR,
-    CRC_32_BASE91_D,
-    CRC_32_BZIP2,
-    CRC_32_CD_ROM_EDC,
-    CRC_32_CKSUM,
-    CRC_32_ISCSI,
-    CRC_32_ISO_HDLC,
-    CRC_32_JAMCRC,
-    CRC_32_MPEG_2,
-    CRC_32_XFER,
+    Crc, CRC_32_AIXM, CRC_32_AUTOSAR, CRC_32_BASE91_D, CRC_32_BZIP2, CRC_32_CD_ROM_EDC,
+    CRC_32_CKSUM, CRC_32_ISCSI, CRC_32_ISO_HDLC, CRC_32_JAMCRC, CRC_32_MPEG_2, CRC_32_XFER,
 };
 
 fn compute_crc(c: &Crc<u32>, s: &str) -> u32 {
@@ -48,9 +38,12 @@ fn main() {
         let inv = !raw;
         let rev = rev_bytes(raw);
         let rev_inv = !rev;
-        println!("{} → raw={:08X}, ~raw={:08X}, rev={:08X}, ~rev={:08X}", name, raw, inv, rev, rev_inv);
+        println!(
+            "{} → raw={:08X}, ~raw={:08X}, rev={:08X}, ~rev={:08X}",
+            name, raw, inv, rev, rev_inv
+        );
 
-        if raw == expected || inv == expected || rev == expected || rev_inv == expected { 
+        if raw == expected || inv == expected || rev == expected || rev_inv == expected {
             println!("MATCH: {} produced expected {:08X}", name, expected);
         }
     }

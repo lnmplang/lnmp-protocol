@@ -8,10 +8,10 @@
 //! └─────────┴─────────┴─────────────┴──────────────────────┘
 //! ```
 
-use lnmp_core::{LnmpRecord, LnmpField};
-use super::error::BinaryError;
 use super::entry::BinaryEntry;
+use super::error::BinaryError;
 use super::varint;
+use lnmp_core::{LnmpField, LnmpRecord};
 
 /// Protocol version for LNMP v0.4 binary format
 const VERSION_0_4: u8 = 0x04;
@@ -50,21 +50,21 @@ impl BinaryFrame {
     /// - ENTRIES: Each entry encoded sequentially
     pub fn encode(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        
+
         // Write VERSION
         bytes.push(self.version);
-        
+
         // Write FLAGS
         bytes.push(self.flags);
-        
+
         // Write ENTRY_COUNT as VarInt
         bytes.extend_from_slice(&varint::encode(self.entries.len() as i64));
-        
+
         // Write each entry
         for entry in &self.entries {
             bytes.extend_from_slice(&entry.encode());
         }
-        
+
         bytes
     }
 
@@ -79,7 +79,7 @@ impl BinaryFrame {
     /// - Entry decoding errors
     pub fn decode(bytes: &[u8]) -> Result<Self, BinaryError> {
         let mut offset = 0;
-        
+
         // Read VERSION (1 byte)
         if bytes.is_empty() {
             return Err(BinaryError::UnexpectedEof {
@@ -89,7 +89,7 @@ impl BinaryFrame {
         }
         let version = bytes[offset];
         offset += 1;
-        
+
         // Validate version
         if version != VERSION_0_4 {
             return Err(BinaryError::UnsupportedVersion {
@@ -97,7 +97,7 @@ impl BinaryFrame {
                 supported: vec![VERSION_0_4],
             });
         }
-        
+
         // Read FLAGS (1 byte)
         if bytes.len() < offset + 1 {
             return Err(BinaryError::UnexpectedEof {
@@ -107,14 +107,14 @@ impl BinaryFrame {
         }
         let flags = bytes[offset];
         offset += 1;
-        
+
         // Decode ENTRY_COUNT (VarInt)
-        let (entry_count, consumed) = varint::decode(&bytes[offset..])
-            .map_err(|_| BinaryError::InvalidVarInt {
+        let (entry_count, consumed) =
+            varint::decode(&bytes[offset..]).map_err(|_| BinaryError::InvalidVarInt {
                 reason: "Invalid entry count VarInt".to_string(),
             })?;
         offset += consumed;
-        
+
         if entry_count < 0 {
             return Err(BinaryError::InvalidValue {
                 field_id: 0,
@@ -122,17 +122,33 @@ impl BinaryFrame {
                 reason: format!("Negative entry count: {}", entry_count),
             });
         }
-        
+
         let entry_count = entry_count as usize;
         let mut entries = Vec::with_capacity(entry_count);
-        
+
         // Decode each entry
         for _ in 0..entry_count {
             let (entry, consumed) = BinaryEntry::decode(&bytes[offset..])?;
             offset += consumed;
             entries.push(entry);
         }
-        
+
+        // Enforce canonical ordering of FIDs (non-decreasing)
+        let mut prev_fid: Option<u16> = None;
+        for entry in &entries {
+            if let Some(prev) = prev_fid {
+                if entry.fid < prev {
+                    return Err(BinaryError::CanonicalViolation {
+                        reason: format!(
+                            "entries must be sorted by FID (saw {} after {})",
+                            entry.fid, prev
+                        ),
+                    });
+                }
+            }
+            prev_fid = Some(entry.fid);
+        }
+
         Ok(Self {
             version,
             flags,
@@ -142,11 +158,8 @@ impl BinaryFrame {
 
     /// Converts to LnmpRecord
     pub fn to_record(&self) -> LnmpRecord {
-        let fields: Vec<LnmpField> = self.entries
-            .iter()
-            .map(|entry| entry.to_field())
-            .collect();
-        
+        let fields: Vec<LnmpField> = self.entries.iter().map(|entry| entry.to_field()).collect();
+
         LnmpRecord::from_sorted_fields(fields)
     }
 
@@ -159,34 +172,31 @@ impl BinaryFrame {
     pub fn from_record(record: &LnmpRecord) -> Result<Self, BinaryError> {
         // Get fields sorted by FID for canonical form
         let sorted_fields = record.sorted_fields();
-        
+
         // Convert each field to BinaryEntry
         let mut entries = Vec::with_capacity(sorted_fields.len());
         for field in sorted_fields {
             entries.push(BinaryEntry::from_field(&field)?);
         }
-        
+
         Ok(Self::new(entries))
     }
 }
 
-
 #[cfg(test)]
 mod tests {
+    use super::super::types::{BinaryValue, TypeTag};
     use super::*;
     use lnmp_core::LnmpValue;
-    use super::super::types::{BinaryValue, TypeTag};
 
     #[test]
     fn test_new_frame() {
-        let entries = vec![
-            BinaryEntry {
-                fid: 1,
-                tag: TypeTag::Int,
-                value: BinaryValue::Int(42),
-            },
-        ];
-        
+        let entries = vec![BinaryEntry {
+            fid: 1,
+            tag: TypeTag::Int,
+            value: BinaryValue::Int(42),
+        }];
+
         let frame = BinaryFrame::new(entries.clone());
         assert_eq!(frame.version, VERSION_0_4);
         assert_eq!(frame.flags, 0x00);
@@ -197,7 +207,7 @@ mod tests {
     fn test_encode_empty_frame() {
         let frame = BinaryFrame::new(vec![]);
         let bytes = frame.encode();
-        
+
         // VERSION
         assert_eq!(bytes[0], 0x04);
         // FLAGS
@@ -209,17 +219,15 @@ mod tests {
 
     #[test]
     fn test_encode_single_entry() {
-        let entries = vec![
-            BinaryEntry {
-                fid: 7,
-                tag: TypeTag::Bool,
-                value: BinaryValue::Bool(true),
-            },
-        ];
-        
+        let entries = vec![BinaryEntry {
+            fid: 7,
+            tag: TypeTag::Bool,
+            value: BinaryValue::Bool(true),
+        }];
+
         let frame = BinaryFrame::new(entries);
         let bytes = frame.encode();
-        
+
         // VERSION
         assert_eq!(bytes[0], 0x04);
         // FLAGS
@@ -249,10 +257,10 @@ mod tests {
                 value: BinaryValue::StringArray(vec!["admin".to_string(), "dev".to_string()]),
             },
         ];
-        
+
         let frame = BinaryFrame::new(entries);
         let bytes = frame.encode();
-        
+
         // VERSION
         assert_eq!(bytes[0], 0x04);
         // FLAGS
@@ -266,24 +274,22 @@ mod tests {
         let frame = BinaryFrame::new(vec![]);
         let bytes = frame.encode();
         let decoded = BinaryFrame::decode(&bytes).unwrap();
-        
+
         assert_eq!(decoded, frame);
     }
 
     #[test]
     fn test_decode_single_entry() {
-        let entries = vec![
-            BinaryEntry {
-                fid: 1,
-                tag: TypeTag::String,
-                value: BinaryValue::String("hello".to_string()),
-            },
-        ];
-        
+        let entries = vec![BinaryEntry {
+            fid: 1,
+            tag: TypeTag::String,
+            value: BinaryValue::String("hello".to_string()),
+        }];
+
         let frame = BinaryFrame::new(entries);
         let bytes = frame.encode();
         let decoded = BinaryFrame::decode(&bytes).unwrap();
-        
+
         assert_eq!(decoded, frame);
     }
 
@@ -306,11 +312,11 @@ mod tests {
                 value: BinaryValue::Bool(false),
             },
         ];
-        
+
         let frame = BinaryFrame::new(entries);
         let bytes = frame.encode();
         let decoded = BinaryFrame::decode(&bytes).unwrap();
-        
+
         assert_eq!(decoded, frame);
     }
 
@@ -318,7 +324,7 @@ mod tests {
     fn test_decode_unsupported_version() {
         let bytes = vec![0x99, 0x00, 0x00]; // Invalid version
         let result = BinaryFrame::decode(&bytes);
-        
+
         assert!(matches!(
             result,
             Err(BinaryError::UnsupportedVersion { found: 0x99, .. })
@@ -329,7 +335,7 @@ mod tests {
     fn test_decode_insufficient_data_version() {
         let bytes = vec![];
         let result = BinaryFrame::decode(&bytes);
-        
+
         assert!(matches!(result, Err(BinaryError::UnexpectedEof { .. })));
     }
 
@@ -337,7 +343,7 @@ mod tests {
     fn test_decode_insufficient_data_flags() {
         let bytes = vec![0x04]; // Only version, no flags
         let result = BinaryFrame::decode(&bytes);
-        
+
         assert!(matches!(result, Err(BinaryError::UnexpectedEof { .. })));
     }
 
@@ -345,7 +351,7 @@ mod tests {
     fn test_decode_invalid_entry_count_varint() {
         let bytes = vec![0x04, 0x00, 0x80]; // Incomplete VarInt
         let result = BinaryFrame::decode(&bytes);
-        
+
         assert!(matches!(result, Err(BinaryError::InvalidVarInt { .. })));
     }
 
@@ -353,7 +359,7 @@ mod tests {
     fn test_decode_insufficient_entry_data() {
         let bytes = vec![0x04, 0x00, 0x01]; // Says 1 entry but no entry data
         let result = BinaryFrame::decode(&bytes);
-        
+
         assert!(matches!(result, Err(BinaryError::UnexpectedEof { .. })));
     }
 
@@ -371,10 +377,10 @@ mod tests {
                 value: BinaryValue::Int(14532),
             },
         ];
-        
+
         let frame = BinaryFrame::new(entries);
         let record = frame.to_record();
-        
+
         assert_eq!(record.fields().len(), 2);
         assert_eq!(record.get_field(7).unwrap().value, LnmpValue::Bool(true));
         assert_eq!(record.get_field(12).unwrap().value, LnmpValue::Int(14532));
@@ -391,9 +397,9 @@ mod tests {
             fid: 7,
             value: LnmpValue::Bool(true),
         });
-        
+
         let frame = BinaryFrame::from_record(&record).unwrap();
-        
+
         // Should be sorted by FID
         assert_eq!(frame.entries.len(), 2);
         assert_eq!(frame.entries[0].fid, 7);
@@ -415,9 +421,9 @@ mod tests {
             fid: 12,
             value: LnmpValue::Int(14532),
         });
-        
+
         let frame = BinaryFrame::from_record(&record).unwrap();
-        
+
         // Should be sorted by FID: 7, 12, 23
         assert_eq!(frame.entries.len(), 3);
         assert_eq!(frame.entries[0].fid, 7);
@@ -448,16 +454,28 @@ mod tests {
             fid: 5,
             value: LnmpValue::StringArray(vec!["a".to_string(), "b".to_string()]),
         });
-        
+
         let frame = BinaryFrame::from_record(&record).unwrap();
         let decoded_record = frame.to_record();
-        
+
         // Fields should match (in sorted order)
         assert_eq!(decoded_record.fields().len(), 5);
-        assert_eq!(decoded_record.get_field(1).unwrap().value, LnmpValue::Int(-42));
-        assert_eq!(decoded_record.get_field(2).unwrap().value, LnmpValue::Float(3.14159));
-        assert_eq!(decoded_record.get_field(3).unwrap().value, LnmpValue::Bool(true));
-        assert_eq!(decoded_record.get_field(4).unwrap().value, LnmpValue::String("hello".to_string()));
+        assert_eq!(
+            decoded_record.get_field(1).unwrap().value,
+            LnmpValue::Int(-42)
+        );
+        assert_eq!(
+            decoded_record.get_field(2).unwrap().value,
+            LnmpValue::Float(3.14159)
+        );
+        assert_eq!(
+            decoded_record.get_field(3).unwrap().value,
+            LnmpValue::Bool(true)
+        );
+        assert_eq!(
+            decoded_record.get_field(4).unwrap().value,
+            LnmpValue::String("hello".to_string())
+        );
         assert_eq!(
             decoded_record.get_field(5).unwrap().value,
             LnmpValue::StringArray(vec!["a".to_string(), "b".to_string()])
@@ -478,11 +496,11 @@ mod tests {
                 value: BinaryValue::String("test".to_string()),
             },
         ];
-        
+
         let frame = BinaryFrame::new(entries);
         let bytes = frame.encode();
         let decoded = BinaryFrame::decode(&bytes).unwrap();
-        
+
         assert_eq!(decoded, frame);
     }
 
@@ -491,7 +509,7 @@ mod tests {
         let frame = BinaryFrame::new(vec![]);
         let bytes = frame.encode();
         let decoded = BinaryFrame::decode(&bytes).unwrap();
-        
+
         assert_eq!(decoded.flags, 0x00);
     }
 
@@ -499,13 +517,13 @@ mod tests {
     fn test_empty_record() {
         let record = LnmpRecord::new();
         let frame = BinaryFrame::from_record(&record).unwrap();
-        
+
         assert_eq!(frame.entries.len(), 0);
-        
+
         let bytes = frame.encode();
         let decoded = BinaryFrame::decode(&bytes).unwrap();
         let decoded_record = decoded.to_record();
-        
+
         assert_eq!(decoded_record.fields().len(), 0);
     }
 
@@ -532,14 +550,14 @@ mod tests {
             fid: 5,
             value: LnmpValue::StringArray(vec!["x".to_string(), "y".to_string()]),
         });
-        
+
         let frame = BinaryFrame::from_record(&record).unwrap();
         assert_eq!(frame.entries.len(), 5);
-        
+
         let bytes = frame.encode();
         let decoded = BinaryFrame::decode(&bytes).unwrap();
         let decoded_record = decoded.to_record();
-        
+
         assert_eq!(decoded_record.fields().len(), 5);
     }
 
@@ -548,12 +566,15 @@ mod tests {
         // Test that only version 0x04 is accepted
         let valid_bytes = vec![0x04, 0x00, 0x00];
         assert!(BinaryFrame::decode(&valid_bytes).is_ok());
-        
+
         let invalid_versions = vec![0x00, 0x01, 0x02, 0x03, 0x05, 0xFF];
         for version in invalid_versions {
             let bytes = vec![version, 0x00, 0x00];
             let result = BinaryFrame::decode(&bytes);
-            assert!(matches!(result, Err(BinaryError::UnsupportedVersion { .. })));
+            assert!(matches!(
+                result,
+                Err(BinaryError::UnsupportedVersion { .. })
+            ));
         }
     }
 }

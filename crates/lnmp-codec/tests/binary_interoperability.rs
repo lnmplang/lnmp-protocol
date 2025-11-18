@@ -31,22 +31,28 @@ fn test_binary_decoded_text_can_be_parsed() {
         fid: 23,
         value: LnmpValue::StringArray(vec!["admin".to_string(), "dev".to_string()]),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     // Binary → Text
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     // Text → Parser
     let mut parser = Parser::new(&text).unwrap();
     let parsed_record = parser.parse_record().unwrap();
-    
+
     // Verify parsed record matches original data
     assert_eq!(parsed_record.fields().len(), 3);
-    assert_eq!(parsed_record.get_field(7).unwrap().value, LnmpValue::Bool(true));
-    assert_eq!(parsed_record.get_field(12).unwrap().value, LnmpValue::Int(14532));
+    assert_eq!(
+        parsed_record.get_field(7).unwrap().value,
+        LnmpValue::Bool(true)
+    );
+    assert_eq!(
+        parsed_record.get_field(12).unwrap().value,
+        LnmpValue::Int(14532)
+    );
     assert_eq!(
         parsed_record.get_field(23).unwrap().value,
         LnmpValue::StringArray(vec!["admin".to_string(), "dev".to_string()])
@@ -85,25 +91,43 @@ fn test_binary_to_text_to_parser_all_types() {
         fid: 7,
         value: LnmpValue::StringArray(vec!["a".to_string(), "b".to_string(), "c".to_string()]),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     // Parse the text
     let mut parser = Parser::new(&text).unwrap();
     let parsed_record = parser.parse_record().unwrap();
-    
+
     // Verify all fields match
     assert_eq!(parsed_record.fields().len(), 7);
-    assert_eq!(parsed_record.get_field(1).unwrap().value, LnmpValue::Int(42));
-    assert_eq!(parsed_record.get_field(2).unwrap().value, LnmpValue::Int(-123));
-    assert_eq!(parsed_record.get_field(3).unwrap().value, LnmpValue::Float(3.14159));
-    assert_eq!(parsed_record.get_field(4).unwrap().value, LnmpValue::Bool(true));
-    assert_eq!(parsed_record.get_field(5).unwrap().value, LnmpValue::Bool(false));
-    assert_eq!(parsed_record.get_field(6).unwrap().value, LnmpValue::String("hello world".to_string()));
+    assert_eq!(
+        parsed_record.get_field(1).unwrap().value,
+        LnmpValue::Int(42)
+    );
+    assert_eq!(
+        parsed_record.get_field(2).unwrap().value,
+        LnmpValue::Int(-123)
+    );
+    assert_eq!(
+        parsed_record.get_field(3).unwrap().value,
+        LnmpValue::Float(3.14159)
+    );
+    assert_eq!(
+        parsed_record.get_field(4).unwrap().value,
+        LnmpValue::Bool(true)
+    );
+    assert_eq!(
+        parsed_record.get_field(5).unwrap().value,
+        LnmpValue::Bool(false)
+    );
+    assert_eq!(
+        parsed_record.get_field(6).unwrap().value,
+        LnmpValue::String("hello world".to_string())
+    );
     assert_eq!(
         parsed_record.get_field(7).unwrap().value,
         LnmpValue::StringArray(vec!["a".to_string(), "b".to_string(), "c".to_string()])
@@ -126,42 +150,51 @@ fn test_binary_to_text_produces_parseable_canonical_format() {
         fid: 50,
         value: LnmpValue::String("middle".to_string()),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     // Parse the canonical text
     let mut parser = Parser::new(&text).unwrap();
     let parsed_record = parser.parse_record().unwrap();
-    
+
     // Verify fields are in sorted order
     assert_eq!(parsed_record.fields()[0].fid, 10);
     assert_eq!(parsed_record.fields()[1].fid, 50);
     assert_eq!(parsed_record.fields()[2].fid, 100);
-    
+
     // Verify values are correct
-    assert_eq!(parsed_record.get_field(10).unwrap().value, LnmpValue::String("first".to_string()));
-    assert_eq!(parsed_record.get_field(50).unwrap().value, LnmpValue::String("middle".to_string()));
-    assert_eq!(parsed_record.get_field(100).unwrap().value, LnmpValue::String("last".to_string()));
+    assert_eq!(
+        parsed_record.get_field(10).unwrap().value,
+        LnmpValue::String("first".to_string())
+    );
+    assert_eq!(
+        parsed_record.get_field(50).unwrap().value,
+        LnmpValue::String("middle".to_string())
+    );
+    assert_eq!(
+        parsed_record.get_field(100).unwrap().value,
+        LnmpValue::String("last".to_string())
+    );
 }
 
 #[test]
 fn test_binary_to_text_empty_record_parseable() {
     let record = LnmpRecord::new();
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     // Parse empty text
     let mut parser = Parser::new(&text).unwrap();
     let parsed_record = parser.parse_record().unwrap();
-    
+
     assert_eq!(parsed_record.fields().len(), 0);
 }
 
@@ -186,21 +219,21 @@ fn test_agent_to_model_workflow_complete_pipeline() {
         fid: 3,
         value: LnmpValue::StringArray(vec!["context1".to_string(), "context2".to_string()]),
     });
-    
+
     // Agent encodes to binary for transport
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&agent_record).unwrap();
-    
+
     // Binary is transmitted...
-    
+
     // Model side: decode to text
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     // Model parses the text
     let mut parser = Parser::new(&text).unwrap();
     let model_record = parser.parse_record().unwrap();
-    
+
     // Verify data integrity through entire pipeline
     assert_eq!(model_record.fields().len(), 3);
     assert_eq!(
@@ -218,31 +251,38 @@ fn test_agent_to_model_workflow_complete_pipeline() {
 fn test_model_to_agent_workflow_reverse_pipeline() {
     // Model generates text response
     let model_text = "F1=response_text\nF2=100\nF3=[tag1,tag2,tag3]";
-    
+
     // Parse the model's text
     let mut parser = Parser::new(model_text).unwrap();
     let model_record = parser.parse_record().unwrap();
-    
+
     // Encode to binary for transport back to agent
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&model_record).unwrap();
-    
+
     // Binary is transmitted...
-    
+
     // Agent decodes binary
     let decoder = BinaryDecoder::new();
     let agent_record = decoder.decode(&binary).unwrap();
-    
+
     // Verify data integrity
     assert_eq!(agent_record.fields().len(), 3);
     assert_eq!(
         agent_record.get_field(1).unwrap().value,
         LnmpValue::String("response_text".to_string())
     );
-    assert_eq!(agent_record.get_field(2).unwrap().value, LnmpValue::Int(100));
+    assert_eq!(
+        agent_record.get_field(2).unwrap().value,
+        LnmpValue::Int(100)
+    );
     assert_eq!(
         agent_record.get_field(3).unwrap().value,
-        LnmpValue::StringArray(vec!["tag1".to_string(), "tag2".to_string(), "tag3".to_string()])
+        LnmpValue::StringArray(vec![
+            "tag1".to_string(),
+            "tag2".to_string(),
+            "tag3".to_string()
+        ])
     );
 }
 
@@ -254,29 +294,29 @@ fn test_bidirectional_agent_model_communication() {
         fid: 1,
         value: LnmpValue::String("What is 2+2?".to_string()),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let request_binary = encoder.encode(&agent_request).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let request_text = decoder.decode_to_text(&request_binary).unwrap();
-    
+
     let mut parser = Parser::new(&request_text).unwrap();
     let model_received = parser.parse_record().unwrap();
-    
+
     assert_eq!(
         model_received.get_field(1).unwrap().value,
         LnmpValue::String("What is 2+2?".to_string())
     );
-    
+
     // Model → Text → Binary → Agent
     let response_text = "F1=\"The answer is 4\"";
     let mut response_parser = Parser::new(response_text).unwrap();
     let model_response = response_parser.parse_record().unwrap();
-    
+
     let response_binary = encoder.encode(&model_response).unwrap();
     let agent_received = decoder.decode(&response_binary).unwrap();
-    
+
     assert_eq!(
         agent_received.get_field(1).unwrap().value,
         LnmpValue::String("The answer is 4".to_string())
@@ -315,27 +355,37 @@ fn test_workflow_with_complex_data_structures() {
             "tool3".to_string(),
         ]),
     });
-    
+
     // Complete workflow
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     let mut parser = Parser::new(&text).unwrap();
     let parsed = parser.parse_record().unwrap();
-    
+
     // Verify all fields
     assert_eq!(parsed.fields().len(), 6);
-    assert_eq!(parsed.get_field(1).unwrap().value, LnmpValue::String("system_prompt".to_string()));
-    assert_eq!(parsed.get_field(2).unwrap().value, LnmpValue::String("user_message".to_string()));
+    assert_eq!(
+        parsed.get_field(1).unwrap().value,
+        LnmpValue::String("system_prompt".to_string())
+    );
+    assert_eq!(
+        parsed.get_field(2).unwrap().value,
+        LnmpValue::String("user_message".to_string())
+    );
     assert_eq!(parsed.get_field(3).unwrap().value, LnmpValue::Int(1000));
     assert_eq!(parsed.get_field(4).unwrap().value, LnmpValue::Float(0.7));
     assert_eq!(parsed.get_field(5).unwrap().value, LnmpValue::Bool(true));
     assert_eq!(
         parsed.get_field(6).unwrap().value,
-        LnmpValue::StringArray(vec!["tool1".to_string(), "tool2".to_string(), "tool3".to_string()])
+        LnmpValue::StringArray(vec![
+            "tool1".to_string(),
+            "tool2".to_string(),
+            "tool3".to_string()
+        ])
     );
 }
 
@@ -355,17 +405,17 @@ fn test_workflow_preserves_field_ordering() {
         fid: 30,
         value: LnmpValue::Int(2),
     });
-    
+
     // Through workflow
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     let mut parser = Parser::new(&text).unwrap();
     let parsed = parser.parse_record().unwrap();
-    
+
     // Should be in canonical sorted order
     assert_eq!(parsed.fields()[0].fid, 10);
     assert_eq!(parsed.fields()[1].fid, 30);
@@ -385,16 +435,16 @@ fn test_edge_case_empty_string() {
         fid: 1,
         value: LnmpValue::String("".to_string()),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     let mut parser = Parser::new(&text).unwrap();
     let parsed = parser.parse_record().unwrap();
-    
+
     // Empty string field should be omitted
     assert!(parsed.get_field(1).is_none());
     assert_eq!(parsed.fields().len(), 0);
@@ -407,16 +457,16 @@ fn test_edge_case_string_with_newlines() {
         fid: 1,
         value: LnmpValue::String("hello\nworld\ntest".to_string()),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     let mut parser = Parser::new(&text).unwrap();
     let parsed = parser.parse_record().unwrap();
-    
+
     assert_eq!(
         parsed.get_field(1).unwrap().value,
         LnmpValue::String("hello\nworld\ntest".to_string())
@@ -430,16 +480,16 @@ fn test_edge_case_string_with_backslashes() {
         fid: 1,
         value: LnmpValue::String("path\\to\\file".to_string()),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     let mut parser = Parser::new(&text).unwrap();
     let parsed = parser.parse_record().unwrap();
-    
+
     assert_eq!(
         parsed.get_field(1).unwrap().value,
         LnmpValue::String("path\\to\\file".to_string())
@@ -453,16 +503,16 @@ fn test_edge_case_string_with_quotes() {
         fid: 1,
         value: LnmpValue::String("say \"hello\"".to_string()),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     let mut parser = Parser::new(&text).unwrap();
     let parsed = parser.parse_record().unwrap();
-    
+
     assert_eq!(
         parsed.get_field(1).unwrap().value,
         LnmpValue::String("say \"hello\"".to_string())
@@ -481,23 +531,23 @@ fn test_edge_case_string_with_unicode() {
         "한국어",
         "mixed: hello 世界 🌍",
     ];
-    
+
     for (i, s) in test_strings.iter().enumerate() {
         let mut record = LnmpRecord::new();
         record.add_field(LnmpField {
             fid: (i + 1) as u16,
             value: LnmpValue::String(s.to_string()),
         });
-        
+
         let encoder = BinaryEncoder::new();
         let binary = encoder.encode(&record).unwrap();
-        
+
         let decoder = BinaryDecoder::new();
         let text = decoder.decode_to_text(&binary).unwrap();
-        
+
         let mut parser = Parser::new(&text).unwrap();
         let parsed = parser.parse_record().unwrap();
-        
+
         assert_eq!(
             parsed.get_field((i + 1) as u16).unwrap().value,
             LnmpValue::String(s.to_string()),
@@ -514,16 +564,16 @@ fn test_edge_case_string_with_tabs() {
         fid: 1,
         value: LnmpValue::String("tab\there\tand\tthere".to_string()),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     let mut parser = Parser::new(&text).unwrap();
     let parsed = parser.parse_record().unwrap();
-    
+
     assert_eq!(
         parsed.get_field(1).unwrap().value,
         LnmpValue::String("tab\there\tand\tthere".to_string())
@@ -533,22 +583,22 @@ fn test_edge_case_string_with_tabs() {
 #[test]
 fn test_edge_case_all_special_characters_combined() {
     let complex_string = "line1\nline2\ttab\"quote\"\\backslash emoji:🎯 中文";
-    
+
     let mut record = LnmpRecord::new();
     record.add_field(LnmpField {
         fid: 1,
         value: LnmpValue::String(complex_string.to_string()),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     let mut parser = Parser::new(&text).unwrap();
     let parsed = parser.parse_record().unwrap();
-    
+
     assert_eq!(
         parsed.get_field(1).unwrap().value,
         LnmpValue::String(complex_string.to_string())
@@ -569,16 +619,16 @@ fn test_edge_case_string_array_with_special_characters() {
             "tab\there".to_string(),
         ]),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     let mut parser = Parser::new(&text).unwrap();
     let parsed = parser.parse_record().unwrap();
-    
+
     assert_eq!(
         parsed.get_field(1).unwrap().value,
         LnmpValue::StringArray(vec![
@@ -599,16 +649,16 @@ fn test_edge_case_carriage_return() {
         fid: 1,
         value: LnmpValue::String("line1\rline2".to_string()),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     let mut parser = Parser::new(&text).unwrap();
     let parsed = parser.parse_record().unwrap();
-    
+
     assert_eq!(
         parsed.get_field(1).unwrap().value,
         LnmpValue::String("line1\rline2".to_string())
@@ -622,16 +672,16 @@ fn test_edge_case_multiple_escapes_in_sequence() {
         fid: 1,
         value: LnmpValue::String("\n\n\t\t\\\\\"\"".to_string()),
     });
-    
+
     let encoder = BinaryEncoder::new();
     let binary = encoder.encode(&record).unwrap();
-    
+
     let decoder = BinaryDecoder::new();
     let text = decoder.decode_to_text(&binary).unwrap();
-    
+
     let mut parser = Parser::new(&text).unwrap();
     let parsed = parser.parse_record().unwrap();
-    
+
     assert_eq!(
         parsed.get_field(1).unwrap().value,
         LnmpValue::String("\n\n\t\t\\\\\"\"".to_string())
