@@ -1,0 +1,29 @@
+{
+	"folders": [
+		{
+			"path": "lnmp-protocol"
+		},
+		{
+			"path": "lnmp-mcp"
+		},
+		{
+			"path": "lnmp-cli"
+		},
+		{
+			"path": "lnmp-sdk-go"
+		},
+		{
+			"path": "lnmp-sdk-js"
+		},
+		{
+			"path": "lnmp-sdk-python"
+		},
+		{
+			"path": "lnmp-examples"
+		},
+		{
+			"path": "lnmp-sdk-rust"
+		}
+	],
+	"settings": {}
+}
