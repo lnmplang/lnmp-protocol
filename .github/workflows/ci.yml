@@ -54,18 +54,16 @@ jobs:
         run: |
           set -euo pipefail
           if [ -d "examples/examples" ]; then
-            pushd examples/examples >/dev/null
             shopt -s nullglob
-            examples=( *.rs )
+            examples=( examples/examples/*.rs )
             if [ ${#examples[@]} -eq 0 ]; then
               echo "No example files found, skipping."
             else
               for ex in "${examples[@]}"; do
-                name="${ex%.rs}"
-                cargo run --offline --manifest-path Cargo.toml --example "$name"
+                name="$(basename "${ex%.rs}")"
+                cargo run --offline --manifest-path examples/examples/Cargo.toml --example "$name"
               done
             fi
-            popd >/dev/null
           else
             echo "No examples/examples directory, skipping."
           fi
