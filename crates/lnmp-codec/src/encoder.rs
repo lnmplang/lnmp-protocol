@@ -202,7 +202,7 @@ impl Encoder {
 
     /// Checks if a string needs quoting
     fn needs_quoting(&self, s: &str) -> bool {
-        if s.is_empty() {
+        if s.is_empty() || looks_like_literal(s) {
             return true;
         }
 
@@ -323,6 +323,17 @@ pub fn validate_round_trip_stability(record: &LnmpRecord) -> bool {
 /// Checks if a character is safe for unquoted strings
 fn is_safe_unquoted_char(ch: char) -> bool {
     ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || ch == '.'
+}
+
+fn looks_like_literal(s: &str) -> bool {
+    if s.trim().is_empty() {
+        return true;
+    }
+
+    let lower = s.to_ascii_lowercase();
+    matches!(lower.as_str(), "true" | "false" | "yes" | "no")
+        || s.parse::<i64>().is_ok()
+        || s.parse::<f64>().is_ok()
 }
 
 #[cfg(test)]
