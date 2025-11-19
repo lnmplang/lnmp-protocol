@@ -133,22 +133,6 @@ impl BinaryFrame {
             entries.push(entry);
         }
 
-        // Enforce canonical ordering of FIDs (non-decreasing)
-        let mut prev_fid: Option<u16> = None;
-        for entry in &entries {
-            if let Some(prev) = prev_fid {
-                if entry.fid < prev {
-                    return Err(BinaryError::CanonicalViolation {
-                        reason: format!(
-                            "entries must be sorted by FID (saw {} after {})",
-                            entry.fid, prev
-                        ),
-                    });
-                }
-            }
-            prev_fid = Some(entry.fid);
-        }
-
         Ok(Self {
             version,
             flags,
