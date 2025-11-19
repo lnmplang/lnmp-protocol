@@ -189,11 +189,11 @@ fn main() {
     });
     original_record.add_field(LnmpField {
         fid: 3,
-        value: LnmpValue::Float(f64::INFINITY),
+        value: LnmpValue::Float(f64::MAX),
     });
     original_record.add_field(LnmpField {
         fid: 4,
-        value: LnmpValue::Float(f64::NEG_INFINITY),
+        value: LnmpValue::Float(-f64::MAX),
     });
 
     let binary = encoder.encode(&original_record).unwrap();
@@ -217,16 +217,16 @@ fn main() {
         }
     );
     println!(
-        "  f64::INFINITY: {} → {}",
-        f64::INFINITY,
+        "  f64::MAX: {} → {}",
+        f64::MAX,
         match decoded_record.get_field(3).unwrap().value {
             LnmpValue::Float(f) => f,
             _ => 0.0,
         }
     );
     println!(
-        "  f64::NEG_INFINITY: {} → {}",
-        f64::NEG_INFINITY,
+        "  -f64::MAX: {} → {}",
+        -f64::MAX,
         match decoded_record.get_field(4).unwrap().value {
             LnmpValue::Float(f) => f,
             _ => 0.0,

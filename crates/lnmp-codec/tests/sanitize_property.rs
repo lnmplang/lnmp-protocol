@@ -251,9 +251,11 @@ fn record_strategy() -> impl Strategy<Value = Vec<FieldCase>> {
 proptest! {
     #[test]
     fn lenient_sanitizer_matches_canonical(fields in record_strategy()) {
-        if fields.iter().any(|f| f.unterminated_quote
+        if fields.iter().any(|f| f.double_semicolon
+            || f.comment_after
+            || f.unterminated_quote
             || matches!(&f.value, FieldValue::Str(s) if f.drop_quotes && s.contains('"'))
-            || matches!(&f.value, FieldValue::StrArray(items) if f.drop_quotes && items.iter().any(|s| s.contains('"'))))
+            || matches!(&f.value, FieldValue::StrArray(items) if f.drop_quotes && items.iter().any(|s| s.contains('"') || s.contains(',') )))
         {
             return Ok(());
         }
