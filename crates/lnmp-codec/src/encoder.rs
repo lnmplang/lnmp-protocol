@@ -24,13 +24,12 @@ impl Encoder {
 
     /// Creates a new encoder with custom configuration
     pub fn with_config(config: EncoderConfig) -> Self {
-        let normalizer = config
-            .semantic_dictionary
-            .as_ref()
-            .map(|dict| crate::normalizer::ValueNormalizer::new(crate::normalizer::NormalizationConfig {
+        let normalizer = config.semantic_dictionary.as_ref().map(|dict| {
+            crate::normalizer::ValueNormalizer::new(crate::normalizer::NormalizationConfig {
                 semantic_dictionary: Some(dict.clone()),
                 ..crate::normalizer::NormalizationConfig::default()
-            }));
+            })
+        });
 
         Self {
             // If canonical is enabled, prefer newlines; otherwise use semicolons for inline format

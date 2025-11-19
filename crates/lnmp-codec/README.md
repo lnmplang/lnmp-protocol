@@ -15,6 +15,7 @@ Parser and encoder implementations for LNMP (LLM Native Minimal Protocol) v0.3 t
 - **Semantic dictionary (optional)**: Apply `lnmp-sfe` dictionaries during parse/encode to map values to canonical equivalents
 - **Strict mode**: Validates canonical format compliance
 - **Loose mode**: Accepts format variations (default)
+- **Lenient sanitizer**: Optional pre-parse repair layer shared with `lnmp-sanitize` for LLM-facing inputs
 - **Round-trip stability**: `parse(encode(parse(x))) == parse(encode(x))`
 
 ### Binary Format (v0.4)
@@ -119,6 +120,33 @@ let output = encoder.encode(&record);
 // Output: F12=14532#36AAE667  (with checksum)
 ```
 
+### Lenient LLM-Friendly Parsing
+
+```rust
+use lnmp_codec::{Parser, TextInputMode, ParsingMode};
+use lnmp_codec::binary::BinaryEncoder;
+
+let messy = r#"F1=hello "world"; F2 = yes;F3=00042"#;
+
+// Parser profile geared for LLM output
+let mut parser = Parser::with_config(
+    messy,
+    lnmp_codec::config::ParserConfig {
+        text_input_mode: TextInputMode::Lenient,
+        mode: ParsingMode::Loose,
+        normalize_values: true,
+        ..Default::default()
+    },
+).unwrap();
+let record = parser.parse_record().unwrap();
+
+// Binary encoder also provides lenient/strict helpers
+let encoder = BinaryEncoder::new();
+let bytes = encoder.encode_text_llm_profile(messy).unwrap();
+
+// For M2M strict flows use `Parser::new_strict` or `encode_text_strict_profile`.
+```
+
 ## LNMP v0.2 Features
 
 ### Deterministic Serialization
@@ -162,6 +190,9 @@ let mut parser = Parser::new("F3=test;F1=42").unwrap();  // Unsorted, semicolons
 
 // Strict mode: requires canonical format
 let mut parser = Parser::with_mode("F1=42\nF3=test", ParsingMode::Strict).unwrap();
+
+// Strict input mode (no sanitizer)
+let mut strict_input_parser = Parser::new_strict("F1=42\nF3=test").unwrap();
 ```
 
 ## v0.3 Features
@@ -188,6 +219,25 @@ let input = "F100={F1=user;F2={F10=nested;F11=data}}";
 let mut parser = Parser::new(input).unwrap();
 let record = parser.parse_record().unwrap();
 ```
+
+### Compliance & Lenient Test Suite
+
+- `tests/compliance/rust` contains the cross-language suite for strict flows.
+- `tests/compliance/rust/test-cases-lenient.yaml` mirrors the shared sanitizer behavior (auto-quote, comment trimming, nested repairs).
+- Run `cargo test -p lnmp-codec --tests test-driver -- --nocapture` to execute both strict and lenient suites.
+
+The lenient path uses the `lnmp-sanitize` crate under the hood so SDKs (Rust/TS/Go/Python) can apply identical repair logic before calling strict parsers.
+
+### Recommended SDK Profiles
+
+| Profile | Parser Config | Binary Encoder | Intended Use |
+|---------|---------------|----------------|--------------|
+| **LLM-facing** | `text_input_mode = Lenient`, `mode = ParsingMode::Loose`, `normalize_values = true` | `encode_text_llm_profile` | Repair user/LLM text before strict parsing |
+| **M2M strict** | `Parser::new_strict()` or `ParserConfig { text_input_mode = Strict, mode = ParsingMode::Strict }` | `encode_text_strict_profile` | Deterministic machine-to-machine pipelines |
+
+- Rust exposes helpers (`Parser::new_lenient`, `Parser::new_strict`, binary profile methods).
+- TypeScript/Go/Python SDKs mirror the same defaults: `LLMProfile` (Lenient+Loose) for agent/model traffic and `M2MProfile` (Strict+Strict) for canonical pipelines.
+- All SDKs rely on the same sanitizer rules from `lnmp-sanitize`, ensuring identical repairs across languages.
 
 **Nested Structure Rules:**
 - Nested records use `{...}` syntax with semicolon separators

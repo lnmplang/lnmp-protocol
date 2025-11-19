@@ -42,14 +42,20 @@ pub enum StructuralError {
 impl std::fmt::Display for StructuralError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            StructuralError::MaxDepthExceeded { max_depth, seen_depth } => {
+            StructuralError::MaxDepthExceeded {
+                max_depth,
+                seen_depth,
+            } => {
                 write!(
                     f,
                     "maximum nesting depth exceeded (max={}, saw={})",
                     max_depth, seen_depth
                 )
             }
-            StructuralError::MaxFieldsExceeded { max_fields, seen_fields } => {
+            StructuralError::MaxFieldsExceeded {
+                max_fields,
+                seen_fields,
+            } => {
                 write!(
                     f,
                     "maximum field count exceeded (max={}, saw={})",
@@ -218,7 +224,10 @@ mod tests {
         limits.max_string_len = 2;
         let record = basic_record(3);
         let err = limits.validate_record(&record).unwrap_err();
-        assert!(matches!(err, StructuralError::MaxStringLengthExceeded { .. }));
+        assert!(matches!(
+            err,
+            StructuralError::MaxStringLengthExceeded { .. }
+        ));
     }
 
     #[test]
@@ -268,6 +277,9 @@ mod tests {
         let mut limits = StructuralLimits::default();
         limits.max_array_items = 1;
         let err = limits.validate_record(&record).unwrap_err();
-        assert!(matches!(err, StructuralError::MaxArrayLengthExceeded { .. }));
+        assert!(matches!(
+            err,
+            StructuralError::MaxArrayLengthExceeded { .. }
+        ));
     }
 }

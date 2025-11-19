@@ -316,7 +316,13 @@ impl LlbConverter {
         let mut seen_paths = std::collections::HashMap::new();
 
         for field in record.fields() {
-            self.flatten_field(&mut flattened, field.fid, &field.value, vec![], &mut seen_paths)?;
+            self.flatten_field(
+                &mut flattened,
+                field.fid,
+                &field.value,
+                vec![],
+                &mut seen_paths,
+            )?;
         }
 
         Ok(flattened)
@@ -356,7 +362,13 @@ impl LlbConverter {
                 for nested_field in nested.fields() {
                     let mut new_path = path.clone();
                     new_path.push(nested_field.fid);
-                    self.flatten_field(target, base_fid, &nested_field.value, new_path, seen_paths)?;
+                    self.flatten_field(
+                        target,
+                        base_fid,
+                        &nested_field.value,
+                        new_path,
+                        seen_paths,
+                    )?;
                 }
             }
 
@@ -367,7 +379,13 @@ impl LlbConverter {
                         let mut new_path = path.clone();
                         new_path.push((idx as u16) + 1); // 1-indexed
                         new_path.push(nested_field.fid);
-                        self.flatten_field(target, base_fid, &nested_field.value, new_path, seen_paths)?;
+                        self.flatten_field(
+                            target,
+                            base_fid,
+                            &nested_field.value,
+                            new_path,
+                            seen_paths,
+                        )?;
                     }
                 }
             }

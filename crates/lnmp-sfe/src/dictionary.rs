@@ -60,7 +60,13 @@ fn detect_duplicate_field_ids(raw: &str) -> Option<FieldId> {
             continue;
         }
         let indent = line.len() - trimmed.len();
-        if field_indent.is_none() && trimmed.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false) {
+        if field_indent.is_none()
+            && trimmed
+                .chars()
+                .next()
+                .map(|c| c.is_ascii_digit())
+                .unwrap_or(false)
+        {
             field_indent = Some(indent);
         }
         if let Some(target_indent) = field_indent {
@@ -146,8 +152,8 @@ impl SemanticDictionary {
             return Err(DictionaryError::DuplicateFieldId(dup));
         }
 
-        let root: serde_yaml::Value =
-            serde_yaml::from_str(&content).map_err(|e| DictionaryError::ParseError(e.to_string()))?;
+        let root: serde_yaml::Value = serde_yaml::from_str(&content)
+            .map_err(|e| DictionaryError::ParseError(e.to_string()))?;
 
         let fields_mapping = root
             .get("fields")
@@ -172,15 +178,16 @@ impl SemanticDictionary {
                 return Err(DictionaryError::DuplicateFieldId(fid));
             }
 
-            let field_map = value
-                .as_mapping()
-                .ok_or_else(|| DictionaryError::ParseError("field entry must be a mapping".into()))?;
+            let field_map = value.as_mapping().ok_or_else(|| {
+                DictionaryError::ParseError("field entry must be a mapping".into())
+            })?;
 
             let name_val = field_map
                 .get(&serde_yaml::Value::String("name".to_string()))
                 .ok_or_else(|| DictionaryError::ParseError("field entry missing 'name'".into()))?;
-            let name = scalar_to_string(name_val)
-                .ok_or_else(|| DictionaryError::ParseError("field 'name' must be a scalar".into()))?;
+            let name = scalar_to_string(name_val).ok_or_else(|| {
+                DictionaryError::ParseError("field 'name' must be a scalar".into())
+            })?;
 
             let field_type = field_map
                 .get(&serde_yaml::Value::String("type".to_string()))
@@ -190,7 +197,9 @@ impl SemanticDictionary {
             }
 
             let mut equivalences_map: HashMap<String, String> = HashMap::new();
-            if let Some(eq_val) = field_map.get(&serde_yaml::Value::String("equivalences".to_string())) {
+            if let Some(eq_val) =
+                field_map.get(&serde_yaml::Value::String("equivalences".to_string()))
+            {
                 if let Some(mapping) = eq_val.as_mapping() {
                     for (k, v) in mapping {
                         let from = scalar_to_string(k).ok_or_else(|| {
@@ -211,7 +220,9 @@ impl SemanticDictionary {
             dictionary.field_names.insert(fid, name);
 
             if !equivalences_map.is_empty() {
-                dictionary.normalized_equivalences.insert(fid, normalize_equivalences(&equivalences_map));
+                dictionary
+                    .normalized_equivalences
+                    .insert(fid, normalize_equivalences(&equivalences_map));
                 dictionary.equivalences.insert(fid, equivalences_map);
             }
         }
@@ -449,7 +460,7 @@ fields:
 
     #[test]
     fn test_load_from_invalid_yaml() {
-        let yaml_content = "invalid: yaml: content: [[["; 
+        let yaml_content = "invalid: yaml: content: [[[";
 
         let mut temp_file = NamedTempFile::new().unwrap();
         temp_file.write_all(yaml_content.as_bytes()).unwrap();

@@ -77,13 +77,12 @@ impl<'a> Parser<'a> {
         };
         let current_token = lexer.next_token()?;
 
-        let normalizer = config
-            .semantic_dictionary
-            .as_ref()
-            .map(|dict| ValueNormalizer::new(crate::normalizer::NormalizationConfig {
+        let normalizer = config.semantic_dictionary.as_ref().map(|dict| {
+            ValueNormalizer::new(crate::normalizer::NormalizationConfig {
                 semantic_dictionary: Some(dict.clone()),
                 ..crate::normalizer::NormalizationConfig::default()
-            }));
+            })
+        });
 
         Ok(Self {
             lexer,

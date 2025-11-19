@@ -16,6 +16,12 @@ Development
 - To use the new pre-commit hook,
   - install it with `ln -sf ../../scripts/pre-commit.sh .git/hooks/pre-commit` or configure `pre-commit` if you use that tool.
 
+Testing checklist
+- Core tests: `cargo test`
+- Sanitizer property tests: `cargo test -p lnmp-sanitize -- --nocapture`
+- Parser lenient property tests: `cargo test -p lnmp-codec --tests sanitize_property -- --nocapture`
+- Compliance suites (strict + lenient): `cargo test -p lnmp-codec --tests test-driver -- --nocapture`
+
 Subtrees
 - Subtrees are maintained independently and imported into this monorepo for
   convenience; maintainers should push releases from the upstream SDKs.

@@ -610,10 +610,7 @@ impl TestRunner {
                                 ));
                             }
                             TestResult::Info { reason } => {
-                                return Err(format!(
-                                    "nested array element {} info: {}",
-                                    i, reason
-                                ));
+                                return Err(format!("nested array element {} info: {}", i, reason));
                             }
                         }
                     }

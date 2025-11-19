@@ -71,13 +71,11 @@ impl ValueNormalizer {
             LnmpValue::Float(f) => LnmpValue::Float(self.normalize_float(*f)),
             LnmpValue::Bool(b) => LnmpValue::Bool(*b),
             LnmpValue::String(s) => LnmpValue::String(self.normalize_string_for(fid, s)),
-            LnmpValue::StringArray(arr) => {
-                LnmpValue::StringArray(
-                    arr.iter()
-                        .map(|s| self.normalize_string_for(fid, s))
-                        .collect(),
-                )
-            }
+            LnmpValue::StringArray(arr) => LnmpValue::StringArray(
+                arr.iter()
+                    .map(|s| self.normalize_string_for(fid, s))
+                    .collect(),
+            ),
             LnmpValue::NestedRecord(record) => LnmpValue::NestedRecord(record.clone()),
             LnmpValue::NestedArray(records) => LnmpValue::NestedArray(records.clone()),
         }

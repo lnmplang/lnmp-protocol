@@ -1,4 +1,5 @@
 use crate::{sanitize_lnmp_text, SanitizationConfig, SanitizationLevel};
+use proptest::prelude::*;
 
 #[test]
 fn returns_borrowed_when_clean() {
@@ -65,4 +66,24 @@ fn auto_quotes_unquoted_value_with_quotes() {
     };
     let sanitized = sanitize_lnmp_text(input, &config);
     assert_eq!(sanitized, r#"F1="Hello \"world\"";F2=ok"#);
+}
+
+proptest! {
+    #[test]
+    fn sanitized_output_normalizes_whitespace(input in prop::collection::vec(any::<char>(), 0..128)) {
+        let input: String = input.into_iter().collect();
+        let config = SanitizationConfig::default();
+        let sanitized = sanitize_lnmp_text(&input, &config);
+        let owned = sanitized.into_owned();
+
+        let chars: Vec<char> = owned.chars().collect();
+        for (idx, ch) in chars.iter().enumerate() {
+            if *ch == '\r' {
+                // Allow escaped sequences like "\r"
+                prop_assert!(idx > 0 && chars[idx - 1] == '\\');
+            }
+        }
+
+        // Additional whitespace invariants are fuzzed via lenient compliance tests.
+    }
 }

@@ -8,7 +8,7 @@ use super::error::BinaryError;
 use super::frame::BinaryFrame;
 use crate::config::{ParserConfig, ParsingMode, TextInputMode};
 use crate::parser::Parser;
-use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
+use lnmp_core::{LnmpField, LnmpRecord};
 
 /// Configuration for binary encoding
 #[derive(Debug, Clone)]
@@ -183,13 +183,12 @@ impl BinaryEncoder {
 
     /// Creates a binary encoder with custom configuration
     pub fn with_config(config: EncoderConfig) -> Self {
-        let normalizer = config
-            .semantic_dictionary
-            .as_ref()
-            .map(|dict| crate::normalizer::ValueNormalizer::new(crate::normalizer::NormalizationConfig {
+        let normalizer = config.semantic_dictionary.as_ref().map(|dict| {
+            crate::normalizer::ValueNormalizer::new(crate::normalizer::NormalizationConfig {
                 semantic_dictionary: Some(dict.clone()),
                 ..crate::normalizer::NormalizationConfig::default()
-            }));
+            })
+        });
         Self { config, normalizer }
     }
 

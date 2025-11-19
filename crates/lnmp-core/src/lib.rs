@@ -64,10 +64,10 @@
 #![warn(clippy::all)]
 
 pub mod checksum;
+pub mod limits;
 pub mod record;
 pub mod types;
-pub mod limits;
 
-pub use record::{LnmpField, LnmpRecord};
 pub use limits::{StructuralError, StructuralLimits};
+pub use record::{LnmpField, LnmpRecord};
 pub use types::{FieldId, LnmpValue, TypeHint};
