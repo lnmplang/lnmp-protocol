@@ -78,6 +78,15 @@ impl BinaryFrame {
     /// - `InvalidVarInt`: Malformed entry count
     /// - Entry decoding errors
     pub fn decode(bytes: &[u8]) -> Result<Self, BinaryError> {
+        Self::decode_with_options(bytes, true)
+    }
+
+    /// Decodes binary frame without enforcing canonical FID ordering.
+    pub fn decode_allow_unsorted(bytes: &[u8]) -> Result<Self, BinaryError> {
+        Self::decode_with_options(bytes, false)
+    }
+
+    fn decode_with_options(bytes: &[u8], enforce_sorted: bool) -> Result<Self, BinaryError> {
         let mut offset = 0;
 
         // Read VERSION (1 byte)
@@ -131,6 +140,23 @@ impl BinaryFrame {
             let (entry, consumed) = BinaryEntry::decode(&bytes[offset..])?;
             offset += consumed;
             entries.push(entry);
+        }
+
+        if enforce_sorted {
+            let mut prev_fid: Option<u16> = None;
+            for entry in &entries {
+                if let Some(prev) = prev_fid {
+                    if entry.fid < prev {
+                        return Err(BinaryError::CanonicalViolation {
+                            reason: format!(
+                                "entries must be sorted by FID (saw {} after {})",
+                                entry.fid, prev
+                            ),
+                        });
+                    }
+                }
+                prev_fid = Some(entry.fid);
+            }
         }
 
         Ok(Self {

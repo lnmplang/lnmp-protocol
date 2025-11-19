@@ -160,7 +160,11 @@ impl BinaryDecoder {
     /// - Trailing data is present (TrailingData, if strict_parsing is enabled)
     pub fn decode(&self, bytes: &[u8]) -> Result<LnmpRecord, BinaryError> {
         // Decode the binary frame
-        let frame = BinaryFrame::decode(bytes)?;
+        let frame = if self.config.validate_ordering {
+            BinaryFrame::decode(bytes)?
+        } else {
+            BinaryFrame::decode_allow_unsorted(bytes)?
+        };
 
         // Convert frame to record
         let record = frame.to_record();
