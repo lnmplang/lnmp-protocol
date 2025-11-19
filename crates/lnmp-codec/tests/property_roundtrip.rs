@@ -5,6 +5,7 @@ use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 use lnmp_sanitize::{sanitize_lnmp_text, SanitizationConfig, SanitizationLevel};
 use proptest::collection::vec;
 use proptest::prelude::*;
+use std::collections::BTreeMap;
 
 fn string_strategy() -> impl Strategy<Value = String> {
     // Keep strings small to reduce shrink noise and avoid pathological cases.
@@ -33,8 +34,12 @@ fn record_strategy() -> impl Strategy<Value = LnmpRecord> {
         0..16, // keep small to ensure fast property runs
     )
     .prop_map(|fields| {
-        let mut record = LnmpRecord::new();
+        let mut dedup = BTreeMap::new();
         for (fid, value) in fields {
+            dedup.entry(fid).or_insert(value);
+        }
+        let mut record = LnmpRecord::new();
+        for (fid, value) in dedup {
             record.add_field(LnmpField { fid, value });
         }
         record

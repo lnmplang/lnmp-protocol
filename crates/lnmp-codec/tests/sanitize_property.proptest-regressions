@@ -1,0 +1,10 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc c12f86d2ade63b116b53ec5be695c6198cd5fd4adf096b72291f1ff0c335099e # shrinks to fields = [FieldCase { fid: 1, value: StrArray(["", ""]), drop_quotes: false, unterminated_quote: false, add_trailing_backslash: false, space_before_eq: false, space_after_eq: false, use_newline: false, use_crlf: false, double_semicolon: false, comment_before: false, comment_after: false, zero_pad: false }]
+cc af78f970a99587249cbb138f2d7a0048233e6750d9a3b399cd04725f0ef9ddb9 # shrinks to fields = [FieldCase { fid: 1, value: Int(0), drop_quotes: false, unterminated_quote: false, add_trailing_backslash: false, space_before_eq: false, space_after_eq: false, use_newline: false, use_crlf: false, double_semicolon: false, comment_before: false, comment_after: true, zero_pad: false }, FieldCase { fid: 1, value: Int(0), drop_quotes: false, unterminated_quote: false, add_trailing_backslash: false, space_before_eq: false, space_after_eq: false, use_newline: false, use_crlf: false, double_semicolon: false, comment_before: false, comment_after: false, zero_pad: false }]
+cc 112847ba1b059aeaa0459e5f51171e8829729427ce6b08b32647918448a2ea86 # shrinks to fields = [FieldCase { fid: 1, value: Str(""), drop_quotes: false, unterminated_quote: true, add_trailing_backslash: false, space_before_eq: false, space_after_eq: false, use_newline: false, use_crlf: false, double_semicolon: true, comment_before: false, comment_after: false, zero_pad: false }]
+cc fdc68b267ebbf72357943307e04a87cb623f49f9c948afb5bee4dcccc70916fd # shrinks to fields = [FieldCase { fid: 1, value: Str("\""), drop_quotes: true, unterminated_quote: false, add_trailing_backslash: false, space_before_eq: false, space_after_eq: false, use_newline: false, use_crlf: false, double_semicolon: false, comment_before: false, comment_after: false, zero_pad: false }]
