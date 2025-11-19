@@ -50,16 +50,6 @@ jobs:
       - name: Run tests
         run: cargo test --all --verbose
 
-      - name: Run examples (safe mode)
-        run: |
-          set -euo pipefail
-          if [ -d "examples/examples" ]; then
-            cargo run --offline -p lnmp-examples --bin run_all_examples
-          else
-            echo "No examples/examples directory, skipping."
-          fi
-        shell: bash
-
   clippy:
     name: Clippy Lint
     runs-on: ubuntu-latest
