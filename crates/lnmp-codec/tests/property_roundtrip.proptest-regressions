@@ -10,3 +10,4 @@ cc e88f160e12526febb93432c53ed80e20f6051400872341bbe76f2c77a5ad3776 # shrinks to
 cc fbef00be2b56db10bc9a1a1aac5c3830e94fc655aec294e3102d80d2b79ed8f1 # shrinks to record = LnmpRecord { fields: [LnmpField { fid: 0, value: Float(1.638850215084121e272) }] }
 cc 3676afe83eb7ce2126333427392eeee51f54a3bfc0d1f12d2a7a7f3de5286ca4 # shrinks to record = LnmpRecord { fields: [LnmpField { fid: 0, value: StringArray(["0"]) }] }
 cc d60a8110bec37bd839bab0af34b8ffb519eb99bfb3ce12bebec2a1241b594adf # shrinks to record = LnmpRecord { fields: [LnmpField { fid: 0, value: StringArray(["0"]) }] }
+cc 659b40cf98e6cc601738488fed78f8be85fc957aaf518293cfdc2462de8d240c # shrinks to record = LnmpRecord { fields: [LnmpField { fid: 0, value: String("No") }] }

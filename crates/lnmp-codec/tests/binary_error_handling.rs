@@ -688,7 +688,8 @@ fn test_unsorted_fields_detected_with_validation() {
         Err(BinaryError::CanonicalViolation { reason }) => {
             assert!(
                 reason.contains("not in ascending FID order")
-                    || reason.contains("F5") && reason.contains("F10")
+                    || reason.contains("entries must be sorted by FID")
+                    || (reason.contains("F5") && reason.contains("F10"))
             );
         }
         _ => panic!("Expected CanonicalViolation error"),
