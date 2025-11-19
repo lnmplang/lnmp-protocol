@@ -348,37 +348,33 @@ fn is_unquoted_char(ch: char) -> bool {
 
 /// Builds a best-effort mapping from sanitized byte offsets to original byte offsets.
 pub fn build_span_map(sanitized: &str, original: &str) -> SpanMap {
-    let mut map = Vec::with_capacity(sanitized.len() + 1);
-    let iter_s = sanitized.char_indices().peekable();
+    let mut map = vec![0; sanitized.len() + 1];
+    let mut iter_s = sanitized.char_indices();
     let mut iter_o = original.char_indices().peekable();
+    let mut prev_o = 0;
 
-    let mut current_o = 0;
-
-    for (idx_s, ch_s) in iter_s {
+    while let Some((idx_s, ch_s)) = iter_s.next() {
         if let Some(&(idx_o, ch_o)) = iter_o.peek() {
             if ch_s == ch_o {
-                current_o = idx_o;
+                prev_o = idx_o;
                 iter_o.next();
             } else {
-                // Advance original by one char as best-effort alignment
-                current_o = idx_o;
+                prev_o = idx_o + ch_o.len_utf8();
                 iter_o.next();
             }
         }
 
-        // For each byte of this char, map to current original offset
         for b in 0..ch_s.len_utf8() {
             let pos = idx_s + b;
-            if pos >= map.len() {
-                map.resize(pos, current_o);
+            if pos < map.len() {
+                map[pos] = prev_o;
             }
-            map.push(current_o);
         }
     }
 
-    // Ensure map has entry for sanitized.len()
-    if map.len() < sanitized.len() + 1 {
-        map.resize(sanitized.len() + 1, current_o);
+    let last = iter_o.peek().map(|&(idx, _)| idx).unwrap_or(prev_o);
+    if let Some(entry) = map.last_mut() {
+        *entry = last;
     }
 
     SpanMap {

@@ -290,7 +290,12 @@ fn auto_quote_unquoted_values(input: &str, changed: &mut bool) -> String {
             }
 
             let value = &input[value_start..value_end];
-            let needs_quotes = value.contains('"') && !value.trim_start().starts_with('"');
+            let trimmed = value.trim();
+            let starts_structural = trimmed.starts_with('[') || trimmed.starts_with('{');
+            let needs_quotes = !trimmed.is_empty()
+                && !trimmed.starts_with('"')
+                && !starts_structural
+                && (trimmed.contains('"') || trimmed.chars().any(char::is_whitespace));
 
             if needs_quotes {
                 let mut escaped = String::with_capacity(value.len() + 4);
