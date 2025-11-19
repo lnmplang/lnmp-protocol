@@ -52,13 +52,22 @@ jobs:
 
       - name: Run examples (safe mode)
         run: |
-          if [ -d "examples" ]; then
-            for ex in examples/*.rs; do
-              name=$(basename "$ex" .rs)
-              cargo run --example "$name"
-            done
+          set -euo pipefail
+          if [ -d "examples/examples" ]; then
+            pushd examples/examples >/dev/null
+            shopt -s nullglob
+            examples=( *.rs )
+            if [ ${#examples[@]} -eq 0 ]; then
+              echo "No example files found, skipping."
+            else
+              for ex in "${examples[@]}"; do
+                name="${ex%.rs}"
+                cargo run --manifest-path Cargo.toml --example "$name"
+              done
+            fi
+            popd >/dev/null
           else
-            echo "No examples directory, skipping."
+            echo "No examples/examples directory, skipping."
           fi
         shell: bash
 
