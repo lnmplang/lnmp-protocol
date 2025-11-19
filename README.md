@@ -42,7 +42,7 @@ lnmp-core = { path = "crates/lnmp-core" }
 lnmp-codec = { path = "crates/lnmp-codec" }
 ```
 
-### Parsing LNMP Text Format
+### Parsing LNMP Text Format.
 
 ```rust
 use lnmp_codec::Parser;
