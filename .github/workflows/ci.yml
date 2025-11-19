@@ -62,7 +62,7 @@ jobs:
             else
               for ex in "${examples[@]}"; do
                 name="${ex%.rs}"
-                cargo run --manifest-path Cargo.toml --example "$name"
+                cargo run --offline --manifest-path Cargo.toml --example "$name"
               done
             fi
             popd >/dev/null
