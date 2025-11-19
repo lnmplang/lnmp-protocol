@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Example demonstrating LNMP v0.5 Streaming Frame Layer (SFL)
 //!
 //! This example shows:
@@ -9,8 +11,8 @@
 //! - Error recovery scenarios
 
 use lnmp_codec::binary::{
-    BackpressureController, BinaryEncoder, FrameType, StreamingConfig, StreamingDecoder,
-    StreamingEncoder, StreamingEvent,
+    BackpressureController, BinaryEncoder, StreamingConfig, StreamingDecoder, StreamingEncoder,
+    StreamingEvent,
 };
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 
@@ -214,6 +216,7 @@ fn checksum_validation_example() {
     let end_frame = streaming_encoder.end_stream().unwrap();
 
     println!("   Original chunk frame: {} bytes", chunk_frame.len());
+    println!("   END frame: {} bytes", end_frame.len());
 
     // Corrupt the checksum (last 4 bytes before payload)
     if chunk_frame.len() > 10 {

@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 use lnmp_codec::binary::{
     Capabilities, ErrorCode, FeatureFlags, NegotiationError, NegotiationMessage,
     NegotiationResponse, NegotiationState, SchemaNegotiator, TypeTag,

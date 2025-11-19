@@ -349,12 +349,12 @@ fn is_unquoted_char(ch: char) -> bool {
 /// Builds a best-effort mapping from sanitized byte offsets to original byte offsets.
 pub fn build_span_map(sanitized: &str, original: &str) -> SpanMap {
     let mut map = Vec::with_capacity(sanitized.len() + 1);
-    let mut iter_s = sanitized.char_indices().peekable();
+    let iter_s = sanitized.char_indices().peekable();
     let mut iter_o = original.char_indices().peekable();
 
     let mut current_o = 0;
 
-    while let Some((idx_s, ch_s)) = iter_s.next() {
+    for (idx_s, ch_s) in iter_s {
         if let Some(&(idx_o, ch_o)) = iter_o.peek() {
             if ch_s == ch_o {
                 current_o = idx_o;

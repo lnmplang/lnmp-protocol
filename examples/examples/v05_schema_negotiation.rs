@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Example demonstrating LNMP v0.5 Schema Negotiation Layer (SNL)
 //!
 //! This example shows:
@@ -9,8 +11,7 @@
 //! - Successful and failed negotiation scenarios
 
 use lnmp_codec::binary::{
-    Capabilities, FeatureFlags, NegotiationMessage, NegotiationResponse, NegotiationState,
-    SchemaNegotiator, TypeTag,
+    Capabilities, FeatureFlags, NegotiationResponse, SchemaNegotiator, TypeTag,
 };
 use std::collections::HashMap;
 
@@ -122,31 +123,25 @@ fn successful_negotiation() {
 
     // Server receives and responds
     let mut server_negotiator = SchemaNegotiator::new(server_caps.clone());
-    match server_negotiator.handle_message(client_msg).unwrap() {
-        NegotiationResponse::SendMessage(response) => {
-            println!("   ✓ Server sent CAPABILITIES_ACK");
+    if let NegotiationResponse::SendMessage(response) =
+        server_negotiator.handle_message(client_msg).unwrap()
+    {
+        println!("   ✓ Server sent CAPABILITIES_ACK");
 
-            // Client receives server response
-            match client_negotiator.handle_message(response).unwrap() {
-                NegotiationResponse::SendMessage(select_msg) => {
-                    println!("   ✓ Client sent SELECT_SCHEMA");
+        if let NegotiationResponse::SendMessage(select_msg) =
+            client_negotiator.handle_message(response).unwrap()
+        {
+            println!("   ✓ Client sent SELECT_SCHEMA");
 
-                    // Server confirms
-                    match server_negotiator.handle_message(select_msg).unwrap() {
-                        NegotiationResponse::SendMessage(ready_msg) => {
-                            println!("   ✓ Server sent READY");
+            if let NegotiationResponse::SendMessage(ready_msg) =
+                server_negotiator.handle_message(select_msg).unwrap()
+            {
+                println!("   ✓ Server sent READY");
 
-                            // Client receives ready
-                            client_negotiator.handle_message(ready_msg).unwrap();
-                            println!("   ✓ Negotiation complete!");
-                        }
-                        _ => {}
-                    }
-                }
-                _ => {}
+                client_negotiator.handle_message(ready_msg).unwrap();
+                println!("   ✓ Negotiation complete!");
             }
         }
-        _ => {}
     }
 
     // Check agreed features

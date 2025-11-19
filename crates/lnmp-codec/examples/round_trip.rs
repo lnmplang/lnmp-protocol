@@ -1,4 +1,4 @@
-use lnmp_codec::{Encoder, Parser};
+use lnmp_codec::{Encoder, EncoderConfig, Parser};
 
 fn main() {
     // Original LNMP data
@@ -28,7 +28,10 @@ fn main() {
 
     // Encode back (inline format)
     println!("Encoding to inline format:");
-    let encoder_inline = Encoder::with_semicolons(true);
+    let encoder_inline = Encoder::with_config(EncoderConfig {
+        canonical: false,
+        ..EncoderConfig::default()
+    });
     let inline = encoder_inline.encode(&record);
     println!("{}\n", inline);
 

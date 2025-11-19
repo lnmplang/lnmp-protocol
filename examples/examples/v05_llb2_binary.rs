@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Example demonstrating LNMP v0.5 LLB2 with Binary Format Integration
 //!
 //! This example shows:
@@ -8,7 +10,7 @@
 //! - Collision-safe ID generation for binary fields
 //! - Round-trip conversions maintaining semantic equivalence
 
-use lnmp_codec::binary::{BinaryDecoder, BinaryEncoder, BinaryNestedEncoder, NestedEncoderConfig};
+use lnmp_codec::binary::{BinaryEncoder, BinaryNestedEncoder, NestedEncoderConfig};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 use lnmp_llb::{LlbConfig, LlbConverter};
 use std::collections::HashMap;
@@ -307,6 +309,9 @@ fn complete_workflow() {
     hints.insert(12, "user_id".to_string());
     let with_hints = converter.add_semantic_hints(&flattened, &hints);
     println!("   Step 4: Added semantic hints");
+    for line in with_hints.lines() {
+        println!("     {}", line);
+    }
 
     // Step 5: Convert to ShortForm for minimal tokens
     let encoder = BinaryEncoder::new();

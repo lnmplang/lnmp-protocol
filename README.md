@@ -38,9 +38,11 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lnmp-core = { path = "crates/lnmp-core" }
-lnmp-codec = { path = "crates/lnmp-codec" }
+lnmp-core = "0.5"
+lnmp-codec = "0.5"
 ```
+
+> Developing against a local checkout? Replace the version strings with `path = "../lnmp-protocol/crates/…"`. See `REPO-STRUCTURE.md` for details.
 
 ### Parsing LNMP Text Format.
 

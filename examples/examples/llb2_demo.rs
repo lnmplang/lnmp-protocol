@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! LLB2 (LLM Optimization Layer v2) demonstration
 //!
 //! This example demonstrates the key features of LLB2:

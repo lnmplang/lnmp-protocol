@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Example demonstrating nested record and nested array encoding/parsing in LNMP v0.3
 //!
 //! This example shows:

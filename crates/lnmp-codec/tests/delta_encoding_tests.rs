@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Tests for Delta Encoding & Partial Update Layer (DPL)
 
 use lnmp_codec::binary::{DeltaConfig, DeltaDecoder, DeltaEncoder, DeltaError, DeltaOperation};

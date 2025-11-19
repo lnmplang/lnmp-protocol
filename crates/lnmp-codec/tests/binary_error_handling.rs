@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Error handling tests for LNMP binary format (v0.4)
 //!
 //! These tests verify that the binary decoder properly detects and reports
@@ -79,7 +81,7 @@ fn test_unsupported_version_0x99() {
 }
 
 #[test]
-fn test_unsupported_version_0xFF() {
+fn test_unsupported_version_0x_ff() {
     let bytes = vec![0xFF, 0x00, 0x00]; // Invalid version
     let decoder = BinaryDecoder::new();
     let result = decoder.decode(&bytes);
@@ -208,7 +210,7 @@ fn test_v0_5_type_tag_0x07_not_yet_implemented() {
 }
 
 #[test]
-fn test_invalid_type_tag_0xFF() {
+fn test_invalid_type_tag_0x_ff() {
     let bytes = vec![
         0x04, 0x00, // VERSION, FLAGS
         0x01, // ENTRY_COUNT = 1

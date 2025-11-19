@@ -187,6 +187,8 @@ impl BinaryValue {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::approx_constant)]
+
     use super::*;
     use lnmp_core::LnmpRecord;
 

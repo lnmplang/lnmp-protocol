@@ -178,28 +178,24 @@ impl SemanticDictionary {
                 return Err(DictionaryError::DuplicateFieldId(fid));
             }
 
-            let field_map = value.as_mapping().ok_or_else(|| {
+            let _field_map = value.as_mapping().ok_or_else(|| {
                 DictionaryError::ParseError("field entry must be a mapping".into())
             })?;
 
-            let name_val = field_map
-                .get(&serde_yaml::Value::String("name".to_string()))
+            let name_val = value
+                .get("name")
                 .ok_or_else(|| DictionaryError::ParseError("field entry missing 'name'".into()))?;
             let name = scalar_to_string(name_val).ok_or_else(|| {
                 DictionaryError::ParseError("field 'name' must be a scalar".into())
             })?;
 
-            let field_type = field_map
-                .get(&serde_yaml::Value::String("type".to_string()))
-                .and_then(|v| scalar_to_string(v));
+            let field_type = value.get("type").and_then(scalar_to_string);
             if let Some(ref kind) = field_type {
                 validate_field_type(fid, kind)?;
             }
 
             let mut equivalences_map: HashMap<String, String> = HashMap::new();
-            if let Some(eq_val) =
-                field_map.get(&serde_yaml::Value::String("equivalences".to_string()))
-            {
+            if let Some(eq_val) = value.get("equivalences") {
                 if let Some(mapping) = eq_val.as_mapping() {
                     for (k, v) in mapping {
                         let from = scalar_to_string(k).ok_or_else(|| {

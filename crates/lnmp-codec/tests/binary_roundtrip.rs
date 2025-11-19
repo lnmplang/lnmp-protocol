@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Round-trip tests for LNMP binary format (v0.4)
 //!
 //! These tests verify that data maintains integrity through format conversions:

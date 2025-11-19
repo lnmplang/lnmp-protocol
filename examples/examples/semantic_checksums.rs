@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Example demonstrating semantic checksums (SC32) in LNMP v0.3
 //!
 //! This example shows how to:

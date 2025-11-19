@@ -445,6 +445,8 @@ impl Default for BinaryEncoder {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::approx_constant)]
+
     use super::*;
     use crate::binary::BinaryDecoder;
     use lnmp_core::{LnmpField, LnmpValue};

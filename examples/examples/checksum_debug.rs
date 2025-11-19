@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 use crc::{Crc, CRC_32_BZIP2, CRC_32_ISO_HDLC, CRC_32_ISCSI, CRC_32_CKSUM};
 
 fn compute_crc(c: &Crc<u32>, s: &str) -> u32 {

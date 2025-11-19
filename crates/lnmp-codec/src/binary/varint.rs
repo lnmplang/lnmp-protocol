@@ -189,6 +189,8 @@ fn decode_general(bytes: &[u8]) -> Result<(i64, usize), BinaryError> {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::approx_constant)]
+
     use super::*;
 
     #[test]

@@ -10,7 +10,7 @@ fn compute_crc(c: &Crc<u32>, s: &str) -> u32 {
 }
 
 fn main() {
-    let variants = vec![
+    let variants = [
         "12:i:14532",
         "12:i=14532",
         "F12:i=14532",
@@ -19,10 +19,10 @@ fn main() {
         "12:i:14532\r\n",
         "12:i:14532 ",
     ];
-    for s in variants.iter() {
+    for s in variants {
         println!("input: {}", s);
 
-        let algos = vec![
+        let algos = [
             ("CRC_32_ISO_HDLC", Crc::<u32>::new(&CRC_32_ISO_HDLC)),
             ("CRC_32_ISCSI", Crc::<u32>::new(&CRC_32_ISCSI)),
             ("CRC_32_BZIP2", Crc::<u32>::new(&CRC_32_BZIP2)),
@@ -36,6 +36,6 @@ fn main() {
         for (name, c) in algos.iter() {
             println!("  {}: {:08X}", name, compute_crc(c, s));
         }
-        println!("");
+        println!();
     }
 }

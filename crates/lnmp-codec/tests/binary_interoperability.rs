@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Interoperability tests for LNMP binary format (v0.4)
 //!
 //! These tests verify that the binary format works correctly with the v0.3 text parser
@@ -521,7 +523,7 @@ fn test_edge_case_string_with_quotes() {
 
 #[test]
 fn test_edge_case_string_with_unicode() {
-    let test_strings = vec![
+    let test_strings = [
         "emoji: 🎯",
         "日本語",
         "Ελληνικά",

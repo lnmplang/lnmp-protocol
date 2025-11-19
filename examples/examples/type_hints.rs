@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Example demonstrating type hint usage in LNMP v0.2
 
 use lnmp_codec::{Encoder, EncoderConfig, Parser};

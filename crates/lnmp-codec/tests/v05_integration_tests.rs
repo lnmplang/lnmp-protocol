@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Integration tests for LNMP v0.5 Advanced Protocol
 //!
 //! These tests validate end-to-end functionality across all v0.5 subsystems:
@@ -845,7 +847,7 @@ fn test_incremental_record_updates() {
         .unwrap();
 
     // Should have operations for changed/added fields
-    assert!(delta_ops.len() > 0);
+    assert!(!delta_ops.is_empty());
 
     // Encode delta
     let delta_binary = delta_encoder.encode_delta(&delta_ops).unwrap();

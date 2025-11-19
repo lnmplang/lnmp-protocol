@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Example demonstrating LNMP-ShortForm encoding in LNMP v0.3
 //!
 //! LNMP-ShortForm is an unsafe minimal variant optimized for extreme token

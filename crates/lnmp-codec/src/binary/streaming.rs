@@ -741,6 +741,8 @@ impl From<BinaryError> for StreamingError {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::approx_constant)]
+
     use super::*;
 
     #[test]

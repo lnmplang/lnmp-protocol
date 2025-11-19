@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Example demonstrating structural canonicalization with nested structures
 //!
 //! This example shows how LNMP v0.3 canonicalizes records by:

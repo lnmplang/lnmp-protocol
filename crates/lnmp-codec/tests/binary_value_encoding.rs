@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Value encoding unit tests for LNMP binary format (v0.4)
 //!
 //! These tests verify the encoding and decoding of individual value types:

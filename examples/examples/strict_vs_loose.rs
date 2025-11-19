@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Example demonstrating strict vs loose parsing modes in LNMP v0.2
 
 use lnmp_codec::{Parser, ParsingMode};

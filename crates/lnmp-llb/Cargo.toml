@@ -1,17 +1,18 @@
 [package]
 name = "lnmp-llb"
-version = "0.3.0"
-edition = "2021"
-authors = ["LNMP Contributors"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
 description = "LNMP-LLM Bridge Layer - Optimization layer for LLM prompt visibility and token efficiency"
-license = "MIT OR Apache-2.0"
+license.workspace = true
 repository = "https://github.com/lnmplang/lnmp-protocol"
 keywords = ["lnmp", "llm", "serialization", "protocol"]
 categories = ["encoding", "parser-implementations"]
 
 [dependencies]
-lnmp-core = { path = "../lnmp-core" }
-lnmp-codec = { path = "../lnmp-codec" }
-lnmp-sfe = { path = "../lnmp-sfe" }
+lnmp-core = { workspace = true }
+lnmp-codec = { workspace = true }
+lnmp-sfe = { workspace = true }
 
 [dev-dependencies]

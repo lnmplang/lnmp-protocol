@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! # lnmp-core
 //!
 //! Core type definitions for LNMP (LLM Native Minimal Protocol).

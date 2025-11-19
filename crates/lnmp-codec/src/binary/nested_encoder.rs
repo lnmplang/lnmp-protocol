@@ -299,6 +299,8 @@ impl Default for BinaryNestedEncoder {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::approx_constant)]
+
     use super::*;
     use lnmp_core::LnmpField;
 
@@ -545,7 +547,7 @@ mod tests {
         });
 
         let result = encoder.encode_nested_record(&level1).unwrap();
-        assert!(result.len() > 0);
+        assert!(!result.is_empty());
         assert_eq!(result[0], 0x06); // NestedRecord tag
     }
 
@@ -573,7 +575,7 @@ mod tests {
         });
 
         let result = encoder.encode_nested_record(&level1).unwrap();
-        assert!(result.len() > 0);
+        assert!(!result.is_empty());
         assert_eq!(result[0], 0x06); // NestedRecord tag
     }
 
@@ -607,7 +609,7 @@ mod tests {
         });
 
         let result = encoder.encode_nested_record(&level1).unwrap();
-        assert!(result.len() > 0);
+        assert!(!result.is_empty());
         assert_eq!(result[0], 0x06); // NestedRecord tag
     }
 
@@ -647,7 +649,7 @@ mod tests {
         });
 
         let result = encoder.encode_nested_record(&level1).unwrap();
-        assert!(result.len() > 0);
+        assert!(!result.is_empty());
         assert_eq!(result[0], 0x06); // NestedRecord tag
     }
 

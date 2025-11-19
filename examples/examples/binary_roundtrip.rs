@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Round-trip conversion example for LNMP v0.4
 //!
 //! This example demonstrates:

@@ -7,6 +7,7 @@ and the language-specific SDK repos.
 Primary guidelines
 - `lnmp` is the canonical Rust implementation containing multiple crates in
   `crates/` (eg. `lnmp-core`, `lnmp-codec`, `lnmp-llb`, `lnmp-sfe`).
+- The published crates are available on crates.io under the `0.5.x` series; prefer using those versions in downstream `Cargo.toml` files and rely on local patches only during development.
 - Examples should live in separate repositories (`lnmp-examples`) to make
   the core repo smaller and language-agnostic.
  - Language SDKs (Go/JS/Python/Rust) and CLI utilities should exist in their

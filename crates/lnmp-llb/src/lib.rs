@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! LNMP-LLM Bridge Layer (LLB)
 //!
 //! This crate provides optimization strategies for LLM (Large Language Model) contexts,

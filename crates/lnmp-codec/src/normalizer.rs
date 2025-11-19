@@ -159,6 +159,8 @@ impl Default for ValueNormalizer {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::approx_constant)]
+
     use super::*;
 
     #[test]

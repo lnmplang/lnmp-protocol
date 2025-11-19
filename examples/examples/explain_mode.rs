@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Example demonstrating explain mode encoding in LNMP v0.3
 //!
 //! Explain mode adds human-readable comments to LNMP output for debugging

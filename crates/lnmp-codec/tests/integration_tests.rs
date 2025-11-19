@@ -1,13 +1,7 @@
 #![allow(clippy::approx_constant)]
 
-use lnmp_codec::binary::{
-    BinaryDecoder, BinaryEncoder, BinaryNestedDecoder, BinaryNestedEncoder, DecoderConfig,
-    DeltaConfig, DeltaDecoder, DeltaEncoder, DeltaOperation, EncoderConfig, NestedDecoderConfig,
-    NestedEncoderConfig, SchemaNegotiator, StreamingConfig, StreamingDecoder, StreamingEncoder,
-};
-use lnmp_codec::{Encoder, Parser};
+use lnmp_codec::{Encoder, EncoderConfig, Parser};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
-use std::collections::HashMap;
 
 #[test]
 fn test_round_trip_multiline() {
@@ -44,7 +38,10 @@ fn test_round_trip_inline() {
     let record = parser.parse_record().unwrap();
 
     // Encode
-    let encoder = Encoder::with_semicolons(true);
+    let encoder = Encoder::with_config(EncoderConfig {
+        canonical: false,
+        ..EncoderConfig::default()
+    });
     let output = encoder.encode(&record);
 
     // Parse again
@@ -173,7 +170,10 @@ fn test_multiline_to_inline_conversion() {
     let record = parser.parse_record().unwrap();
 
     // Encode as inline
-    let encoder = Encoder::with_semicolons(true);
+    let encoder = Encoder::with_config(EncoderConfig {
+        canonical: false,
+        ..EncoderConfig::default()
+    });
     let output = encoder.encode(&record);
 
     assert_eq!(output, "F1=42;F2=3.14;F3=test");

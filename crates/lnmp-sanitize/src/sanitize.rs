@@ -390,12 +390,15 @@ fn flush_token(
         }
     }
 
-    if replacement.is_none() && config.normalize_numbers {
-        if token.len() > 1 && token.chars().all(|c| c.is_ascii_digit()) && token.starts_with('0') {
-            let trimmed = token.trim_start_matches('0');
-            let normalized = if trimmed.is_empty() { "0" } else { trimmed };
-            replacement = Some(normalized.to_string());
-        }
+    if replacement.is_none()
+        && config.normalize_numbers
+        && token.len() > 1
+        && token.chars().all(|c| c.is_ascii_digit())
+        && token.starts_with('0')
+    {
+        let trimmed = token.trim_start_matches('0');
+        let normalized = if trimmed.is_empty() { "0" } else { trimmed };
+        replacement = Some(normalized.to_string());
     }
 
     if let Some(ref value) = replacement {

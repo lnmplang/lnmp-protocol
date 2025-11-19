@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 use lnmp_codec::Encoder;
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 

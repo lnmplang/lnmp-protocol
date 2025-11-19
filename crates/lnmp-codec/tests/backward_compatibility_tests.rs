@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Backward compatibility tests for LNMP v0.5
 //!
 //! These tests verify that:

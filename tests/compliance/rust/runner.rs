@@ -10,7 +10,6 @@ use lnmp_codec::{
     config::ParserConfig, Encoder, EncoderConfig, Parser, ParsingMode, TextInputMode,
 };
 use lnmp_core::{LnmpRecord, LnmpValue};
-use lnmp_sanitize::SanitizationConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;

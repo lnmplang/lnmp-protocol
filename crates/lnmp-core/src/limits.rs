@@ -220,8 +220,10 @@ mod tests {
 
     #[test]
     fn rejects_oversized_string() {
-        let mut limits = StructuralLimits::default();
-        limits.max_string_len = 2;
+        let limits = StructuralLimits {
+            max_string_len: 2,
+            ..StructuralLimits::default()
+        };
         let record = basic_record(3);
         let err = limits.validate_record(&record).unwrap_err();
         assert!(matches!(
@@ -243,8 +245,10 @@ mod tests {
             value: LnmpValue::NestedRecord(Box::new(inner)),
         });
 
-        let mut limits = StructuralLimits::default();
-        limits.max_depth = 0;
+        let limits = StructuralLimits {
+            max_depth: 0,
+            ..StructuralLimits::default()
+        };
         let err = limits.validate_record(&outer).unwrap_err();
         assert!(matches!(err, StructuralError::MaxDepthExceeded { .. }));
     }
@@ -261,8 +265,10 @@ mod tests {
             value: LnmpValue::Int(2),
         });
 
-        let mut limits = StructuralLimits::default();
-        limits.max_fields = 1;
+        let limits = StructuralLimits {
+            max_fields: 1,
+            ..StructuralLimits::default()
+        };
         let err = limits.validate_record(&record).unwrap_err();
         assert!(matches!(err, StructuralError::MaxFieldsExceeded { .. }));
     }
@@ -274,8 +280,10 @@ mod tests {
             fid: 1,
             value: LnmpValue::StringArray(vec!["a".to_string(), "b".to_string()]),
         });
-        let mut limits = StructuralLimits::default();
-        limits.max_array_items = 1;
+        let limits = StructuralLimits {
+            max_array_items: 1,
+            ..StructuralLimits::default()
+        };
         let err = limits.validate_record(&record).unwrap_err();
         assert!(matches!(
             err,

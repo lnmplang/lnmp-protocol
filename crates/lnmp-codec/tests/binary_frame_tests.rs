@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! BinaryFrame unit tests for LNMP binary format (v0.4)
 //!
 //! These tests verify the BinaryFrame structure encoding and decoding:
@@ -358,7 +360,7 @@ fn test_version_0x05_rejected() {
 }
 
 #[test]
-fn test_version_0xFF_rejected() {
+fn test_version_0x_ff_rejected() {
     let bytes = vec![0xFF, 0x00, 0x00];
     let result = BinaryFrame::decode(&bytes);
 

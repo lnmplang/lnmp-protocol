@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 use lnmp_codec::{Encoder, Parser, ParsingMode};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 use lnmp_sanitize::{sanitize_lnmp_text, SanitizationConfig, SanitizationLevel};

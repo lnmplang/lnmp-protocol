@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Example demonstrating LNMP v0.5 Delta Encoding & Partial Update Layer (DPL)
 //!
 //! This example shows:
@@ -211,11 +213,8 @@ fn field_deletion_example() {
 
     println!("   Delta operations:");
     for op in &delta_ops {
-        match op.operation {
-            DeltaOperation::DeleteField => {
-                println!("     DELETE F{}", op.target_fid);
-            }
-            _ => {}
+        if op.operation == DeltaOperation::DeleteField {
+            println!("     DELETE F{}", op.target_fid);
         }
     }
 

@@ -330,6 +330,8 @@ impl BinaryEntry {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::approx_constant)]
+
     use super::*;
     use lnmp_core::LnmpValue;
 

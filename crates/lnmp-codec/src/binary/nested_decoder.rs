@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Nested structure decoding for LNMP v0.5 binary format.
 //!
 //! This module provides decoding support for nested records and arrays in the binary format.
@@ -434,6 +436,8 @@ impl Default for BinaryNestedDecoder {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::approx_constant)]
+
     use super::*;
 
     #[test]

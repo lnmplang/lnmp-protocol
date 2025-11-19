@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! BinaryEntry unit tests for LNMP binary format (v0.4)
 //!
 //! These tests verify the BinaryEntry structure encoding and decoding:

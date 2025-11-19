@@ -225,6 +225,8 @@ impl FromStr for TypeHint {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::approx_constant)]
+
     use super::*;
 
     #[test]

@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Example demonstrating LNMP v0.5 binary nested structures
 //!
 //! This example shows:

@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Example demonstrating deterministic serialization in LNMP v0.2
 
 use lnmp_codec::{Encoder, Parser};

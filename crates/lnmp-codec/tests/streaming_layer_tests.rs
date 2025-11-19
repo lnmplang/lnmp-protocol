@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! Integration tests for Streaming Frame Layer (SFL)
 
 use lnmp_codec::binary::{

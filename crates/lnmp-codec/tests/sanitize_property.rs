@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 use lnmp_codec::config::ParserConfig;
 use lnmp_codec::{Parser, ParsingMode, TextInputMode};
 use lnmp_core::LnmpRecord;
@@ -220,7 +222,7 @@ fn field_case_strategy() -> impl Strategy<Value = FieldCase> {
                 } else {
                     FieldValue::Int(int_val as i32)
                 },
-                drop_quotes: flags.get(0).copied().unwrap_or(false),
+                drop_quotes: flags.first().copied().unwrap_or(false),
                 unterminated_quote: flags.get(1).copied().unwrap_or(false),
                 add_trailing_backslash: flags.get(2).copied().unwrap_or(false),
                 space_before_eq: flags.get(3).copied().unwrap_or(false),

@@ -185,6 +185,8 @@ impl BinaryFrame {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::approx_constant)]
+
     use super::super::types::{BinaryValue, TypeTag};
     use super::*;
     use lnmp_core::LnmpValue;

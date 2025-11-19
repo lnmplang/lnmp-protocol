@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 //! # lnmp-codec
 //!
 //! Parser and encoder implementations for LNMP (LLM Native Minimal Protocol) text format.

@@ -1,6 +1,6 @@
 #![allow(clippy::approx_constant)]
 
-use lnmp_codec::Encoder;
+use lnmp_codec::{Encoder, EncoderConfig};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 
 fn main() {
@@ -42,7 +42,10 @@ fn main() {
     println!("{}\n", multiline);
 
     // Encode as inline format
-    let encoder_inline = Encoder::with_semicolons(true);
+    let encoder_inline = Encoder::with_config(EncoderConfig {
+        canonical: false,
+        ..EncoderConfig::default()
+    });
     let inline = encoder_inline.encode(&record);
     println!("Inline format:");
     println!("{}", inline);
