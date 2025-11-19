@@ -68,6 +68,10 @@ path = "v05_delta_encoding.rs"
 name = "v05_llb2_binary"
 path = "v05_llb2_binary.rs"
 
+[[bin]]
+name = "run_all_examples"
+path = "run_all_examples.rs"
+
 [dependencies]
 lnmp-core.workspace = true
 lnmp-codec.workspace = true

@@ -54,16 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -d "examples/examples" ]; then
-            shopt -s nullglob
-            examples=( examples/examples/*.rs )
-            if [ ${#examples[@]} -eq 0 ]; then
-              echo "No example files found, skipping."
-            else
-              for ex in "${examples[@]}"; do
-                name="$(basename "${ex%.rs}")"
-                cargo run --offline --manifest-path examples/examples/Cargo.toml --example "$name"
-              done
-            fi
+            cargo run --offline -p lnmp-examples --bin run_all_examples
           else
             echo "No examples/examples directory, skipping."
           fi
