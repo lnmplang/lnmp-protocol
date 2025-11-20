@@ -68,7 +68,9 @@ fn invalid_reserved_flags() {
 fn invalid_reserved_extension_flag() {
     let bytes = fixture("invalid-reserved-ext-meta-flag.lnmp");
     let err = ContainerFrame::parse(&bytes).unwrap_err();
-    assert!(matches!(err, ContainerFrameError::ReservedFlags(flags) if flags & LNMP_FLAG_EXT_META_BLOCK != 0));
+    assert!(
+        matches!(err, ContainerFrameError::ReservedFlags(flags) if flags & LNMP_FLAG_EXT_META_BLOCK != 0)
+    );
 }
 
 #[test]
