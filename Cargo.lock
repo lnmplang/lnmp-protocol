@@ -346,7 +346,7 @@ checksum = "df1d3c3b53da64cf5760482273a98e575c651a67eec7f77df96b5b642de8f039"
 
 [[package]]
 name = "lnmp-cli"
-version = "0.1.0"
+version = "0.5.1"
 dependencies = [
  "lnmp-codec",
  "lnmp-core",
@@ -354,7 +354,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-codec"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "criterion",
  "lnmp-core",
@@ -366,7 +366,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-compliance-tests"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "lnmp-codec",
  "lnmp-core",
@@ -377,7 +377,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-core"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "crc",
  "crc-catalog",
@@ -387,7 +387,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-embedding"
-version = "0.1.0"
+version = "0.5.1"
 dependencies = [
  "byteorder",
  "criterion",
@@ -407,7 +407,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-llb"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "lnmp-codec",
  "lnmp-core",
@@ -417,7 +417,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-sanitize"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "criterion",
  "proptest",
@@ -425,7 +425,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-sdk-rust"
-version = "0.1.0"
+version = "0.5.1"
 dependencies = [
  "lnmp-core",
  "lnmp-embedding",
@@ -433,7 +433,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-sfe"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "lnmp-core",
  "serde",

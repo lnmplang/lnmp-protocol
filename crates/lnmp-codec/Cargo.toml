@@ -11,9 +11,9 @@ keywords = ["lnmp", "protocol", "parser", "encoder", "codec"]
 categories = ["encoding", "parser-implementations"]
 
 [dependencies]
-lnmp-core = { version = "0.5.0", path = "../lnmp-core" }
-lnmp-embedding = { version = "0.1.0", path = "../lnmp-embedding" }
-lnmp-sanitize = { version = "0.5.0", path = "../lnmp-sanitize" }
+lnmp-core = { workspace = true }
+lnmp-embedding = { workspace = true }
+lnmp-sanitize = { workspace = true }
 lnmp-sfe = { workspace = true }
 
 [dev-dependencies]
