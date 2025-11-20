@@ -42,14 +42,28 @@ jobs:
           set -euo pipefail
           publish() {
             crate=$1
-            echo "Publishing ${crate}"
+            echo "Publishing ${crate}..."
             cargo publish -p "${crate}" --locked
-            echo "Waiting for crates.io to index ${crate}"
+            echo "Waiting for crates.io to index ${crate}..."
             sleep 30
           }
-          publish lnmp-core
-          publish lnmp-sfe
-          publish lnmp-sanitize
-          publish lnmp-codec
-          publish lnmp-llb
+          
+          # Publish in dependency order (leaf nodes first)
+          # 1. Base crates with no internal dependencies
           publish lnmp-embedding
+          publish lnmp-sanitize
+          
+          # 2. Core (depends on: lnmp-embedding)
+          publish lnmp-core
+          
+          # 3. SFE (depends on: lnmp-core)
+          publish lnmp-sfe
+          
+          # 4. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding)
+          publish lnmp-codec
+          
+          # 5. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
+          publish lnmp-llb
+          
+          
+          echo "All crates published successfully!"

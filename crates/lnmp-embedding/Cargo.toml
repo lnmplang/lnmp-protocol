@@ -2,6 +2,13 @@
 name = "lnmp-embedding"
 version = "0.5.1"
 edition = "2021"
+rust-version = "1.70.0"
+authors = ["LNMP Contributors"]
+license = "MIT OR Apache-2.0"
+description = "Vector embedding support for LNMP (LLM Native Minimal Protocol) with similarity calculations and delta encoding"
+repository = "https://github.com/lnmplang/lnmp-protocol"
+keywords = ["lnmp", "embedding", "vector", "similarity", "delta"]
+categories = ["encoding", "data-structures", "algorithms"]
 
 [dependencies]
 thiserror = "1.0"
