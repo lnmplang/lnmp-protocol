@@ -1,4 +1,4 @@
-name: Subtree Push
+name: Subtree Push.
 
 on:
   workflow_dispatch:
