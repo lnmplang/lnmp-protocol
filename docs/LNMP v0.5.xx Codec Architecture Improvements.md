@@ -1,4 +1,4 @@
-# LNMP Codec – Architectural Findings & v0.7 Roadmap
+# LNMP Codec – Architectural Findings & v0.5.xx Roadmap
 *(Technical Assessment & Action Plan)*
 
 Goal: deliver strict M2M correctness + LLM‐optimized lenient path + stable error semantics + zero‐copy fast path.
