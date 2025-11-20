@@ -26,11 +26,10 @@ on:
       - sdk/python/**
       - tools/cli/**
       - tools/mcp/**
-      - scripts/subtree-sync.sh
       - SUBTREES.md
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   push-subtrees:
@@ -92,7 +91,7 @@ jobs:
       - name: Push ${{ matrix.name }} subtree
         if: env.TARGET == 'all' || env.TARGET == matrix.name
         run: |
-          chmod +x scripts/subtree-sync.sh
           git remote remove "${{ matrix.name }}" 2>/dev/null || true
           git remote add "${{ matrix.name }}" "https://github.com/${{ matrix.repo }}.git"
-          scripts/subtree-sync.sh push "${{ matrix.name }}" "${{ matrix.prefix }}" "${{ matrix.branch }}"
+          git fetch "${{ matrix.name }}"
+          git subtree push --prefix="${{ matrix.prefix }}" "${{ matrix.name }}" "${{ matrix.branch }}"
