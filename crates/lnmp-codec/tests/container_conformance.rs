@@ -1,5 +1,5 @@
 use lnmp_codec::container::{ContainerFrame, ContainerFrameError};
-use lnmp_core::{LnmpContainerError, LnmpFileMode};
+use lnmp_core::{LnmpContainerError, LnmpFileMode, LNMP_FLAG_EXT_META_BLOCK};
 use std::path::Path;
 
 fn fixture(name: &str) -> Vec<u8> {
@@ -62,6 +62,13 @@ fn invalid_reserved_flags() {
     let bytes = fixture("invalid-reserved-flag.lnmp");
     let err = ContainerFrame::parse(&bytes).unwrap_err();
     assert!(matches!(err, ContainerFrameError::ReservedFlags(_)));
+}
+
+#[test]
+fn invalid_reserved_extension_flag() {
+    let bytes = fixture("invalid-reserved-ext-meta-flag.lnmp");
+    let err = ContainerFrame::parse(&bytes).unwrap_err();
+    assert!(matches!(err, ContainerFrameError::ReservedFlags(flags) if flags & LNMP_FLAG_EXT_META_BLOCK != 0));
 }
 
 #[test]

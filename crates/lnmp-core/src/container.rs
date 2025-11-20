@@ -21,6 +21,9 @@ pub const LNMP_FLAG_ENCRYPTED: u16 = 0x0004;
 pub const LNMP_FLAG_QSIG: u16 = 0x0008;
 /// Payload contains quantum-safe key-exchange metadata.
 pub const LNMP_FLAG_QKEX: u16 = 0x0010;
+/// Reserved for signaling a metadata extension block (TLV chain) after fixed metadata.
+/// MUST be `0` in v1; a future version/flag bump is required to enable.
+pub const LNMP_FLAG_EXT_META_BLOCK: u16 = 0x8000;
 
 /// Supported `.lnmp` modes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -21,12 +21,15 @@ Standardize `.lnmp` as the single, forward-compatible container for every LNMP m
 - Deliverables: updated `spec/lnmp-container-format.md`, conformance matrix (`docs/lnmp-conformance-checklist.md`), payload plan (`docs/lnmp-payload-conformance.md`), regression fixtures, and the minimum interoperable subset for implementers.
 - Actionables for CI: add conformance/fixture tests to the pipeline (`container_conformance`, streaming/delta fixture tests).
 
-## Phase 3 – Schema Finalization (in progress)
+## Phase 3 – Schema Finalization (complete)
 - Freeze v1 metadata envelopes after stream/delta bake-in; declare reserved bits/bytes for future PQ work.
 - Lock CI gates on conformance fixtures (header + payload) and publish the negative matrix alongside the spec.
 - Thread container-derived delta apply context into SDK/CLI so base/algorithm checks are automatic.
 - Publish final v1 fixture set and announce “no header changes without version bump”.
 - CI hook (`scripts/run-conformance.sh`) runs container_conformance + streaming_layer_tests + delta_encoding_tests + full suite.
+- Freeze note: `.lnmp` header/mode bytes and stream/delta metadata layouts are frozen for v1; any change requires a version bump + RFC, and conformance fixtures must remain green.
+- Reserved flag for extensibility: bit 15 in the header is earmarked to signal a future Metadata Extension Block (TLV chain) that can carry new checksum/crypto/algorithm metadata. It remains `0` in v1 and will be specced in a future RFC.
+- Extension registry frozen (inactive): `spec/lnmp-metadata-extension-rfc.md` captures the TLV format and registry codes; activation still requires a version bump/flag change (plan: header version 0x02 or unreserving flag 15 with fixtures).
 
 ## Phase 4 – LNMP/Quantum-Safe (forward-looking)
 - Draft PQ metadata layout (key exchange + signatures) and flag matrix for quantum mode.
@@ -38,4 +41,4 @@ Standardize `.lnmp` as the single, forward-compatible container for every LNMP m
 
 ## Ongoing
 - Update `spec/` after each phase; keep MIME/icon definitions aligned with the header spec.
-- Maintain backward/forward compatibility matrix in the changelog and publish fixture sets for third parties.
+- Maintain backward/forward compatibility matrix in `docs/lnmp-compat-matrix.md` and publish fixture bundles via `scripts/package-fixtures.sh` for third parties.

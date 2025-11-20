@@ -36,14 +36,15 @@ This RFC locks the `.lnmp` container v1 file layout. A single file extension fro
 
 ## Flags (u16)
 
-| Bit | Name         | Meaning (v1) |
-|-----|--------------|--------------|
-| 0   | `checksum`   | Payload carries checksums (e.g., SC32). In v1 this is a hint only; set when checksums are present. |
-| 1   | `compressed` | Reserved; MUST be `0` in v1. |
-| 2   | `encrypted`  | Reserved; MUST be `0` in v1. |
-| 3   | `qsig`       | Reserved for PQ signatures; MUST be `0` in v1. |
-| 4   | `qkex`       | Reserved for PQ key exchange; MUST be `0` in v1. |
-| 5-15| reserved     | MUST be `0` in v1. |
+| Bit | Name                  | Meaning (v1) |
+|-----|-----------------------|--------------|
+| 0   | `checksum`            | Payload carries checksums (e.g., SC32). In v1 this is a hint only; set when checksums are present. |
+| 1   | `compressed`          | Reserved; MUST be `0` in v1. |
+| 2   | `encrypted`           | Reserved; MUST be `0` in v1. |
+| 3   | `qsig`                | Reserved for PQ signatures; MUST be `0` in v1. |
+| 4   | `qkex`                | Reserved for PQ key exchange; MUST be `0` in v1. |
+| 5-14| reserved              | MUST be `0` in v1. |
+| 15  | `ext_meta_block` (TBD)| Reserved for signaling a metadata extension TLV chain after fixed metadata. MUST be `0` in v1; future RFC will define semantics. |
 
 Consumers MUST reject containers that set reserved bits. Producers MUST set `metadata_length > 0` whenever flags imply additional material (e.g., quantum flags in the future).
 
@@ -122,5 +123,13 @@ Stream mode with 6-byte metadata (chunk=4096, SC32, no flags):
 - Header version is bumped only when the header layout changes; mode evolution happens inside metadata.  
 - New modes or metadata fields require a recorded update in `CHANGELOG` and the corresponding RFC.  
 - Unknown metadata bytes are skipped using the advertised length; only known subfields influence behavior.  
+- **Freeze policy (v1):** Header/mode bytes and the stream/delta metadata layouts above are frozen for v1. Any change to magic/version/mode/flags/layouts requires a version bump and a new RFC. Bug fixes must stay within these fields and container tests/fixtures must remain green.
 
 This document is the authoritative definition of `.lnmp` container v1. Implementations must conform to stay compatible.
+
+## Forward-Looking: Metadata Extension Block (planned)
+- Not part of v1. Proposal: after the fixed mode metadata, allow an optional extension chain encoded as TLVs (`type u8`, `length u16|u32`, `value`), guarded by a reserved header flag.  
+- Flag reservation: header flag bit 15 (`ext_meta_block`) is earmarked to signal presence of this chain but MUST stay `0` in v1.  
+- Unknown TLVs must be skipped using length; known TLVs can describe future algorithms, checksums, or encryption parameters without altering the fixed v1 metadata.  
+- Enabling this requires a version bump or an agreed flag+RFC; current v1 conformance remains strict (fixed lengths for stream/delta).  
+- Registry frozen (inactive): `spec/lnmp-metadata-extension-rfc.md` defines the TLV layout and registry codes (0x01 checksum, 0x02 encryption, 0x03 signature, 0x7F vendor). Activation still requires a version/flag bump.
