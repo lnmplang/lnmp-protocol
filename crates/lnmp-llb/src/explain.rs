@@ -240,6 +240,8 @@ impl ExplainEncoder {
             LnmpValue::StringArray(_) => TypeHint::StringArray,
             LnmpValue::NestedRecord(_) => TypeHint::Record,
             LnmpValue::NestedArray(_) => TypeHint::RecordArray,
+            LnmpValue::Embedding(_) => TypeHint::Embedding,
+            LnmpValue::EmbeddingDelta(_) => TypeHint::Embedding,
         }
     }
 
@@ -262,6 +264,12 @@ impl ExplainEncoder {
             }
             LnmpValue::NestedRecord(record) => self.encode_nested_record(record),
             LnmpValue::NestedArray(records) => self.encode_nested_array(records),
+            LnmpValue::Embedding(vec) => {
+                format!("[embedding dim={}]", vec.dim)
+            }
+            LnmpValue::EmbeddingDelta(delta) => {
+                format!("[embedding_delta changes={}]", delta.changes.len())
+            }
         }
     }
 

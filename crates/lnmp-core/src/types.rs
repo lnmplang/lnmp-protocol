@@ -23,6 +23,10 @@ pub enum LnmpValue {
     NestedRecord(Box<LnmpRecord>),
     /// Array of nested records (v0.3)
     NestedArray(Vec<LnmpRecord>),
+    /// Vector Embedding (v0.5)
+    Embedding(lnmp_embedding::Vector),
+    /// Delta update for embedding vector
+    EmbeddingDelta(lnmp_embedding::VectorDelta),
 }
 
 impl LnmpValue {
@@ -33,7 +37,9 @@ impl LnmpValue {
             | LnmpValue::Float(_)
             | LnmpValue::Bool(_)
             | LnmpValue::String(_)
-            | LnmpValue::StringArray(_) => 0,
+            | LnmpValue::StringArray(_)
+            | LnmpValue::Embedding(_)
+            | LnmpValue::EmbeddingDelta(_) => 0,
             LnmpValue::NestedRecord(record) => {
                 1 + record
                     .fields()
@@ -79,7 +85,9 @@ impl LnmpValue {
                 | LnmpValue::Float(_)
                 | LnmpValue::Bool(_)
                 | LnmpValue::String(_)
-                | LnmpValue::StringArray(_) => {}
+                | LnmpValue::StringArray(_)
+                | LnmpValue::Embedding(_)
+                | LnmpValue::EmbeddingDelta(_) => {}
 
                 LnmpValue::NestedRecord(record) => {
                     for field in record.fields() {
@@ -109,7 +117,9 @@ impl LnmpValue {
             | LnmpValue::Float(_)
             | LnmpValue::Bool(_)
             | LnmpValue::String(_)
-            | LnmpValue::StringArray(_) => Ok(()),
+            | LnmpValue::StringArray(_)
+            | LnmpValue::Embedding(_)
+            | LnmpValue::EmbeddingDelta(_) => Ok(()),
 
             // Validate nested record
             LnmpValue::NestedRecord(record) => {
@@ -149,6 +159,8 @@ pub enum TypeHint {
     Record,
     /// Record array type hint (:ra) - v0.3
     RecordArray,
+    /// Embedding type hint (:v) - v0.5
+    Embedding,
 }
 
 impl TypeHint {
@@ -162,6 +174,7 @@ impl TypeHint {
             TypeHint::StringArray => "sa",
             TypeHint::Record => "r",
             TypeHint::RecordArray => "ra",
+            TypeHint::Embedding => "v",
         }
     }
 
@@ -175,6 +188,7 @@ impl TypeHint {
             "sa" => Some(TypeHint::StringArray),
             "r" => Some(TypeHint::Record),
             "ra" => Some(TypeHint::RecordArray),
+            "v" => Some(TypeHint::Embedding),
             _ => None,
         }
     }
@@ -201,6 +215,7 @@ impl TypeHint {
                 | (TypeHint::StringArray, LnmpValue::StringArray(_))
                 | (TypeHint::Record, LnmpValue::NestedRecord(_))
                 | (TypeHint::RecordArray, LnmpValue::NestedArray(_))
+                | (TypeHint::Embedding, LnmpValue::Embedding(_))
         )
     }
 }
@@ -218,6 +233,7 @@ impl FromStr for TypeHint {
             "sa" => Ok(TypeHint::StringArray),
             "r" => Ok(TypeHint::Record),
             "ra" => Ok(TypeHint::RecordArray),
+            "v" => Ok(TypeHint::Embedding),
             _ => Err(()),
         }
     }
@@ -539,5 +555,21 @@ mod tests {
 
         let nested = LnmpValue::NestedRecord(Box::new(outer));
         assert!(nested.validate_structure().is_ok());
+    }
+
+    #[test]
+    fn test_embedding_value() {
+        use crate::types::LnmpValue;
+        use lnmp_embedding::Vector;
+
+        let vec = Vector::from_f32(vec![0.1, 0.2, 0.3]);
+        let val = LnmpValue::Embedding(vec.clone());
+
+        assert_eq!(val.depth(), 0);
+        assert!(val.validate_structure().is_ok());
+
+        let hint = TypeHint::Embedding;
+        assert!(hint.validates(&val));
+        assert_eq!(hint.as_str(), "v");
     }
 }

@@ -3,12 +3,14 @@ resolver = "2"
 members = [
     "crates/lnmp-core",
     "crates/lnmp-codec",
+    "crates/lnmp-embedding",
     "crates/lnmp-sfe",
     "crates/lnmp-llb",
     "crates/lnmp-sanitize",
     "examples/examples",
     "tests/compliance/rust",
     "tools/cli",
+    "sdk/rust",
 ]
 
 [workspace.package]
@@ -24,3 +26,4 @@ lnmp-sanitize = { version = "0.5.0", path = "crates/lnmp-sanitize" }
 lnmp-codec = { version = "0.5.0", path = "crates/lnmp-codec" }
 lnmp-llb = { version = "0.5.0", path = "crates/lnmp-llb" }
 lnmp-sfe = { version = "0.5.0", path = "crates/lnmp-sfe" }
+lnmp-embedding = { version = "0.1.0", path = "crates/lnmp-embedding" }

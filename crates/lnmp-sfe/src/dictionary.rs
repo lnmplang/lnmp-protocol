@@ -22,6 +22,7 @@ fn validate_field_type(fid: u16, field_type: &str) -> Result<(), DictionaryError
         "string_array",
         "record",
         "record_array",
+        "embedding",
     ];
     if ALLOWED.iter().any(|t| t.eq_ignore_ascii_case(field_type)) {
         Ok(())

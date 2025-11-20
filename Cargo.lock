@@ -57,6 +57,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46c5e41b57b8bba42a04676d81cb89e9ee8e859a1a66f80a5a72e1cb76b34d43"
 
 [[package]]
+name = "byteorder"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
+
+[[package]]
 name = "cast"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -352,6 +358,7 @@ version = "0.5.0"
 dependencies = [
  "criterion",
  "lnmp-core",
+ "lnmp-embedding",
  "lnmp-sanitize",
  "lnmp-sfe",
  "proptest",
@@ -375,6 +382,17 @@ dependencies = [
  "crc",
  "crc-catalog",
  "crc32fast",
+ "lnmp-embedding",
+]
+
+[[package]]
+name = "lnmp-embedding"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "criterion",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -383,6 +401,7 @@ version = "0.1.0"
 dependencies = [
  "lnmp-codec",
  "lnmp-core",
+ "lnmp-embedding",
  "lnmp-llb",
 ]
 
@@ -392,6 +411,7 @@ version = "0.5.0"
 dependencies = [
  "lnmp-codec",
  "lnmp-core",
+ "lnmp-embedding",
  "lnmp-sfe",
 ]
 
@@ -401,6 +421,14 @@ version = "0.5.0"
 dependencies = [
  "criterion",
  "proptest",
+]
+
+[[package]]
+name = "lnmp-sdk-rust"
+version = "0.1.0"
+dependencies = [
+ "lnmp-core",
+ "lnmp-embedding",
 ]
 
 [[package]]
@@ -737,6 +765,26 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys",
+]
+
+[[package]]
+name = "thiserror"
+version = "1.0.69"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.69"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

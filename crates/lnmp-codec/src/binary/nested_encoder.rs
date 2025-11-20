@@ -281,6 +281,35 @@ impl BinaryNestedEncoder {
                 }
                 Ok(buffer)
             }
+            LnmpValue::EmbeddingDelta(delta) => {
+                let mut buffer = Vec::new();
+                // Note: Delta handling in nested encoder - we encode the delta directly
+                buffer.push(TypeTag::Embedding.to_u8()); // TypeTag::Embedding (deltas use same tag)
+                let delta_bytes = delta.encode().map_err(|_| BinaryError::InvalidValue {
+                    field_id: 0,
+                    type_tag: TypeTag::Embedding.to_u8(),
+                    reason: "Failed to encode delta".to_string(),
+                })?;
+                buffer.extend_from_slice(&(delta_bytes.len() as u32).to_le_bytes());
+                buffer.extend_from_slice(&delta_bytes);
+                Ok(buffer)
+            }
+            LnmpValue::Embedding(vec) => {
+                // Tag + Length + Encoded Vector
+                let encoded = lnmp_embedding::Encoder::encode(vec).map_err(|_| {
+                    BinaryError::InvalidValue {
+                        field_id: 0,
+                        type_tag: TypeTag::Embedding.to_u8(),
+                        reason: "Failed to encode embedding".to_string(),
+                    }
+                })?;
+
+                let mut buffer = Vec::new();
+                buffer.push(TypeTag::Embedding.to_u8());
+                buffer.extend_from_slice(&varint::encode(encoded.len() as i64));
+                buffer.extend_from_slice(&encoded);
+                Ok(buffer)
+            }
             LnmpValue::NestedRecord(record) => {
                 self.encode_nested_record_with_depth(record, current_depth)
             }

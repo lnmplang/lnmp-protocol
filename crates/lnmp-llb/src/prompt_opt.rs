@@ -68,6 +68,12 @@ impl PromptOptimizer {
             }
             LnmpValue::String(s) => self.optimize_string(s),
             LnmpValue::StringArray(arr) => self.optimize_array(arr),
+            LnmpValue::Embedding(_) => {
+                String::new() // Embeddings are not text, so they don't contribute to prompts
+            }
+            LnmpValue::EmbeddingDelta(_) => {
+                String::new() // Deltas are not text
+            }
             LnmpValue::NestedRecord(_) | LnmpValue::NestedArray(_) => {
                 // Nested structures are handled by the encoder
                 // This is a placeholder for future optimization

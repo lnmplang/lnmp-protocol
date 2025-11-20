@@ -175,6 +175,8 @@ impl SemanticChecksum {
             LnmpValue::StringArray(_) => TypeHint::StringArray,
             LnmpValue::NestedRecord(_) => TypeHint::Record,
             LnmpValue::NestedArray(_) => TypeHint::RecordArray,
+            LnmpValue::Embedding(_) => TypeHint::Embedding,
+            LnmpValue::EmbeddingDelta(_) => TypeHint::Embedding, // Delta uses same type hint
         }
     }
 
@@ -235,6 +237,36 @@ impl SemanticChecksum {
                     parts.push(format!("{{{}}}", field_parts.join(";")));
                 }
                 format!("[{}]", parts.join(","))
+            }
+            LnmpValue::Embedding(vec) => {
+                // Serialize embedding as hex string of its binary representation
+                // This ensures the checksum is sensitive to the actual vector data
+                match lnmp_embedding::Encoder::encode(vec) {
+                    Ok(bytes) => {
+                        // Convert bytes to hex string
+                        use std::fmt::Write;
+                        let mut s = String::with_capacity(bytes.len() * 2);
+                        for b in bytes {
+                            write!(&mut s, "{:02x}", b).unwrap();
+                        }
+                        s
+                    }
+                    Err(_) => "INVALID_EMBEDDING".to_string(), // Should not happen for valid vectors
+                }
+            }
+            LnmpValue::EmbeddingDelta(delta) => {
+                // Serialize delta as hex string of its binary representation
+                match delta.encode() {
+                    Ok(bytes) => {
+                        use std::fmt::Write;
+                        let mut s = String::with_capacity(bytes.len() * 2);
+                        for b in bytes {
+                            write!(&mut s, "{:02x}", b).unwrap();
+                        }
+                        s
+                    }
+                    Err(_) => "INVALID_DELTA".to_string(),
+                }
             }
         }
     }

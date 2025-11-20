@@ -21,8 +21,9 @@ pub enum TypeTag {
     NestedRecord = 0x06,
     /// Nested array type (v0.5) - TAG + ELEMENT_COUNT + RECORD entries
     NestedArray = 0x07,
+    /// Embedding type (v0.5) - TAG + ENCODED_VECTOR
+    Embedding = 0x08,
     /// Reserved for future use (v0.5+)
-    Reserved08 = 0x08,
     /// Reserved for future use (v0.5+)
     Reserved09 = 0x09,
     /// Reserved for future use (v0.5+)
@@ -50,7 +51,7 @@ impl TypeTag {
             0x05 => Ok(TypeTag::StringArray),
             0x06 => Ok(TypeTag::NestedRecord),
             0x07 => Ok(TypeTag::NestedArray),
-            0x08 => Ok(TypeTag::Reserved08),
+            0x08 => Ok(TypeTag::Embedding),
             0x09 => Ok(TypeTag::Reserved09),
             0x0A => Ok(TypeTag::Reserved0A),
             0x0B => Ok(TypeTag::Reserved0B),
@@ -73,7 +74,7 @@ impl TypeTag {
             self,
             TypeTag::NestedRecord
                 | TypeTag::NestedArray
-                | TypeTag::Reserved08
+                | TypeTag::Embedding
                 | TypeTag::Reserved09
                 | TypeTag::Reserved0A
                 | TypeTag::Reserved0B
@@ -88,8 +89,7 @@ impl TypeTag {
     pub fn is_reserved(&self) -> bool {
         matches!(
             self,
-            TypeTag::Reserved08
-                | TypeTag::Reserved09
+            TypeTag::Reserved09
                 | TypeTag::Reserved0A
                 | TypeTag::Reserved0B
                 | TypeTag::Reserved0C
@@ -117,6 +117,8 @@ pub enum BinaryValue {
     NestedRecord(Box<lnmp_core::LnmpRecord>),
     /// Array of nested records (v0.5)
     NestedArray(Vec<lnmp_core::LnmpRecord>),
+    /// Embedding (v0.5)
+    Embedding(lnmp_embedding::Vector),
 }
 
 impl BinaryValue {
@@ -132,6 +134,13 @@ impl BinaryValue {
             LnmpValue::StringArray(arr) => Ok(BinaryValue::StringArray(arr.clone())),
             LnmpValue::NestedRecord(rec) => Ok(BinaryValue::NestedRecord(rec.clone())),
             LnmpValue::NestedArray(arr) => Ok(BinaryValue::NestedArray(arr.clone())),
+            LnmpValue::Embedding(vec) => Ok(BinaryValue::Embedding(vec.clone())),
+            LnmpValue::EmbeddingDelta(_) => Err(BinaryError::InvalidValue {
+                reason: "EmbeddingDelta cannot be encoded as BinaryValue, use full embedding"
+                    .into(),
+                field_id: 0,
+                type_tag: 0x08,
+            }),
         }
     }
 
@@ -155,6 +164,16 @@ impl BinaryValue {
                 type_tag: 0x07,
                 reason: "Nested arrays not supported in v0.4 binary format".to_string(),
             }),
+            LnmpValue::Embedding(_) => Err(BinaryError::InvalidValue {
+                field_id: 0,
+                type_tag: 0x08,
+                reason: "Embeddings not supported in v0.4 binary format".to_string(),
+            }),
+            LnmpValue::EmbeddingDelta(_) => Err(BinaryError::InvalidValue {
+                reason: "EmbeddingDelta not supported in v0.4".to_string(),
+                field_id: 0,
+                type_tag: 0x08,
+            }),
         }
     }
 
@@ -168,6 +187,7 @@ impl BinaryValue {
             BinaryValue::StringArray(arr) => LnmpValue::StringArray(arr.clone()),
             BinaryValue::NestedRecord(rec) => LnmpValue::NestedRecord(rec.clone()),
             BinaryValue::NestedArray(arr) => LnmpValue::NestedArray(arr.clone()),
+            BinaryValue::Embedding(vec) => LnmpValue::Embedding(vec.clone()),
         }
     }
 
@@ -181,6 +201,7 @@ impl BinaryValue {
             BinaryValue::StringArray(_) => TypeTag::StringArray,
             BinaryValue::NestedRecord(_) => TypeTag::NestedRecord,
             BinaryValue::NestedArray(_) => TypeTag::NestedArray,
+            BinaryValue::Embedding(_) => TypeTag::Embedding,
         }
     }
 }
@@ -217,7 +238,7 @@ mod tests {
     #[test]
     fn test_type_tag_from_u8_reserved() {
         // Reserved types should be valid but marked as reserved
-        assert_eq!(TypeTag::from_u8(0x08).unwrap(), TypeTag::Reserved08);
+        assert_eq!(TypeTag::from_u8(0x08).unwrap(), TypeTag::Embedding);
         assert_eq!(TypeTag::from_u8(0x09).unwrap(), TypeTag::Reserved09);
         assert_eq!(TypeTag::from_u8(0x0A).unwrap(), TypeTag::Reserved0A);
         assert_eq!(TypeTag::from_u8(0x0B).unwrap(), TypeTag::Reserved0B);
@@ -246,7 +267,7 @@ mod tests {
             TypeTag::StringArray,
             TypeTag::NestedRecord,
             TypeTag::NestedArray,
-            TypeTag::Reserved08,
+            TypeTag::Embedding,
             TypeTag::Reserved09,
             TypeTag::Reserved0A,
             TypeTag::Reserved0B,
@@ -275,7 +296,7 @@ mod tests {
         // v0.5 types should return true
         assert!(TypeTag::NestedRecord.is_v0_5_type());
         assert!(TypeTag::NestedArray.is_v0_5_type());
-        assert!(TypeTag::Reserved08.is_v0_5_type());
+        assert!(TypeTag::Embedding.is_v0_5_type());
         assert!(TypeTag::Reserved09.is_v0_5_type());
         assert!(TypeTag::Reserved0A.is_v0_5_type());
         assert!(TypeTag::Reserved0B.is_v0_5_type());
@@ -297,7 +318,7 @@ mod tests {
         assert!(!TypeTag::NestedArray.is_reserved());
 
         // Reserved types should return true
-        assert!(TypeTag::Reserved08.is_reserved());
+        assert!(!TypeTag::Embedding.is_reserved());
         assert!(TypeTag::Reserved09.is_reserved());
         assert!(TypeTag::Reserved0A.is_reserved());
         assert!(TypeTag::Reserved0B.is_reserved());

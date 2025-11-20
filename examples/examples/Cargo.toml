@@ -68,6 +68,14 @@ path = "v05_delta_encoding.rs"
 name = "v05_llb2_binary"
 path = "v05_llb2_binary.rs"
 
+[[example]]
+name = "embedding_demo"
+path = "embedding_demo.rs"
+
+[[example]]
+name = "delta_demo"
+path = "delta_demo.rs"
+
 [[bin]]
 name = "run_all_examples"
 path = "run_all_examples.rs"
@@ -76,3 +84,4 @@ path = "run_all_examples.rs"
 lnmp-core.workspace = true
 lnmp-codec.workspace = true
 lnmp-llb.workspace = true
+lnmp-embedding.workspace = true

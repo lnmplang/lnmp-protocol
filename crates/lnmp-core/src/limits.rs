@@ -193,7 +193,11 @@ impl StructuralLimits {
                 Ok(())
             }
             // Primitive numeric/bool types do not need extra checks.
-            LnmpValue::Int(_) | LnmpValue::Float(_) | LnmpValue::Bool(_) => Ok(()),
+            LnmpValue::Int(_)
+            | LnmpValue::Float(_)
+            | LnmpValue::Bool(_)
+            | LnmpValue::Embedding(_)
+            | LnmpValue::EmbeddingDelta(_) => Ok(()),
         }
     }
 }

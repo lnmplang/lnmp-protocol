@@ -14,3 +14,4 @@ categories = ["encoding", "data-structures"]
 crc32fast = "1.4"
 crc = "2.1"
 crc-catalog = "1.1"
+lnmp-embedding = { version = "0.1.0", path = "../lnmp-embedding" }

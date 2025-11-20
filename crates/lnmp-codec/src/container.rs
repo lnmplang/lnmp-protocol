@@ -107,7 +107,7 @@ impl ContainerBuilder {
                 let text = encoder.encode(record);
                 self.wrap_payload_internal(text.as_bytes())
             }
-            LnmpFileMode::Binary => {
+            LnmpFileMode::Binary | LnmpFileMode::Embedding => {
                 let encoder = BinaryEncoder::new();
                 let binary = encoder
                     .encode(record)
@@ -273,6 +273,7 @@ impl<'a> ContainerFrame<'a> {
             LnmpFileMode::Stream => ContainerBody::Stream(self.payload),
             LnmpFileMode::Delta => ContainerBody::Delta(self.payload),
             LnmpFileMode::QuantumSafe => ContainerBody::QuantumSafe(self.payload),
+            LnmpFileMode::Embedding => ContainerBody::Embedding(self.payload),
         }
     }
 
@@ -337,6 +338,8 @@ pub enum ContainerBody<'a> {
     Delta(&'a [u8]),
     /// LNMP/Quantum-Safe payload.
     QuantumSafe(&'a [u8]),
+    /// LNMP/Embedding payload.
+    Embedding(&'a [u8]),
 }
 
 /// Errors that can surface while parsing a `.lnmp` container frame.

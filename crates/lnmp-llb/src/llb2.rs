@@ -188,6 +188,8 @@ impl LlbConverter {
                     .collect();
                 format!("[{}]", encoded.join(","))
             }
+            LnmpValue::Embedding(_) => String::new(),
+            LnmpValue::EmbeddingDelta(_) => String::new(),
         }
     }
 
@@ -389,6 +391,12 @@ impl LlbConverter {
                     }
                 }
             }
+            LnmpValue::Embedding(_) => {
+                // Embeddings are not flattened
+            }
+            LnmpValue::EmbeddingDelta(_) => {
+                // Deltas are not flattened
+            }
         }
 
         Ok(())
@@ -557,6 +565,8 @@ impl LlbConverter {
                     .collect();
                 format!("[{}]", encoded.join(","))
             }
+            LnmpValue::EmbeddingDelta(_) => String::new(),
+            LnmpValue::Embedding(_) => String::new(),
         }
     }
 

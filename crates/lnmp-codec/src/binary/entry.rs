@@ -9,6 +9,7 @@ use super::error::BinaryError;
 use super::types::{BinaryValue, TypeTag};
 use super::varint;
 use lnmp_core::{FieldId, LnmpField};
+use lnmp_embedding::{Decoder as EmbeddingDecoder, Encoder as EmbeddingEncoder};
 
 /// A single field encoded in binary format
 #[derive(Debug, Clone, PartialEq)]
@@ -122,6 +123,16 @@ impl BinaryEntry {
                 // as nested encoding requires special handling
                 panic!("Nested structure encoding not yet implemented - use BinaryNestedEncoder");
             }
+            BinaryValue::Embedding(vec) => {
+                // Encode using lnmp-embedding crate
+                // We wrap the result in a Result, but encode() signature returns Vec<u8>
+                // For now, we'll panic on error as this is an in-memory operation that shouldn't fail
+                // unless OOM. Ideally signature should return Result.
+                let encoded = EmbeddingEncoder::encode(vec).expect("Failed to encode embedding");
+                // Write length (VarInt) + encoded data
+                bytes.extend_from_slice(&varint::encode(encoded.len() as i64));
+                bytes.extend_from_slice(&encoded);
+            }
         }
 
         bytes
@@ -174,8 +185,7 @@ impl BinaryEntry {
                             .to_string(),
                 });
             }
-            TypeTag::Reserved08
-            | TypeTag::Reserved09
+            TypeTag::Reserved09
             | TypeTag::Reserved0A
             | TypeTag::Reserved0B
             | TypeTag::Reserved0C
@@ -321,6 +331,43 @@ impl BinaryEntry {
                 }
 
                 BinaryValue::StringArray(strings)
+            }
+            TypeTag::Embedding => {
+                let (length, consumed) =
+                    varint::decode(&bytes[offset..]).map_err(|_| BinaryError::InvalidValue {
+                        field_id: fid,
+                        type_tag: tag.to_u8(),
+                        reason: "Invalid embedding length VarInt".to_string(),
+                    })?;
+                offset += consumed;
+
+                if length < 0 {
+                    return Err(BinaryError::InvalidValue {
+                        field_id: fid,
+                        type_tag: tag.to_u8(),
+                        reason: format!("Negative embedding length: {}", length),
+                    });
+                }
+
+                let length = length as usize;
+                if bytes.len() < offset + length {
+                    return Err(BinaryError::UnexpectedEof {
+                        expected: offset + length,
+                        found: bytes.len(),
+                    });
+                }
+
+                let embedding_bytes = &bytes[offset..offset + length];
+                let vector = EmbeddingDecoder::decode(embedding_bytes).map_err(|e| {
+                    BinaryError::InvalidValue {
+                        field_id: fid,
+                        type_tag: tag.to_u8(),
+                        reason: format!("Failed to decode embedding: {}", e),
+                    }
+                })?;
+                offset += length;
+
+                BinaryValue::Embedding(vector)
             }
         };
 

@@ -39,6 +39,8 @@ pub enum LnmpFileMode {
     Delta = 0x04,
     /// LNMP/Quantum-Safe (reserved for future use).
     QuantumSafe = 0x05,
+    /// LNMP/Embedding.
+    Embedding = 0x06,
 }
 
 impl LnmpFileMode {
@@ -50,6 +52,7 @@ impl LnmpFileMode {
             0x03 => Ok(Self::Stream),
             0x04 => Ok(Self::Delta),
             0x05 => Ok(Self::QuantumSafe),
+            0x06 => Ok(Self::Embedding),
             other => Err(LnmpContainerError::UnknownMode(other)),
         }
     }
@@ -194,5 +197,13 @@ mod tests {
             LnmpContainerHeader::parse(&[0u8; 4]),
             Err(LnmpContainerError::TruncatedHeader)
         ));
+    }
+
+    #[test]
+    fn test_embedding_mode() {
+        let header = LnmpContainerHeader::new(LnmpFileMode::Embedding);
+        let encoded = header.encode();
+        let parsed = LnmpContainerHeader::parse(&encoded).unwrap();
+        assert_eq!(parsed.mode, LnmpFileMode::Embedding);
     }
 }

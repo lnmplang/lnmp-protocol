@@ -52,3 +52,4 @@ jobs:
           publish lnmp-sanitize
           publish lnmp-codec
           publish lnmp-llb
+          publish lnmp-embedding

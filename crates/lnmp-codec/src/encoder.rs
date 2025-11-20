@@ -119,6 +119,8 @@ impl Encoder {
             LnmpValue::StringArray(_) => TypeHint::StringArray,
             LnmpValue::NestedRecord(_) => TypeHint::Record,
             LnmpValue::NestedArray(_) => TypeHint::RecordArray,
+            LnmpValue::Embedding(_) => TypeHint::Embedding,
+            LnmpValue::EmbeddingDelta(_) => TypeHint::Embedding,
         }
     }
 
@@ -142,6 +144,16 @@ impl Encoder {
             }
             LnmpValue::NestedRecord(record) => self.encode_nested_record(record),
             LnmpValue::NestedArray(records) => self.encode_nested_array(records),
+            LnmpValue::Embedding(vec) => {
+                // Text format representation for embeddings is not yet standardized.
+                // We use a placeholder format that indicates the dimension.
+                format!("[vector dim={}]", vec.dim)
+            }
+            LnmpValue::EmbeddingDelta(delta) => {
+                // Text format representation for embedding deltas is not yet standardized.
+                // We use a placeholder format that indicates the number of changes.
+                format!("[vector_delta changes={}]", delta.changes.len())
+            }
         }
     }
 
@@ -287,6 +299,9 @@ fn canonicalize_value(value: &LnmpValue) -> LnmpValue {
             let canonical_arr: Vec<LnmpRecord> = arr.iter().map(canonicalize_record).collect();
             LnmpValue::NestedArray(canonical_arr)
         }
+        // Embeddings are already canonical (binary data)
+        LnmpValue::Embedding(vec) => LnmpValue::Embedding(vec.clone()),
+        LnmpValue::EmbeddingDelta(delta) => LnmpValue::EmbeddingDelta(delta.clone()),
     }
 }
 
@@ -303,6 +318,9 @@ fn is_empty_value(value: &LnmpValue) -> bool {
         LnmpValue::StringArray(arr) => arr.is_empty(),
         LnmpValue::NestedRecord(record) => record.fields().is_empty(),
         LnmpValue::NestedArray(arr) => arr.is_empty(),
+        // Embeddings are never considered empty even if dimension is 0 (which shouldn't happen)
+        LnmpValue::Embedding(_) => false,
+        LnmpValue::EmbeddingDelta(_) => false,
         // Non-empty primitive values are never considered empty
         LnmpValue::Int(_) | LnmpValue::Float(_) | LnmpValue::Bool(_) => false,
     }
