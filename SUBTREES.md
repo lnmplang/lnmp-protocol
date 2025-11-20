@@ -36,6 +36,13 @@ git fetch lnmp-examples
 git subtree pull --prefix=examples lnmp-examples main --squash
 ```
 
+- Quick commands for `tools/mcp` (from repo root):
+```
+git remote add lnmp-mcp https://github.com/lnmplang/lnmp-mcp.git   # one-time
+git subtree pull --prefix=tools/mcp lnmp-mcp main --squash         # pull updates
+git subtree push --prefix=tools/mcp lnmp-mcp main                  # publish changes
+```
+
 - Push a change from the subtree directory back to its upstream remote:
 ```
 # Make changes under examples/ and commit to this repo; then:
