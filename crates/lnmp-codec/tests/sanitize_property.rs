@@ -79,7 +79,12 @@ impl FieldCase {
                 let mut rendered = Vec::with_capacity(items.len());
                 for (idx, item) in items.iter().enumerate() {
                     let mut elem = if self.drop_quotes {
-                        item.clone()
+                        // Preserve empty elements by quoting them; otherwise drop quotes.
+                        if item.is_empty() {
+                            format_array_item(item)
+                        } else {
+                            item.clone()
+                        }
                     } else {
                         format_array_item(item)
                     };
@@ -254,8 +259,8 @@ proptest! {
         if fields.iter().any(|f| f.double_semicolon
             || f.comment_after
             || f.unterminated_quote
-            || matches!(&f.value, FieldValue::Str(s) if f.drop_quotes && s.contains('"'))
-            || matches!(&f.value, FieldValue::StrArray(items) if f.drop_quotes && items.iter().any(|s| s.contains('"') || s.contains(',') )))
+            || matches!(&f.value, FieldValue::Str(s) if f.drop_quotes && s.chars().any(|c| c.is_whitespace() || matches!(c, '"' | ',' | ';' | '\\')))
+            || matches!(&f.value, FieldValue::StrArray(items) if f.drop_quotes && items.iter().any(|s| s.chars().any(|c| c.is_whitespace() || matches!(c, '\"' | ',' | ';' | '\\')))))
         {
             return Ok(());
         }

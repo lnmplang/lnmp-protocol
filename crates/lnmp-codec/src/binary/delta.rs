@@ -100,6 +100,19 @@ impl Default for DeltaConfig {
     }
 }
 
+/// Context supplied when applying deltas, typically derived from container metadata.
+#[derive(Debug, Clone, Default)]
+pub struct DeltaApplyContext {
+    /// Base snapshot advertised in metadata (None means unchecked).
+    pub metadata_base: Option<u64>,
+    /// Base snapshot the caller expects to match (None means unchecked).
+    pub required_base: Option<u64>,
+    /// Algorithm identifier advertised in metadata (None means unchecked).
+    pub algorithm: Option<u8>,
+    /// Compression identifier advertised in metadata (None means unchecked).
+    pub compression: Option<u8>,
+}
+
 /// Error type for delta encoding operations
 #[derive(Debug, Clone, PartialEq)]
 pub enum DeltaError {
@@ -365,6 +378,39 @@ impl DeltaEncoder {
     }
 }
 
+fn validate_apply_context(ctx: &DeltaApplyContext) -> Result<(), DeltaError> {
+    if let Some(alg) = ctx.algorithm {
+        if alg > 0x01 {
+            return Err(DeltaError::DeltaApplicationFailed {
+                reason: format!("unsupported delta algorithm 0x{alg:02X}"),
+            });
+        }
+    }
+    if let Some(comp) = ctx.compression {
+        if comp > 0x01 {
+            return Err(DeltaError::DeltaApplicationFailed {
+                reason: format!("unsupported delta compression 0x{comp:02X}"),
+            });
+        }
+    }
+    if let Some(meta_base) = ctx.metadata_base {
+        if meta_base == 0 {
+            return Err(DeltaError::DeltaApplicationFailed {
+                reason: "delta metadata base snapshot is zero".to_string(),
+            });
+        }
+        if let Some(required) = ctx.required_base {
+            if meta_base != required {
+                return Err(DeltaError::DeltaApplicationFailed {
+                    reason: format!(
+                        "delta base snapshot mismatch (metadata={meta_base}, required={required})"
+                    ),
+                });
+            }
+        }
+    }
+    Ok(())
+}
 impl Default for DeltaEncoder {
     fn default() -> Self {
         Self::new()
@@ -489,25 +535,36 @@ impl DeltaDecoder {
         Ok(ops)
     }
 
-    /// Applies delta operations to a base record
-    ///
-    /// # Arguments
-    ///
-    /// * `base` - The base record to apply operations to (modified in place)
-    /// * `ops` - The delta operations to apply
-    ///
-    /// # Errors
+    /// Applies delta operations to a base record.
+    pub fn apply_delta(
+        &self,
+        base: &mut LnmpRecord,
+        ops: &[DeltaOp],
+    ) -> Result<(), DeltaError> {
+        self.apply_delta_with_context(base, ops, &DeltaApplyContext::default())
+    }
+
+    /// Applies delta operations with optional metadata-derived context (base, algorithm, compression).
     ///
     /// Returns `DeltaError` if:
+    /// - Delta is disabled in config
+    /// - Metadata checks fail (base mismatch, unsupported algorithm/compression)
     /// - A target FID is invalid
     /// - An operation cannot be applied
     /// - A merge conflict occurs
-    pub fn apply_delta(&self, base: &mut LnmpRecord, ops: &[DeltaOp]) -> Result<(), DeltaError> {
+    pub fn apply_delta_with_context(
+        &self,
+        base: &mut LnmpRecord,
+        ops: &[DeltaOp],
+        ctx: &DeltaApplyContext,
+    ) -> Result<(), DeltaError> {
         if !self.config.enable_delta {
             return Err(DeltaError::DeltaApplicationFailed {
                 reason: "Delta is disabled in configuration".to_string(),
             });
         }
+
+        validate_apply_context(ctx)?;
         use lnmp_core::LnmpField;
 
         for op in ops {

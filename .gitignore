@@ -12,16 +12,23 @@ target/
 # macOS
 .DS_Store
 
-# Logs
-*.log
-.kiro/
-target/
+# Logs / build artifacts
 *.log
 *.tmp
-.DS_Store
+.kiro/
 node_modules/
 dist/
 build/
+coverage/
+reports/
+.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+.pnp.json
+
+# Editors / env
 .env
 .vscode/
 .idea/

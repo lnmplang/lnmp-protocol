@@ -8,6 +8,7 @@ members = [
     "crates/lnmp-sanitize",
     "examples/examples",
     "tests/compliance/rust",
+    "tools/cli",
 ]
 
 [workspace.package]

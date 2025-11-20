@@ -3,7 +3,10 @@
 //! Tests for Delta Encoding & Partial Update Layer (DPL)
 
 use lnmp_codec::binary::{DeltaConfig, DeltaDecoder, DeltaEncoder, DeltaError, DeltaOperation};
+use lnmp_codec::ContainerFrameError;
+use lnmp_codec::container::ContainerFrame;
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
+use std::path::Path;
 
 #[test]
 fn test_compute_delta_simple_field_change() {
@@ -558,4 +561,79 @@ fn test_delta_multiple_changes() {
     );
     assert!(old_record.get_field(2).is_none());
     assert!(old_record.get_field(3).is_none());
+}
+
+fn load_fixture(name: &str) -> Vec<u8> {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("fixtures")
+        .join(name);
+    std::fs::read(path).expect("fixture should exist")
+}
+
+#[test]
+fn delta_fixture_base_mismatch_errors_on_apply() {
+    let bytes = load_fixture("invalid-delta-base-mismatch.lnmp");
+    let frame = ContainerFrame::parse(&bytes).expect("header parse");
+    assert_eq!(frame.header().mode as u8, 0x04);
+
+    let mut base = LnmpRecord::new();
+    base.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(1),
+    });
+
+    let meta_base = u64::from_be_bytes(frame.metadata()[0..8].try_into().unwrap());
+    assert_eq!(meta_base, 2);
+
+    let decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
+    let ops = decoder.decode_delta(frame.payload()).unwrap_or_default();
+    let mut ctx = frame.delta_apply_context().unwrap();
+    ctx.required_base = Some(1);
+    let err = decoder.apply_delta_with_context(&mut base, &ops, &ctx);
+    assert!(err.is_err());
+}
+
+#[test]
+fn delta_fixture_unknown_algorithm_rejected() {
+    let bytes = load_fixture("invalid-delta-unknown-algorithm.lnmp");
+    let err = ContainerFrame::parse(&bytes).unwrap_err();
+    assert!(matches!(
+        err,
+        ContainerFrameError::InvalidMetadataValue {
+            field: "algorithm",
+            value: 0xFF,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn delta_fixture_valid_payload_applies() {
+    // Generated via examples/gen_delta_fixture.rs
+    let bytes = load_fixture("valid-delta-base1-oplist.lnmp");
+    let frame = ContainerFrame::parse(&bytes).expect("header parse");
+    assert_eq!(frame.header().mode as u8, 0x04);
+
+    let mut base = LnmpRecord::new();
+    base.add_field(LnmpField {
+        fid: 1,
+        value: LnmpValue::Int(1),
+    });
+
+    let decoder = DeltaDecoder::with_config(DeltaConfig::new().with_enable_delta(true));
+    let ops = decoder
+        .decode_delta(frame.payload())
+        .expect("decode delta payload");
+    let mut ctx = frame.delta_apply_context().unwrap();
+    ctx.required_base = Some(1);
+    decoder
+        .apply_delta_with_context(&mut base, &ops, &ctx)
+        .expect("apply delta payload");
+
+    assert_eq!(
+        base.get_field(2).unwrap().value,
+        LnmpValue::String("added".to_string())
+    );
 }

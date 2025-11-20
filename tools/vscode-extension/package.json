@@ -1,0 +1,94 @@
+{
+  "name": "lnmp-vscode-extension",
+  "displayName": "LNMP Tools",
+  "description": "Adds .lnmp container support (syntax highlighting, metadata inspection).",
+  "version": "0.0.1",
+  "publisher": "lnmp",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:lnmp",
+    "onCommand:lnmp.inspectContainer",
+    "onCommand:lnmp.openAsText",
+    "onCustomEditor:lnmp.decodeEditor",
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "lnmp",
+        "aliases": [
+          "LNMP",
+          "lnmp"
+        ],
+        "extensions": [
+          ".lnmp"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "configurationDefaults": {
+      "workbench.editorAssociations": [
+        {
+          "filenamePattern": "*.lnmp",
+          "viewType": "lnmp.decodeEditor"
+        }
+      ]
+    },
+    "grammars": [
+      {
+        "language": "lnmp",
+        "scopeName": "source.lnmp",
+        "path": "./syntaxes/lnmp.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "lnmp.inspectContainer",
+        "title": "LNMP: Inspect Container"
+      },
+      {
+        "command": "lnmp.openAsText",
+        "title": "LNMP: Open As Text"
+      }
+    ],
+    "iconThemes": [
+      {
+        "id": "lnmp-icons",
+        "label": "LNMP Icons",
+        "path": "./fileicons/lnmp-icon-theme.json"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "lnmp.decodeEditor",
+        "displayName": "LNMP Decoded View",
+        "selector": [
+          {
+            "filenamePattern": "*.lnmp"
+          }
+        ],
+        "priority": "default"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.0.0",
+    "@types/node": "^18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lnmplang/lnmp-protocol"
+  }
+}

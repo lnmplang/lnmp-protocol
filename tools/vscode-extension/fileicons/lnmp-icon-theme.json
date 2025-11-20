@@ -1,0 +1,13 @@
+{
+  "iconDefinitions": {
+    "lnmp-icon": {
+      "iconPath": "./media/lnmp-icon.png"
+    }
+  },
+  "fileExtensions": {
+    "lnmp": "lnmp-icon"
+  },
+  "languageIds": {
+    "lnmp": "lnmp-icon"
+  }
+}

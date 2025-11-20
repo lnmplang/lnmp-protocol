@@ -5,4 +5,5 @@ edition = "2021"
 authors = ["LNMP Contributors"]
 
 [dependencies]
-lnmp-core = { path = "../lnpm-protocol/crates/lnmp-core" }
+lnmp-core = { workspace = true }
+lnmp-codec = { workspace = true }

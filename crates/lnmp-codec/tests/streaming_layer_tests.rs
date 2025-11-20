@@ -6,6 +6,8 @@ use lnmp_codec::binary::{
     BackpressureController, FrameType, StreamingConfig, StreamingDecoder, StreamingEncoder,
     StreamingError, StreamingEvent, StreamingFrame,
 };
+use lnmp_codec::container::ContainerFrame;
+use std::path::Path;
 
 #[test]
 fn test_individual_frame_encoding_decoding() {
@@ -309,6 +311,74 @@ fn test_streaming_binary_data() {
 
     let received = decoder.get_complete_payload().unwrap();
     assert_eq!(received, &binary_data[..]);
+}
+
+fn load_fixture(name: &str) -> Vec<u8> {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("fixtures")
+        .join(name);
+    std::fs::read(path).expect("fixture should exist")
+}
+
+fn verify_sc32_chunks(payload: &[u8]) -> Result<(), String> {
+    let mut offset = 0;
+    while offset < payload.len() {
+        if offset + 4 > payload.len() {
+            return Err("incomplete length prefix".into());
+        }
+        let len = u32::from_be_bytes([
+            payload[offset],
+            payload[offset + 1],
+            payload[offset + 2],
+            payload[offset + 3],
+        ]) as usize;
+        offset += 4;
+        let end = offset + len + 4;
+        if end > payload.len() {
+            return Err("missing checksum or truncated chunk".into());
+        }
+        let data = &payload[offset..offset + len];
+        let checksum = u32::from_be_bytes([
+            payload[offset + len],
+            payload[offset + len + 1],
+            payload[offset + len + 2],
+            payload[offset + len + 3],
+        ]);
+        offset = end;
+
+        let computed: u32 = data.iter().fold(0u32, |acc, b| acc.wrapping_add(*b as u32));
+        if computed != checksum {
+            return Err("checksum mismatch".into());
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn stream_fixture_valid_chunks() {
+    let bytes = load_fixture("valid-stream-4k-sc32-chunks.lnmp");
+    let frame = ContainerFrame::parse(&bytes).expect("header parse");
+    assert_eq!(frame.header().mode as u8, 0x03);
+
+    verify_sc32_chunks(frame.payload()).expect("valid chunks");
+}
+
+#[test]
+fn stream_fixture_truncated_chunk_fails() {
+    let bytes = load_fixture("invalid-stream-truncated-chunk.lnmp");
+    let frame = ContainerFrame::parse(&bytes).expect("header parse");
+    let res = verify_sc32_chunks(frame.payload());
+    assert!(res.is_err(), "expected checksum failure");
+}
+
+#[test]
+fn stream_fixture_missing_checksum_fails() {
+    let bytes = load_fixture("invalid-stream-missing-checksum.lnmp");
+    let frame = ContainerFrame::parse(&bytes).expect("header parse");
+    let res = verify_sc32_chunks(frame.payload());
+    assert!(res.is_err(), "expected checksum failure");
 }
 
 #[test]
