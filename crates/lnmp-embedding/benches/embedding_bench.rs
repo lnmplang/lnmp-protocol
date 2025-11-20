@@ -131,7 +131,8 @@ fn bench_delta_compute(c: &mut Criterion) {
         let old = Vector::from_f32(vec![0.1; *dim]);
         let mut new_data = vec![0.1; *dim];
         // Change 1% of values
-        new_data.iter_mut()
+        new_data
+            .iter_mut()
             .step_by(100)
             .take(dim / 100)
             .for_each(|v| *v += 0.01);
@@ -151,7 +152,8 @@ fn bench_delta_encode(c: &mut Criterion) {
     for change_count in [1, 10, 50, 100, 500].iter() {
         let old = Vector::from_f32(vec![0.1; 1536]);
         let mut new_data = vec![0.1; 1536];
-        new_data.iter_mut()
+        new_data
+            .iter_mut()
             .take(*change_count)
             .for_each(|v| *v += 0.01);
         let new = Vector::from_f32(new_data);
@@ -175,7 +177,8 @@ fn bench_delta_apply(c: &mut Criterion) {
     for change_count in [1, 10, 50, 100, 500].iter() {
         let base = Vector::from_f32(vec![0.1; 1536]);
         let mut new_data = vec![0.1; 1536];
-        new_data.iter_mut()
+        new_data
+            .iter_mut()
             .take(*change_count)
             .for_each(|v| *v += 0.01);
         let new = Vector::from_f32(new_data);

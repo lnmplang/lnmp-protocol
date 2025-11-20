@@ -67,10 +67,11 @@ fn demo_size_comparison() {
             let num_changes = (dim * change_pct) / 100;
             let mut new_data = vec![0.1; dim];
 
-            // Change specific indices
-            for i in 0..num_changes {
-                new_data[i] += 0.01;
-            }
+            // Change specific indices using iterator
+            new_data
+                .iter_mut()
+                .take(num_changes)
+                .for_each(|v| *v += 0.01);
             let new = Vector::from_f32(new_data);
 
             let delta = VectorDelta::from_vectors(&old, &new, 1).unwrap();
@@ -99,10 +100,12 @@ fn demo_streaming_updates() {
     for step in 1..=5 {
         // Simulate small context changes
         let mut new_data = current_state.as_f32().unwrap();
-        for i in 0..10 {
-            // Change 10 values each step (~2%)
-            new_data[(step * 10 + i) % 512] += 0.01;
-        }
+        // Change 10 values each step (~2%)
+        new_data
+            .iter_mut()
+            .skip((step - 1) * 10)
+            .take(10)
+            .for_each(|v| *v += 0.01);
         let new_state = Vector::from_f32(new_data);
 
         let delta = VectorDelta::from_vectors(&current_state, &new_state, base_id).unwrap();
@@ -140,9 +143,10 @@ fn demo_adaptive_strategy() {
     println!("Testing adaptive strategy (30% threshold):");
     for (num_changes, description) in test_cases {
         let mut new_data = vec![0.1; 1536];
-        for i in 0..num_changes.min(1536) {
-            new_data[i] += 0.01;
-        }
+        new_data
+            .iter_mut()
+            .take(num_changes.min(1536))
+            .for_each(|v| *v += 0.01);
         let new_embedding = Vector::from_f32(new_data);
 
         let delta = VectorDelta::from_vectors(&embedding, &new_embedding, 1).unwrap();
