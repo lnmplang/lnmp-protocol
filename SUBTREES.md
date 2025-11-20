@@ -72,6 +72,6 @@ Developer Guidance
 ./scripts/subtree-sync.sh add lnmplang/lnmp-examples examples main
 # pull
 ./scripts/subtree-sync.sh pull lnmplang/lnmp-examples examples main
-# push
-./scripts/subtree-sync.sh push lnmplang/lnmp-examples examples main
-```
+CI automation
+- Subtree pulls: `.github/workflows/subtree-sync.yml` (scheduled + manual) pulls updates from external repos into the monorepo.
+- Subtree pushes: `.github/workflows/subtree-push.yml` runs automatically on `main` when paths under `examples/`, `sdk/*`, or `tools/{cli,mcp}/` change, and can also be run manually. It pushes monorepo changes back to external repos. Requires a secret `SUBTREE_PUSH_TOKEN` (PAT with `repo` scope and write access to all target repos). For manual runs, pick the target subtree or choose `all`.

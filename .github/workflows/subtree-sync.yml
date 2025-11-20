@@ -12,17 +12,32 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Run subtree sync for remotes
+    - name: Pull subtrees
+      shell: bash
       run: |
-        chmod +x scripts/subtree-sync.sh
-        # pull each subtree (using --squash to keep the monorepo history small)
-        scripts/subtree-sync.sh pull lnmplang/lnmp-examples examples main squash || true
-        scripts/subtree-sync.sh pull lnmplang/lnmp-sdk-go sdk/go main squash || true
-        scripts/subtree-sync.sh pull lnmplang/lnmp-sdk-js sdk/js main squash || true
-        scripts/subtree-sync.sh pull lnmplang/lnmp-sdk-rust sdk/rust main squash || true
-        scripts/subtree-sync.sh pull lnmplang/lnmp-sdk-python sdk/python main squash || true
-        scripts/subtree-sync.sh pull lnmplang/lnmp-cli tools/cli main squash || true
-        scripts/subtree-sync.sh pull lnmplang/lnmp-mcp tools/mcp main squash || true
+        set -euo pipefail
+        pulls=(
+          "lnmplang/lnmp-examples examples main"
+          "lnmplang/lnmp-sdk-go sdk/go main"
+          "lnmplang/lnmp-sdk-js sdk/js main"
+          "lnmplang/lnmp-sdk-rust sdk/rust main"
+          "lnmplang/lnmp-sdk-python sdk/python main"
+          "lnmplang/lnmp-cli tools/cli main"
+          "lnmplang/lnmp-mcp tools/mcp main"
+        )
+        for entry in "${pulls[@]}"; do
+          repo=$(echo "$entry" | awk '{print $1}')
+          prefix=$(echo "$entry" | awk '{print $2}')
+          branch=$(echo "$entry" | awk '{print $3}')
+          remote=$(basename "$repo")
+          echo ">>> Pulling $repo into $prefix ($branch)"
+          git remote remove "$remote" 2>/dev/null || true
+          git remote add "$remote" "https://github.com/$repo.git"
+          git fetch "$remote"
+          if ! git subtree pull --prefix="$prefix" "$remote" "$branch" --squash; then
+            echo "::warning::subtree pull failed for $repo"
+          fi
+        done
     - name: Check for changes
       run: |
         if [ -n "$(git status --porcelain)" ]; then
