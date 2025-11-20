@@ -164,9 +164,9 @@ pub mod parser;
 pub use binary::delta::DeltaApplyContext;
 pub use config::{EncoderConfig, ParsingMode, TextInputMode};
 pub use container::{
-    ContainerBody, ContainerBuilder, ContainerDecodeError, ContainerEncodeError, ContainerFrame,
-    ContainerFrameError, DeltaMetadata, MetadataError, StreamMetadata, delta_apply_context_from_metadata,
-    parse_delta_metadata, parse_stream_metadata,
+    delta_apply_context_from_metadata, parse_delta_metadata, parse_stream_metadata, ContainerBody,
+    ContainerBuilder, ContainerDecodeError, ContainerEncodeError, ContainerFrame,
+    ContainerFrameError, DeltaMetadata, MetadataError, StreamMetadata,
 };
 pub use encoder::{canonicalize_record, Encoder};
 pub use equivalence::EquivalenceMapper;

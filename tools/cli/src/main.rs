@@ -1,15 +1,15 @@
 use std::{env, error::Error, fs};
 
-use lnmp_core::{
-    LnmpFileMode, LNMP_FLAG_CHECKSUM_REQUIRED, LNMP_FLAG_COMPRESSED, LNMP_FLAG_ENCRYPTED,
-    LNMP_FLAG_QKEX, LNMP_FLAG_QSIG,
-};
 use lnmp_codec::{
     container::{
         parse_delta_metadata, parse_stream_metadata, ContainerBuilder, ContainerFrame,
         DeltaMetadata, StreamMetadata,
     },
     Parser,
+};
+use lnmp_core::{
+    LnmpFileMode, LNMP_FLAG_CHECKSUM_REQUIRED, LNMP_FLAG_COMPRESSED, LNMP_FLAG_ENCRYPTED,
+    LNMP_FLAG_QKEX, LNMP_FLAG_QSIG,
 };
 
 fn main() {
@@ -88,10 +88,7 @@ fn decode_file(opts: DecodeArgs) -> Result<(), Box<dyn Error>> {
         eprintln!("[lnmp-cli] wrote metadata to {out_path}");
     }
     if opts.metadata_hex && !frame.metadata().is_empty() {
-        eprintln!(
-            "[lnmp-cli] metadata hex dump: {}",
-            to_hex(frame.metadata())
-        );
+        eprintln!("[lnmp-cli] metadata hex dump: {}", to_hex(frame.metadata()));
         if let Some(details) = describe_metadata(frame.header().mode, frame.metadata()) {
             eprintln!("[lnmp-cli] {details}");
         }
@@ -205,7 +202,11 @@ fn log_decode_context(frame: &ContainerFrame) {
 }
 
 fn to_hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{b:02X}")).collect::<Vec<_>>().join(" ")
+    bytes
+        .iter()
+        .map(|b| format!("{b:02X}"))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 #[derive(Debug)]

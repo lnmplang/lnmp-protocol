@@ -3,8 +3,8 @@
 //! Tests for Delta Encoding & Partial Update Layer (DPL)
 
 use lnmp_codec::binary::{DeltaConfig, DeltaDecoder, DeltaEncoder, DeltaError, DeltaOperation};
-use lnmp_codec::ContainerFrameError;
 use lnmp_codec::container::ContainerFrame;
+use lnmp_codec::ContainerFrameError;
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 use std::path::Path;
 

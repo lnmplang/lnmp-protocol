@@ -20,7 +20,9 @@ fn main() {
     let encoder = DeltaEncoder::with_config(cfg.clone());
     let decoder = DeltaDecoder::with_config(cfg);
 
-    let ops = encoder.compute_delta(&base, &updated).expect("compute delta");
+    let ops = encoder
+        .compute_delta(&base, &updated)
+        .expect("compute delta");
     let encoded = encoder.encode_delta(&ops).expect("encode delta");
 
     let fixtures_dir = PathBuf::from("fixtures");

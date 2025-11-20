@@ -7,9 +7,8 @@ use crate::{
     Encoder, LnmpError, Parser,
 };
 use lnmp_core::{
-    LnmpContainerError, LnmpContainerHeader, LnmpFileMode, LnmpRecord,
-    LNMP_FLAG_CHECKSUM_REQUIRED, LNMP_FLAG_COMPRESSED, LNMP_FLAG_ENCRYPTED,
-    LNMP_HEADER_SIZE,
+    LnmpContainerError, LnmpContainerHeader, LnmpFileMode, LnmpRecord, LNMP_FLAG_CHECKSUM_REQUIRED,
+    LNMP_FLAG_COMPRESSED, LNMP_FLAG_ENCRYPTED, LNMP_HEADER_SIZE,
 };
 
 /// Borrowed view over a `.lnmp` container.
@@ -144,8 +143,7 @@ impl ContainerBuilder {
         self.validate_flags()?;
         encode_validate_metadata_requirements(self.header.mode, self.metadata.len())?;
         encode_validate_metadata_semantics(self.header.mode, &self.metadata)?;
-        let mut buffer =
-            Vec::with_capacity(LNMP_HEADER_SIZE + self.metadata.len() + payload.len());
+        let mut buffer = Vec::with_capacity(LNMP_HEADER_SIZE + self.metadata.len() + payload.len());
         buffer.extend_from_slice(&self.header.encode());
         buffer.extend_from_slice(&self.metadata);
         buffer.extend_from_slice(payload);
@@ -312,8 +310,7 @@ impl<'a> ContainerFrame<'a> {
 
     fn decode_text_record(&self) -> Result<LnmpRecord, ContainerDecodeError> {
         let text = str::from_utf8(self.payload).map_err(ContainerDecodeError::InvalidUtf8)?;
-        let mut parser =
-            Parser::new(text).map_err(ContainerDecodeError::TextCodec)?;
+        let mut parser = Parser::new(text).map_err(ContainerDecodeError::TextCodec)?;
         parser
             .parse_record()
             .map_err(ContainerDecodeError::TextCodec)
@@ -393,7 +390,10 @@ impl fmt::Display for ContainerFrameError {
                 f,
                 "mode {mode:?} requires {expected} metadata bytes but header declares {actual}"
             ),
-            ContainerFrameError::TruncatedMetadata { expected, available } => {
+            ContainerFrameError::TruncatedMetadata {
+                expected,
+                available,
+            } => {
                 write!(
                     f,
                     "metadata expects {expected} bytes but only {available} are available"
@@ -443,11 +443,11 @@ fn validate_metadata_requirements(
     mode: LnmpFileMode,
     metadata_len: usize,
 ) -> Result<(), ContainerFrameError> {
-        match mode {
-            LnmpFileMode::Stream => {
-                if metadata_len != 6 {
-                    return Err(ContainerFrameError::InvalidMetadataLength {
-                        mode,
+    match mode {
+        LnmpFileMode::Stream => {
+            if metadata_len != 6 {
+                return Err(ContainerFrameError::InvalidMetadataLength {
+                    mode,
                     expected: 6,
                     actual: metadata_len,
                 });
@@ -471,30 +471,27 @@ fn validate_metadata_semantics(
     mode: LnmpFileMode,
     metadata: &[u8],
 ) -> Result<(), ContainerFrameError> {
-    match mode {
-        LnmpFileMode::Delta => {
-            if metadata.len() >= 9 {
-                let algorithm = metadata[8];
-                if algorithm != 0x00 && algorithm != 0x01 {
-                    return Err(ContainerFrameError::InvalidMetadataValue {
-                        mode,
-                        field: "algorithm",
-                        value: algorithm,
-                    });
-                }
-            }
-            if metadata.len() >= 10 {
-                let compression = metadata[9];
-                if compression != 0x00 && compression != 0x01 {
-                    return Err(ContainerFrameError::InvalidMetadataValue {
-                        mode,
-                        field: "compression",
-                        value: compression,
-                    });
-                }
+    if mode == LnmpFileMode::Delta {
+        if metadata.len() >= 9 {
+            let algorithm = metadata[8];
+            if algorithm != 0x00 && algorithm != 0x01 {
+                return Err(ContainerFrameError::InvalidMetadataValue {
+                    mode,
+                    field: "algorithm",
+                    value: algorithm,
+                });
             }
         }
-        _ => {}
+        if metadata.len() >= 10 {
+            let compression = metadata[9];
+            if compression != 0x00 && compression != 0x01 {
+                return Err(ContainerFrameError::InvalidMetadataValue {
+                    mode,
+                    field: "compression",
+                    value: compression,
+                });
+            }
+        }
     }
     Ok(())
 }
@@ -531,30 +528,27 @@ fn encode_validate_metadata_semantics(
     mode: LnmpFileMode,
     metadata: &[u8],
 ) -> Result<(), ContainerEncodeError> {
-    match mode {
-        LnmpFileMode::Delta => {
-            if metadata.len() >= 9 {
-                let algorithm = metadata[8];
-                if algorithm != 0x00 && algorithm != 0x01 {
-                    return Err(ContainerEncodeError::InvalidMetadataValue {
-                        mode,
-                        field: "algorithm",
-                        value: algorithm,
-                    });
-                }
-            }
-            if metadata.len() >= 10 {
-                let compression = metadata[9];
-                if compression != 0x00 && compression != 0x01 {
-                    return Err(ContainerEncodeError::InvalidMetadataValue {
-                        mode,
-                        field: "compression",
-                        value: compression,
-                    });
-                }
+    if mode == LnmpFileMode::Delta {
+        if metadata.len() >= 9 {
+            let algorithm = metadata[8];
+            if algorithm != 0x00 && algorithm != 0x01 {
+                return Err(ContainerEncodeError::InvalidMetadataValue {
+                    mode,
+                    field: "algorithm",
+                    value: algorithm,
+                });
             }
         }
-        _ => {}
+        if metadata.len() >= 10 {
+            let compression = metadata[9];
+            if compression != 0x00 && compression != 0x01 {
+                return Err(ContainerEncodeError::InvalidMetadataValue {
+                    mode,
+                    field: "compression",
+                    value: compression,
+                });
+            }
+        }
     }
     Ok(())
 }
@@ -678,35 +672,31 @@ impl fmt::Display for ContainerEncodeError {
             ContainerEncodeError::UnsupportedMode(mode) => {
                 write!(f, "mode {mode:?} is not supported for encoding yet")
             }
-        ContainerEncodeError::UnsupportedFlags(bits) => write!(
-            f,
-            "flags {bits:#06X} require compression/encryption which is not implemented"
-        ),
-        ContainerEncodeError::ReservedFlags(bits) => {
-            write!(f, "reserved flags are not allowed in v1: {bits:#06X}")
+            ContainerEncodeError::UnsupportedFlags(bits) => write!(
+                f,
+                "flags {bits:#06X} require compression/encryption which is not implemented"
+            ),
+            ContainerEncodeError::ReservedFlags(bits) => {
+                write!(f, "reserved flags are not allowed in v1: {bits:#06X}")
+            }
+            ContainerEncodeError::ChecksumFlagMissingHints => write!(
+                f,
+                "checksum flag is set but no fields contain embedded checksum hints"
+            ),
+            ContainerEncodeError::InvalidMetadataLength {
+                mode,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "mode {mode:?} requires {expected} metadata bytes but header declares {actual}"
+            ),
+            ContainerEncodeError::InvalidMetadataValue { mode, field, value } => write!(
+                f,
+                "mode {mode:?} metadata field {field} contains unsupported value 0x{value:02X}"
+            ),
         }
-        ContainerEncodeError::ChecksumFlagMissingHints => write!(
-            f,
-            "checksum flag is set but no fields contain embedded checksum hints"
-        ),
-        ContainerEncodeError::InvalidMetadataLength {
-            mode,
-            expected,
-            actual,
-        } => write!(
-            f,
-            "mode {mode:?} requires {expected} metadata bytes but header declares {actual}"
-        ),
-        ContainerEncodeError::InvalidMetadataValue {
-            mode,
-            field,
-            value,
-        } => write!(
-            f,
-            "mode {mode:?} metadata field {field} contains unsupported value 0x{value:02X}"
-        ),
     }
-}
 }
 
 impl std::error::Error for ContainerEncodeError {
@@ -743,7 +733,13 @@ pub fn parse_delta_metadata(metadata: &[u8]) -> Result<DeltaMetadata, MetadataEr
         });
     }
     let base_snapshot = u64::from_be_bytes([
-        metadata[0], metadata[1], metadata[2], metadata[3], metadata[4], metadata[5], metadata[6],
+        metadata[0],
+        metadata[1],
+        metadata[2],
+        metadata[3],
+        metadata[4],
+        metadata[5],
+        metadata[6],
         metadata[7],
     ]);
     Ok(DeltaMetadata {
@@ -769,11 +765,7 @@ mod tests {
     use crate::binary::BinaryEncoder;
     use lnmp_core::{LnmpField, LnmpValue, LNMP_FLAG_CHECKSUM_REQUIRED, LNMP_FLAG_COMPRESSED};
 
-    fn build_container_bytes(
-        mode: LnmpFileMode,
-        metadata: &[u8],
-        payload: &[u8],
-    ) -> Vec<u8> {
+    fn build_container_bytes(mode: LnmpFileMode, metadata: &[u8], payload: &[u8]) -> Vec<u8> {
         let mut header = LnmpContainerHeader::new(mode);
         header.metadata_len = metadata.len() as u32;
         let mut bytes = header.encode().to_vec();
@@ -832,7 +824,10 @@ mod tests {
         bytes.extend_from_slice(&[0xAA, 0xBB]);
         let err = ContainerFrame::parse(&bytes).unwrap_err();
         match err {
-            ContainerFrameError::TruncatedMetadata { expected, available } => {
+            ContainerFrameError::TruncatedMetadata {
+                expected,
+                available,
+            } => {
                 assert_eq!(expected, 4);
                 assert_eq!(available, 2);
             }

@@ -536,11 +536,7 @@ impl DeltaDecoder {
     }
 
     /// Applies delta operations to a base record.
-    pub fn apply_delta(
-        &self,
-        base: &mut LnmpRecord,
-        ops: &[DeltaOp],
-    ) -> Result<(), DeltaError> {
+    pub fn apply_delta(&self, base: &mut LnmpRecord, ops: &[DeltaOp]) -> Result<(), DeltaError> {
         self.apply_delta_with_context(base, ops, &DeltaApplyContext::default())
     }
 
