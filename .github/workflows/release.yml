@@ -49,7 +49,10 @@ jobs:
             
             # Check if version exists on crates.io
             # 200 = exists, 404 = not found
-            http_code=$(curl -s -o /dev/null -w "%{http_code}" "https://crates.io/api/v1/crates/${crate}/${version}")
+            # specific User-Agent is required by crates.io API
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" -A "lnmp-release-workflow" "https://crates.io/api/v1/crates/${crate}/${version}")
+            
+            echo "API Response for ${crate} v${version}: ${http_code}"
             
             if [ "$http_code" == "200" ]; then
                 echo "⚠️  ${crate} v${version} already exists on crates.io. Skipping publish."
