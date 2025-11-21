@@ -69,13 +69,13 @@ jobs:
           # 1. Base crates with no internal dependencies
           publish lnmp-embedding
           publish lnmp-sanitize
+
+          # 2. Quantization (depends on: lnmp-embedding)
+          publish lnmp-quant
           
-          # 2. Core (depends on: lnmp-embedding)
+          # 3. Core (depends on: lnmp-embedding, lnmp-quant)
           publish lnmp-core
           
-          # 3. Quantization (depends on: lnmp-core, lnmp-embedding)
-          publish lnmp-quant
-
           # 4. SFE (depends on: lnmp-core)
           publish lnmp-sfe
           
