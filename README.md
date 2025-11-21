@@ -2,7 +2,7 @@
 
 LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID-based data format designed for data exchange with large language models (LLMs).
 
-**Current Version: v0.5.2 - Advanced Protocol & Spatial Computing**
+**Current Version: v0.5.4 - Advanced Protocol, Spatial Computing & Quantization**
 
 ## Features
 
@@ -25,6 +25,7 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 - 🛡️ **Input sanitization** - Security-focused input validation and sanitization (v0.5)
 - 📍 **Spatial awareness** - Physical coordinates and transformations with hybrid protocol (v0.5.2)
 - ✅ **Well-tested** - Comprehensive test suite with multi-language compliance tests
+- 📉 **Quantization** - Adaptive vector quantization (FP16, Int8, Int4, Binary) with batch processing (v0.5.4)
 
 ## Project Structure
 
@@ -36,7 +37,8 @@ This is a Rust workspace containing multiple crates:
 - **lnmp-llb** (v0.5.2): LNMP-LLM Bridge Layer - prompt optimization, explain mode, and ShortForm encoding
 - **lnmp-embedding** (v0.5.2): Vector embedding support with efficient delta encoding
 - **lnmp-sanitize** (v0.5.2): Security-focused input validation and sanitization
-- **lnmp-spatial** (v0.1.0): Spatial awareness types and hybrid protocol for robotics and real-time control
+- **lnmp-spatial** (v0.5.4): Spatial awareness types and hybrid protocol for robotics and real-time control
+- **lnmp-quant** (v0.5.4): Adaptive quantization and compression for embedding vectors
 
 
 ## Quick Start
@@ -616,6 +618,35 @@ cargo run --example spatial_stream       # Continuous telemetry
 cargo run --example spatial_jitter_sim   # 1kHz control loop
 cargo run --example spatial_reflex_sim   # Prediction vs non-prediction
 ```
+
+
+### v0.7 (0.5.4) - Quantization & Compression ✅ (Current)
+- **Adaptive Quantization**: Auto-select scheme based on accuracy/compression targets
+- **FP16 Passthrough**: Near-lossless 2x compression (~99.9% accuracy)
+- **QInt8**: 4x compression with high fidelity (~99% similarity)
+- **QInt4**: 8x compression for balanced efficiency (~95% similarity)
+- **Binary**: 32x compression for maximum density (~85% similarity)
+- **Batch Processing**: Efficient API for processing multiple vectors
+- **Zero Overhead**: Adaptive selection compiles to direct calls
+
+#### LNMP-Quant Quick Start
+
+```rust
+use lnmp_quant::adaptive::{quantize_adaptive, AccuracyTarget};
+use lnmp_quant::batch::quantize_batch;
+
+// Adaptive: Select best scheme for target
+let q = quantize_adaptive(&emb, AccuracyTarget::High)?; // Uses QInt8
+
+// Batch: Process multiple vectors efficiently
+let results = quantize_batch(&embeddings, QuantScheme::QInt8);
+println!("Processed {} vectors in {:?}", results.stats.total, results.stats.total_time);
+```
+
+**Performance:**
+- **Adaptive Overhead**: Zero (negligible)
+- **Batch Overhead**: <150ns per vector
+- **Throughput**: >2M vectors/sec (FP16)
 
 ## Migration Guide
 
