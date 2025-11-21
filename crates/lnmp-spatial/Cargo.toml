@@ -3,6 +3,12 @@ name = "lnmp-spatial"
 version = "0.5.4"
 edition = "2021"
 description = "Spatial awareness types and logic for LNMP protocol"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords = ["lnmp", "spatial", "robotics", "protocol", "control"]
+categories = ["encoding", "science::robotics", "simulation"]
 
 [dependencies]
 lnmp-core = { version = "0.5.4", path = "../lnmp-core" }
