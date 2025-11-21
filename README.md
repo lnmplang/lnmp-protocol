@@ -487,13 +487,13 @@ See the `examples/` directory for complete examples:
 
 ## Documentation
 
-- **v0.5 Specification**: See `.kiro/specs/lnmp-v0.5-advanced-protocol/`
+- **v0.5 Specification**: See `specs/lnmp-v0.5-advanced-protocol/`
   - `requirements.md` - Formal requirements using EARS patterns
   - `design.md` - Architecture and component design
   - `tasks.md` - Implementation task list
 - **v0.5 Migration Guide**: See `MIGRATION_V05.md` for upgrading from v0.4
 - **v0.5 API Reference**: See `API_V05.md` for complete API documentation
-- **v0.3 Specification**: See `.kiro/specs/lnmp-v0.3-semantic-fidelity/`
+- **v0.3 Specification**: See `specs/lnmp-v0.3-semantic-fidelity/`
 - **Grammar**: See `spec/grammar.md` for PEG/EBNF specification
 - **Error Classes**: See `spec/error-classes.md` for error classification
 - **API Docs**: Run `cargo doc --open`
