@@ -41,6 +41,8 @@ pub enum LnmpFileMode {
     QuantumSafe = 0x05,
     /// LNMP/Embedding.
     Embedding = 0x06,
+    /// LNMP/Spatial.
+    Spatial = 0x07,
 }
 
 impl LnmpFileMode {
@@ -53,6 +55,7 @@ impl LnmpFileMode {
             0x04 => Ok(Self::Delta),
             0x05 => Ok(Self::QuantumSafe),
             0x06 => Ok(Self::Embedding),
+            0x07 => Ok(Self::Spatial),
             other => Err(LnmpContainerError::UnknownMode(other)),
         }
     }

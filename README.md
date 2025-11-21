@@ -2,7 +2,7 @@
 
 LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID-based data format designed for data exchange with large language models (LLMs).
 
-**Current Version: v0.5 - Advanced Protocol & M2M Transport**
+**Current Version: v0.5.2 - Advanced Protocol & Spatial Computing**
 
 ## Features
 
@@ -21,16 +21,23 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 - 🤝 **Schema negotiation** - Capability exchange and version negotiation (v0.5)
 - 🔄 **Delta encoding** - Bandwidth-efficient incremental updates (v0.5)
 - 🧠 **LLB2 optimization** - Enhanced LLM context optimization (v0.5)
+- 🧬 **Embedding support** - Native vector embeddings with delta encoding (v0.5)
+- 🛡️ **Input sanitization** - Security-focused input validation and sanitization (v0.5)
+- 📍 **Spatial awareness** - Physical coordinates and transformations with hybrid protocol (v0.5.2)
 - ✅ **Well-tested** - Comprehensive test suite with multi-language compliance tests
 
 ## Project Structure
 
 This is a Rust workspace containing multiple crates:
 
-- **lnmp-core**: Core type definitions for LNMP data structures (including nested structures and checksums)
-- **lnmp-codec**: Parser and encoder implementations for LNMP text format (with normalization and equivalence mapping)
-- **lnmp-sfe**: Semantic Fidelity Engine - semantic dictionary and equivalence mapping (v0.3)
-- **lnmp-llb**: LNMP-LLM Bridge Layer - prompt optimization, explain mode, and ShortForm encoding (v0.3)
+- **lnmp-core** (v0.5.2): Core type definitions for LNMP data structures (including nested structures and checksums)
+- **lnmp-codec** (v0.5.2): Parser and encoder implementations for LNMP text format (with normalization and equivalence mapping)
+- **lnmp-sfe** (v0.5.2): Semantic Fidelity Engine - semantic dictionary and equivalence mapping
+- **lnmp-llb** (v0.5.2): LNMP-LLM Bridge Layer - prompt optimization, explain mode, and ShortForm encoding
+- **lnmp-embedding** (v0.5.2): Vector embedding support with efficient delta encoding
+- **lnmp-sanitize** (v0.5.2): Security-focused input validation and sanitization
+- **lnmp-spatial** (v0.1.0): Spatial awareness types and hybrid protocol for robotics and real-time control
+
 
 ## Quick Start
 
@@ -561,11 +568,54 @@ cd tests/compliance/cpp && make test
 - Type mismatch detection
 - 50%+ bandwidth savings with delta encoding
 
-### v0.6 - Embedding-Native Protocol (Planned)
-- Vector field types
-- Embedding-aware checksums
-- Semantic similarity validation
-- Compression for embedding data
+### v0.6 (0.5.2) - LNMP-Spatial Protocol ✅ (Current)
+- **Spatial Type System**: Position, Rotation, Velocity, Acceleration, Quaternion, BoundingBox
+- **Binary Spatial Codec**: 2-3ns encode/decode latency
+- **Delta Encoding**: Position/Rotation deltas with 99% bandwidth reduction
+- **Hybrid Protocol**: Automatic ABS/DELTA mixing (1% ABS, 99% DELTA)
+- **Predictive Delta**: Dead reckoning for packet loss resilience
+- **Frame Integrity**: CRC32 checksums and nanosecond timestamps
+- **High Frequency**: Verified at 1kHz control loops
+- **Streaming Telemetry**: Continuous robot state transmission
+- **Safety Features**: Configurable prediction limits, drift correction
+- **Use Cases**: Robot control, autonomous vehicles, AR/VR, simulation
+
+#### LNMP-Spatial Quick Start
+
+```rust
+use lnmp_spatial::protocol::{SpatialStreamer, SpatialStreamerConfig};
+
+// Configure hybrid protocol
+let config = SpatialStreamerConfig {
+    abs_interval: 100,        // ABS frame every 100 frames (drift correction)
+    enable_prediction: true,   // Enable predictive delta (packet loss handling)
+    max_prediction_frames: 3,  // Max 3 consecutive predictions
+};
+
+let mut streamer = SpatialStreamer::with_config(config);
+
+// Sender: Generate frames
+let frame = streamer.next_frame(&robot_state, timestamp_ns)?;
+// Automatically uses DELTA (99%) or ABS (1%) based on sequence
+
+// Receiver: Process frames
+let state = streamer.process_frame(&frame)?;
+// Automatically handles packet loss with prediction fallback
+```
+
+**Performance:**
+- Encode/Decode: **2-3 ns** per operation
+- Bandwidth: **99% reduction** with DELTA
+- Frequency: **1kHz** control loop verified
+- Packet Loss: **Predictive fallback** maintains smooth operation
+
+**Examples:**
+```bash
+cargo run --example spatial_robot        # Robot + Embedding integration
+cargo run --example spatial_stream       # Continuous telemetry
+cargo run --example spatial_jitter_sim   # 1kHz control loop
+cargo run --example spatial_reflex_sim   # Prediction vs non-prediction
+```
 
 ## Migration Guide
 

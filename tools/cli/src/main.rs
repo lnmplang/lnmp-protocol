@@ -142,6 +142,7 @@ fn format_mode(mode: LnmpFileMode) -> &'static str {
         LnmpFileMode::Delta => "LNMP/Delta",
         LnmpFileMode::QuantumSafe => "LNMP/Quantum-Safe",
         LnmpFileMode::Embedding => "LNMP/Embedding",
+        LnmpFileMode::Spatial => "LNMP/Spatial",
     }
 }
 

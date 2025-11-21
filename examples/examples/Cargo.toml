@@ -80,8 +80,26 @@ path = "delta_demo.rs"
 name = "run_all_examples"
 path = "run_all_examples.rs"
 
+[[example]]
+name = "spatial_robot"
+path = "../spatial_robot.rs"
+
+[[example]]
+name = "spatial_stream"
+path = "../spatial_stream.rs"
+
+[[example]]
+name = "spatial_jitter_sim"
+path = "../spatial_jitter_sim.rs"
+
+[[example]]
+name = "spatial_reflex_sim"
+path = "../spatial_reflex_sim.rs"
+
 [dependencies]
 lnmp-core.workspace = true
 lnmp-codec.workspace = true
 lnmp-llb.workspace = true
 lnmp-embedding.workspace = true
+lnmp-spatial = { path = "../../crates/lnmp-spatial" }
+hex = "0.4"
