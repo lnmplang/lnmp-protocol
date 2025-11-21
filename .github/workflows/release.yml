@@ -65,5 +65,7 @@ jobs:
           # 5. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
           publish lnmp-llb
           
+          # 6. Spatial Lnmp 
+          publish lnmp-spatial
           
           echo "All crates published successfully!"
