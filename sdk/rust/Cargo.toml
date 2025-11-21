@@ -9,5 +9,5 @@ name = "lnmp_sdk_rust"
 path = "src/lib.rs"
 
 [dependencies]
-lnmp-core = { path = "../../crates/lnmp-core" }
-lnmp-embedding = { path = "../../crates/lnmp-embedding" }
+lnmp-core = { version = "0.5.4", path = "../../crates/lnmp-core" }
+lnmp-embedding = { version = "0.5.4", path = "../../crates/lnmp-embedding" }

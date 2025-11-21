@@ -5,7 +5,7 @@ edition = "2021"
 description = "Spatial awareness types and logic for LNMP protocol"
 
 [dependencies]
-lnmp-core = { path = "../lnmp-core" }
+lnmp-core = { version = "0.5.4", path = "../lnmp-core" }
 bytes = "1.0"
 thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"] }
