@@ -42,7 +42,21 @@ jobs:
           set -euo pipefail
           publish() {
             crate=$1
-            echo "Publishing ${crate}..."
+            # Get version using cargo metadata (requires jq, which is standard on ubuntu-latest)
+            version=$(cargo metadata --format-version 1 --no-deps | jq -r ".packages[] | select(.name == \"$crate\") | .version")
+            
+            echo "Checking if ${crate} v${version} is already published..."
+            
+            # Check if version exists on crates.io
+            # 200 = exists, 404 = not found
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" "https://crates.io/api/v1/crates/${crate}/${version}")
+            
+            if [ "$http_code" == "200" ]; then
+                echo "⚠️  ${crate} v${version} already exists on crates.io. Skipping publish."
+                return 0
+            fi
+            
+            echo "🚀 Publishing ${crate} v${version}..."
             cargo publish -p "${crate}" --locked
             echo "Waiting for crates.io to index ${crate}..."
             sleep 30
@@ -56,19 +70,19 @@ jobs:
           # 2. Core (depends on: lnmp-embedding)
           publish lnmp-core
           
-          # 3. SFE (depends on: lnmp-core)
+          # 3. Quantization (depends on: lnmp-core, lnmp-embedding)
+          publish lnmp-quant
+
+          # 4. SFE (depends on: lnmp-core)
           publish lnmp-sfe
           
-          # 4. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding)
+          # 5. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding, lnmp-quant)
           publish lnmp-codec
           
-          # 5. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
+          # 6. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
           publish lnmp-llb
           
-          # 6. Spatial Lnmp (depends on: lnmp-core, lnmp-embedding)
+          # 7. Spatial Lnmp (depends on: lnmp-core, lnmp-embedding)
           publish lnmp-spatial
-
-          # 7. Quantization (depends on: lnmp-core, lnmp-embedding)
-          publish lnmp-quant    
 
           echo "All crates published successfully!"
