@@ -65,7 +65,10 @@ jobs:
           # 5. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
           publish lnmp-llb
           
-          # 6. Spatial Lnmp 
+          # 6. Spatial Lnmp (depends on: lnmp-core, lnmp-embedding)
           publish lnmp-spatial
-          
+
+          # 7. Quantization (depends on: lnmp-core, lnmp-embedding)
+          publish lnmp-quant    
+
           echo "All crates published successfully!"

@@ -15,3 +15,4 @@ crc32fast = "1.4"
 crc = "2.1"
 crc-catalog = "1.1"
 lnmp-embedding = { workspace = true }
+lnmp-quant = { workspace = true }

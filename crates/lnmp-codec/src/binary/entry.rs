@@ -133,6 +133,16 @@ impl BinaryEntry {
                 bytes.extend_from_slice(&varint::encode(encoded.len() as i64));
                 bytes.extend_from_slice(&encoded);
             }
+            BinaryValue::QuantizedEmbedding(qv) => {
+                // Encode quantized embedding: scheme + scale + zero_point + min_val + dim + data
+                bytes.push(qv.scheme as u8);
+                bytes.extend_from_slice(&qv.scale.to_le_bytes());
+                bytes.push(qv.zero_point as u8);
+                bytes.extend_from_slice(&qv.min_val.to_le_bytes());
+                bytes.extend_from_slice(&qv.dim.to_le_bytes());
+                bytes.extend_from_slice(&varint::encode(qv.data.len() as i64));
+                bytes.extend_from_slice(&qv.data);
+            }
         }
 
         bytes
@@ -186,7 +196,7 @@ impl BinaryEntry {
                 });
             }
             TypeTag::Reserved09
-            | TypeTag::Reserved0A
+            | TypeTag::QuantizedEmbedding
             | TypeTag::Reserved0B
             | TypeTag::Reserved0C
             | TypeTag::Reserved0D

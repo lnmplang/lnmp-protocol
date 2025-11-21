@@ -242,6 +242,7 @@ impl ExplainEncoder {
             LnmpValue::NestedArray(_) => TypeHint::RecordArray,
             LnmpValue::Embedding(_) => TypeHint::Embedding,
             LnmpValue::EmbeddingDelta(_) => TypeHint::Embedding,
+            LnmpValue::QuantizedEmbedding(_) => TypeHint::QuantizedEmbedding,
         }
     }
 
@@ -269,6 +270,12 @@ impl ExplainEncoder {
             }
             LnmpValue::EmbeddingDelta(delta) => {
                 format!("[embedding_delta changes={}]", delta.changes.len())
+            }
+            LnmpValue::QuantizedEmbedding(qv) => {
+                format!(
+                    "[quantized_embedding dim={} scheme={:?}]",
+                    qv.dim, qv.scheme
+                )
             }
         }
     }

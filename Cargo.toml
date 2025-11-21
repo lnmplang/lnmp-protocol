@@ -5,6 +5,7 @@ members = [
     "crates/lnmp-core",
     "crates/lnmp-embedding",
     "crates/lnmp-llb",
+    "crates/lnmp-quant",
     "crates/lnmp-sanitize",
     "crates/lnmp-sfe",
     "crates/lnmp-spatial",
@@ -15,16 +16,20 @@ members = [
 ]
 
 [workspace.package]
-version = "0.5.2"
+version = "0.5.3"
 edition = "2021"
 rust-version = "1.91.0"
-authors = ["LNMP Contributors"]
-license = "MIT OR Apache-2.0"
+authors = ["LNMP Team"]
+license = "MIT"
+repository = "https://github.com/lnmp-protocol/lnmp"
+homepage = "https://lnmp.io"
 
 [workspace.dependencies]
-lnmp-core = { version = "0.5.2", path = "crates/lnmp-core" }
-lnmp-sanitize = { version = "0.5.2", path = "crates/lnmp-sanitize" }
-lnmp-codec = { version = "0.5.2", path = "crates/lnmp-codec" }
-lnmp-llb = { version = "0.5.2", path = "crates/lnmp-llb" }
-lnmp-sfe = { version = "0.5.2", path = "crates/lnmp-sfe" }
-lnmp-embedding = { version = "0.5.2", path = "crates/lnmp-embedding" }
+lnmp-core = { version = "0.5.3", path = "crates/lnmp-core" }
+lnmp-sanitize = { version = "0.5.3", path = "crates/lnmp-sanitize" }
+lnmp-codec = { version = "0.5.3", path = "crates/lnmp-codec" }
+lnmp-llb = { version = "0.5.3", path = "crates/lnmp-llb" }
+lnmp-sfe = { version = "0.5.3", path = "crates/lnmp-sfe" }
+lnmp-embedding = { version = "0.5.3", path = "crates/lnmp-embedding" }
+lnmp-quant = { version = "0.5.3", path = "crates/lnmp-quant" }
+

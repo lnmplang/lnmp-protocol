@@ -197,7 +197,8 @@ impl StructuralLimits {
             | LnmpValue::Float(_)
             | LnmpValue::Bool(_)
             | LnmpValue::Embedding(_)
-            | LnmpValue::EmbeddingDelta(_) => Ok(()),
+            | LnmpValue::EmbeddingDelta(_)
+            | LnmpValue::QuantizedEmbedding(_) => Ok(()),
         }
     }
 }

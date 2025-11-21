@@ -80,6 +80,7 @@ impl ValueNormalizer {
             LnmpValue::NestedArray(records) => LnmpValue::NestedArray(records.clone()),
             LnmpValue::Embedding(vec) => LnmpValue::Embedding(vec.clone()),
             LnmpValue::EmbeddingDelta(delta) => LnmpValue::EmbeddingDelta(delta.clone()),
+            LnmpValue::QuantizedEmbedding(qv) => LnmpValue::QuantizedEmbedding(qv.clone()),
         }
     }
 

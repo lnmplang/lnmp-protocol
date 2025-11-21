@@ -27,6 +27,8 @@ pub enum LnmpValue {
     Embedding(lnmp_embedding::Vector),
     /// Delta update for embedding vector
     EmbeddingDelta(lnmp_embedding::VectorDelta),
+    /// Quantized embedding vector (v0.5.2)
+    QuantizedEmbedding(lnmp_quant::QuantizedVector),
 }
 
 impl LnmpValue {
@@ -39,7 +41,8 @@ impl LnmpValue {
             | LnmpValue::String(_)
             | LnmpValue::StringArray(_)
             | LnmpValue::Embedding(_)
-            | LnmpValue::EmbeddingDelta(_) => 0,
+            | LnmpValue::EmbeddingDelta(_)
+            | LnmpValue::QuantizedEmbedding(_) => 0,
             LnmpValue::NestedRecord(record) => {
                 1 + record
                     .fields()
@@ -87,7 +90,8 @@ impl LnmpValue {
                 | LnmpValue::String(_)
                 | LnmpValue::StringArray(_)
                 | LnmpValue::Embedding(_)
-                | LnmpValue::EmbeddingDelta(_) => {}
+                | LnmpValue::EmbeddingDelta(_)
+                | LnmpValue::QuantizedEmbedding(_) => {}
 
                 LnmpValue::NestedRecord(record) => {
                     for field in record.fields() {
@@ -119,7 +123,8 @@ impl LnmpValue {
             | LnmpValue::String(_)
             | LnmpValue::StringArray(_)
             | LnmpValue::Embedding(_)
-            | LnmpValue::EmbeddingDelta(_) => Ok(()),
+            | LnmpValue::EmbeddingDelta(_)
+            | LnmpValue::QuantizedEmbedding(_) => Ok(()),
 
             // Validate nested record
             LnmpValue::NestedRecord(record) => {
@@ -161,6 +166,8 @@ pub enum TypeHint {
     RecordArray,
     /// Embedding type hint (:v) - v0.5
     Embedding,
+    /// Quantized embedding type hint (:qv) - v0.5.2
+    QuantizedEmbedding,
 }
 
 impl TypeHint {
@@ -175,6 +182,7 @@ impl TypeHint {
             TypeHint::Record => "r",
             TypeHint::RecordArray => "ra",
             TypeHint::Embedding => "v",
+            TypeHint::QuantizedEmbedding => "qv",
         }
     }
 
@@ -189,6 +197,7 @@ impl TypeHint {
             "r" => Some(TypeHint::Record),
             "ra" => Some(TypeHint::RecordArray),
             "v" => Some(TypeHint::Embedding),
+            "qv" => Some(TypeHint::QuantizedEmbedding),
             _ => None,
         }
     }
@@ -216,6 +225,10 @@ impl TypeHint {
                 | (TypeHint::Record, LnmpValue::NestedRecord(_))
                 | (TypeHint::RecordArray, LnmpValue::NestedArray(_))
                 | (TypeHint::Embedding, LnmpValue::Embedding(_))
+                | (
+                    TypeHint::QuantizedEmbedding,
+                    LnmpValue::QuantizedEmbedding(_)
+                )
         )
     }
 }
@@ -234,6 +247,7 @@ impl FromStr for TypeHint {
             "r" => Ok(TypeHint::Record),
             "ra" => Ok(TypeHint::RecordArray),
             "v" => Ok(TypeHint::Embedding),
+            "qv" => Ok(TypeHint::QuantizedEmbedding),
             _ => Err(()),
         }
     }

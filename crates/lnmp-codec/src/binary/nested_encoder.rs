@@ -310,6 +310,32 @@ impl BinaryNestedEncoder {
                 buffer.extend_from_slice(&encoded);
                 Ok(buffer)
             }
+            LnmpValue::QuantizedEmbedding(qv) => {
+                // TAG + SCHEME + SCALE + ZERO_POINT + MIN_VAL + DIM + DATA
+                let mut buffer = Vec::new();
+                buffer.push(TypeTag::QuantizedEmbedding.to_u8()); // 0x0A
+
+                // Encode scheme as 1 byte
+                buffer.push(qv.scheme as u8);
+
+                // Encode scale (f32, 4 bytes LE)
+                buffer.extend_from_slice(&qv.scale.to_le_bytes());
+
+                // Encode zero_point (i8, 1 byte)
+                buffer.push(qv.zero_point as u8);
+
+                // Encode min_val (f32, 4 bytes LE)
+                buffer.extend_from_slice(&qv.min_val.to_le_bytes());
+
+                // Encode dim (u32, 4 bytes LE)
+                buffer.extend_from_slice(&qv.dim.to_le_bytes());
+
+                // Encode data length and data bytes
+                buffer.extend_from_slice(&varint::encode(qv.data.len() as i64));
+                buffer.extend_from_slice(&qv.data);
+
+                Ok(buffer)
+            }
             LnmpValue::NestedRecord(record) => {
                 self.encode_nested_record_with_depth(record, current_depth)
             }

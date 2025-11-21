@@ -4,6 +4,31 @@ use crate::config::EncoderConfig;
 use lnmp_core::checksum::SemanticChecksum;
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue, TypeHint};
 
+/// Encodes a quantized embedding into compact text format
+///
+/// Format: `QV[scheme,scale,zp,min,hex_data]`
+/// Example: `QV[QInt8,0.001568,0,-0.5,a1b2c3d4...]`
+fn encode_quantized_embedding(qv: &lnmp_quant::QuantizedVector) -> String {
+    use std::fmt::Write;
+    let mut result = String::with_capacity(32 + qv.data.len() * 2);
+
+    // Format: QV[scheme,scale,zero_point,min_val,data_hex]
+    write!(
+        &mut result,
+        "QV[{:?},{},{},{},",
+        qv.scheme, qv.scale, qv.zero_point, qv.min_val
+    )
+    .unwrap();
+
+    // Append hex-encoded data
+    for byte in &qv.data {
+        write!(&mut result, "{:02x}", byte).unwrap();
+    }
+
+    result.push(']');
+    result
+}
+
 /// Encoder for LNMP text format
 pub struct Encoder {
     use_semicolons: bool,
@@ -121,6 +146,7 @@ impl Encoder {
             LnmpValue::NestedArray(_) => TypeHint::RecordArray,
             LnmpValue::Embedding(_) => TypeHint::Embedding,
             LnmpValue::EmbeddingDelta(_) => TypeHint::Embedding,
+            LnmpValue::QuantizedEmbedding(_) => TypeHint::QuantizedEmbedding,
         }
     }
 
@@ -153,6 +179,10 @@ impl Encoder {
                 // Text format representation for embedding deltas is not yet standardized.
                 // We use a placeholder format that indicates the number of changes.
                 format!("[vector_delta changes={}]", delta.changes.len())
+            }
+            LnmpValue::QuantizedEmbedding(qv) => {
+                // Compact text format: QV[scheme,scale,zp,min,hex_data]
+                encode_quantized_embedding(qv)
             }
         }
     }
@@ -302,6 +332,7 @@ fn canonicalize_value(value: &LnmpValue) -> LnmpValue {
         // Embeddings are already canonical (binary data)
         LnmpValue::Embedding(vec) => LnmpValue::Embedding(vec.clone()),
         LnmpValue::EmbeddingDelta(delta) => LnmpValue::EmbeddingDelta(delta.clone()),
+        LnmpValue::QuantizedEmbedding(qv) => LnmpValue::QuantizedEmbedding(qv.clone()),
     }
 }
 
@@ -321,6 +352,7 @@ fn is_empty_value(value: &LnmpValue) -> bool {
         // Embeddings are never considered empty even if dimension is 0 (which shouldn't happen)
         LnmpValue::Embedding(_) => false,
         LnmpValue::EmbeddingDelta(_) => false,
+        LnmpValue::QuantizedEmbedding(_) => false,
         // Non-empty primitive values are never considered empty
         LnmpValue::Int(_) | LnmpValue::Float(_) | LnmpValue::Bool(_) => false,
     }

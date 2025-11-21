@@ -190,6 +190,7 @@ impl LlbConverter {
             }
             LnmpValue::Embedding(_) => String::new(),
             LnmpValue::EmbeddingDelta(_) => String::new(),
+            LnmpValue::QuantizedEmbedding(_) => String::new(),
         }
     }
 
@@ -397,6 +398,9 @@ impl LlbConverter {
             LnmpValue::EmbeddingDelta(_) => {
                 // Deltas are not flattened
             }
+            LnmpValue::QuantizedEmbedding(_) => {
+                // Quantized embeddings are not flattened
+            }
         }
 
         Ok(())
@@ -567,6 +571,7 @@ impl LlbConverter {
             }
             LnmpValue::EmbeddingDelta(_) => String::new(),
             LnmpValue::Embedding(_) => String::new(),
+            LnmpValue::QuantizedEmbedding(_) => String::new(),
         }
     }
 

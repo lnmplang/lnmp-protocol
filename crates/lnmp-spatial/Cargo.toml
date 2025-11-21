@@ -1,6 +1,6 @@
 [package]
 name = "lnmp-spatial"
-version = "0.1.0"
+version = "0.5.3"
 edition = "2021"
 description = "Spatial awareness types and logic for LNMP protocol"
 

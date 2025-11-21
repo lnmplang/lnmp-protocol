@@ -177,6 +177,7 @@ impl SemanticChecksum {
             LnmpValue::NestedArray(_) => TypeHint::RecordArray,
             LnmpValue::Embedding(_) => TypeHint::Embedding,
             LnmpValue::EmbeddingDelta(_) => TypeHint::Embedding, // Delta uses same type hint
+            LnmpValue::QuantizedEmbedding(_) => TypeHint::QuantizedEmbedding,
         }
     }
 
@@ -267,6 +268,17 @@ impl SemanticChecksum {
                     }
                     Err(_) => "INVALID_DELTA".to_string(),
                 }
+            }
+            LnmpValue::QuantizedEmbedding(qv) => {
+                // Serialize quantized vector as hex string of its data
+                // Include scheme, scale, and zero_point for completeness
+                use std::fmt::Write;
+                let mut s = String::with_capacity(qv.data.len() * 2 + 32);
+                write!(&mut s, "{:?}:{}:{}:", qv.scheme, qv.scale, qv.zero_point).unwrap();
+                for b in &qv.data {
+                    write!(&mut s, "{:02x}", b).unwrap();
+                }
+                s
             }
         }
     }

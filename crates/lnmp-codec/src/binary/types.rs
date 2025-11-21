@@ -24,10 +24,9 @@ pub enum TypeTag {
     /// Embedding type (v0.5) - TAG + ENCODED_VECTOR
     Embedding = 0x08,
     /// Reserved for future use (v0.5+)
-    /// Reserved for future use (v0.5+)
     Reserved09 = 0x09,
-    /// Reserved for future use (v0.5+)
-    Reserved0A = 0x0A,
+    /// Quantized embedding type (v0.5.2) - TAG + QUANTIZED_VECTOR
+    QuantizedEmbedding = 0x0A,
     /// Reserved for future use (v0.5+)
     Reserved0B = 0x0B,
     /// Reserved for future use (v0.5+)
@@ -53,7 +52,7 @@ impl TypeTag {
             0x07 => Ok(TypeTag::NestedArray),
             0x08 => Ok(TypeTag::Embedding),
             0x09 => Ok(TypeTag::Reserved09),
-            0x0A => Ok(TypeTag::Reserved0A),
+            0x0A => Ok(TypeTag::QuantizedEmbedding),
             0x0B => Ok(TypeTag::Reserved0B),
             0x0C => Ok(TypeTag::Reserved0C),
             0x0D => Ok(TypeTag::Reserved0D),
@@ -75,8 +74,8 @@ impl TypeTag {
             TypeTag::NestedRecord
                 | TypeTag::NestedArray
                 | TypeTag::Embedding
+                | TypeTag::QuantizedEmbedding
                 | TypeTag::Reserved09
-                | TypeTag::Reserved0A
                 | TypeTag::Reserved0B
                 | TypeTag::Reserved0C
                 | TypeTag::Reserved0D
@@ -90,7 +89,6 @@ impl TypeTag {
         matches!(
             self,
             TypeTag::Reserved09
-                | TypeTag::Reserved0A
                 | TypeTag::Reserved0B
                 | TypeTag::Reserved0C
                 | TypeTag::Reserved0D
@@ -119,6 +117,8 @@ pub enum BinaryValue {
     NestedArray(Vec<lnmp_core::LnmpRecord>),
     /// Embedding (v0.5)
     Embedding(lnmp_embedding::Vector),
+    /// Quantized embedding (v0.5.2)
+    QuantizedEmbedding(lnmp_quant::QuantizedVector),
 }
 
 impl BinaryValue {
@@ -141,6 +141,7 @@ impl BinaryValue {
                 field_id: 0,
                 type_tag: 0x08,
             }),
+            LnmpValue::QuantizedEmbedding(qv) => Ok(BinaryValue::QuantizedEmbedding(qv.clone())),
         }
     }
 
@@ -174,6 +175,11 @@ impl BinaryValue {
                 field_id: 0,
                 type_tag: 0x08,
             }),
+            LnmpValue::QuantizedEmbedding(_) => Err(BinaryError::InvalidValue {
+                reason: "QuantizedEmbedding not supported in v0.4".to_string(),
+                field_id: 0,
+                type_tag: 0x0A,
+            }),
         }
     }
 
@@ -188,6 +194,7 @@ impl BinaryValue {
             BinaryValue::NestedRecord(rec) => LnmpValue::NestedRecord(rec.clone()),
             BinaryValue::NestedArray(arr) => LnmpValue::NestedArray(arr.clone()),
             BinaryValue::Embedding(vec) => LnmpValue::Embedding(vec.clone()),
+            BinaryValue::QuantizedEmbedding(qv) => LnmpValue::QuantizedEmbedding(qv.clone()),
         }
     }
 
@@ -202,6 +209,7 @@ impl BinaryValue {
             BinaryValue::NestedRecord(_) => TypeTag::NestedRecord,
             BinaryValue::NestedArray(_) => TypeTag::NestedArray,
             BinaryValue::Embedding(_) => TypeTag::Embedding,
+            BinaryValue::QuantizedEmbedding(_) => TypeTag::QuantizedEmbedding,
         }
     }
 }
@@ -240,7 +248,7 @@ mod tests {
         // Reserved types should be valid but marked as reserved
         assert_eq!(TypeTag::from_u8(0x08).unwrap(), TypeTag::Embedding);
         assert_eq!(TypeTag::from_u8(0x09).unwrap(), TypeTag::Reserved09);
-        assert_eq!(TypeTag::from_u8(0x0A).unwrap(), TypeTag::Reserved0A);
+        assert_eq!(TypeTag::from_u8(0x0A).unwrap(), TypeTag::QuantizedEmbedding);
         assert_eq!(TypeTag::from_u8(0x0B).unwrap(), TypeTag::Reserved0B);
         assert_eq!(TypeTag::from_u8(0x0C).unwrap(), TypeTag::Reserved0C);
         assert_eq!(TypeTag::from_u8(0x0D).unwrap(), TypeTag::Reserved0D);
@@ -269,7 +277,7 @@ mod tests {
             TypeTag::NestedArray,
             TypeTag::Embedding,
             TypeTag::Reserved09,
-            TypeTag::Reserved0A,
+            TypeTag::QuantizedEmbedding,
             TypeTag::Reserved0B,
             TypeTag::Reserved0C,
             TypeTag::Reserved0D,
@@ -298,7 +306,7 @@ mod tests {
         assert!(TypeTag::NestedArray.is_v0_5_type());
         assert!(TypeTag::Embedding.is_v0_5_type());
         assert!(TypeTag::Reserved09.is_v0_5_type());
-        assert!(TypeTag::Reserved0A.is_v0_5_type());
+        assert!(TypeTag::QuantizedEmbedding.is_v0_5_type());
         assert!(TypeTag::Reserved0B.is_v0_5_type());
         assert!(TypeTag::Reserved0C.is_v0_5_type());
         assert!(TypeTag::Reserved0D.is_v0_5_type());
@@ -320,7 +328,7 @@ mod tests {
         // Reserved types should return true
         assert!(!TypeTag::Embedding.is_reserved());
         assert!(TypeTag::Reserved09.is_reserved());
-        assert!(TypeTag::Reserved0A.is_reserved());
+        assert!(!TypeTag::QuantizedEmbedding.is_reserved());
         assert!(TypeTag::Reserved0B.is_reserved());
         assert!(TypeTag::Reserved0C.is_reserved());
         assert!(TypeTag::Reserved0D.is_reserved());

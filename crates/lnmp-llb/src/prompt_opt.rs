@@ -74,6 +74,9 @@ impl PromptOptimizer {
             LnmpValue::EmbeddingDelta(_) => {
                 String::new() // Deltas are not text
             }
+            LnmpValue::QuantizedEmbedding(_) => {
+                String::new() // Quantized embeddings are not text
+            }
             LnmpValue::NestedRecord(_) | LnmpValue::NestedArray(_) => {
                 // Nested structures are handled by the encoder
                 // This is a placeholder for future optimization
