@@ -1,6 +1,6 @@
 [package]
 name = "lnmp-quant"
-version = "0.5.3"
+version = "0.5.4"
 edition = "2021"
 rust-version.workspace = true
 authors = ["LNMP Contributors"]
@@ -29,6 +29,3 @@ harness = false
 [[bench]]
 name = "profiling"
 harness = false
-
-[profile.bench]
-debug = true  # Enable debug symbols for profiling
