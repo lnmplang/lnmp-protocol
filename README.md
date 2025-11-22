@@ -2,6 +2,12 @@
 
 LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID-based data format designed for data exchange with large language models (LLMs).
 
+[![Crates.io](https://img.shields.io/crates/v/lnmp.svg)](https://crates.io/crates/lnmp)
+[![Documentation](https://docs.rs/lnmp/badge.svg)](https://docs.rs/lnmp)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.91%2B-orange.svg)](https://www.rust-lang.org)
+[![Downloads](https://img.shields.io/crates/d/lnmp.svg)](https://crates.io/crates/lnmp)
+
 **Current Version: v0.5.5 - Determinism & Generic Arrays**
 
 ## Features
@@ -26,6 +32,59 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 - 📍 **Spatial awareness** - Physical coordinates and transformations with hybrid protocol (v0.5.2)
 - ✅ **Well-tested** - Comprehensive test suite with multi-language compliance tests
 - 📉 **Quantization** - Adaptive vector quantization (FP16, Int8, Int4, Binary) with batch processing (v0.5.4)
+- 🔧 **Generic Arrays** - IntArray, FloatArray, BoolArray for efficient numeric data (v0.5.5)
+- 🎯 **Strict Profiles** - Configurable validation levels (Loose/Standard/Strict) (v0.5.5)
+- 🏗️ **RecordBuilder** - Fluent API for canonical record construction (v0.5.5)
+
+## Quick Start
+
+### Installation
+
+Add LNMP to your `Cargo.toml`:
+
+```toml
+[dependencies]
+lnmp = "0.5.5"
+```
+
+Or use cargo:
+
+```bash
+cargo add lnmp
+```
+
+### Basic Usage
+
+```rust
+use lnmp::prelude::*;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Parse LNMP text
+    let text = "F12=14532;F7=1;F23=[admin,dev]";
+    let mut parser = Parser::new(text)?;
+    let record = parser.parse_record()?;
+    
+    // Access fields
+    if let Some(field) = record.get_field(12) {
+        println!("User ID: {:?}", field.value);
+    }
+    
+    // Create records with RecordBuilder
+    let new_record = RecordBuilder::new()
+        .add_field(LnmpField { fid: 12, value: LnmpValue::Int(14532) })
+        .add_field(LnmpField { fid: 7, value: LnmpValue::Bool(true) })
+        .build();
+    
+    // Encode to text
+    let encoder = Encoder::new();
+    let output = encoder.encode(&new_record);
+    println!("{}", output); // F7=1\nF12=14532
+    
+    Ok(())
+}
+```
+
+For more examples, see the [examples directory](examples/).
 
 ## Project Structure
 
