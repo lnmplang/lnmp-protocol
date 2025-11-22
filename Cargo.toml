@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/lnmp",
     "crates/lnmp-codec",
     "crates/lnmp-core",
     "crates/lnmp-embedding",
@@ -25,6 +26,7 @@ repository = "https://github.com/lnmp-protocol/lnmp"
 homepage = "https://lnmp.io"
 
 [workspace.dependencies]
+lnmp = { version = "0.5.4", path = "crates/lnmp" }
 lnmp-core = { version = "0.5.4", path = "crates/lnmp-core" }
 lnmp-sanitize = { version = "0.5.4", path = "crates/lnmp-sanitize" }
 lnmp-codec = { version = "0.5.4", path = "crates/lnmp-codec" }
@@ -32,6 +34,7 @@ lnmp-llb = { version = "0.5.4", path = "crates/lnmp-llb" }
 lnmp-sfe = { version = "0.5.4", path = "crates/lnmp-sfe" }
 lnmp-embedding = { version = "0.5.4", path = "crates/lnmp-embedding" }
 lnmp-quant = { version = "0.5.4", path = "crates/lnmp-quant" }
+lnmp-spatial = { version = "0.5.4", path = "crates/lnmp-spatial" }
 
 [profile.bench]
 debug = true

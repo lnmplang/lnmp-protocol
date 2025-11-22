@@ -88,4 +88,7 @@ jobs:
           # 7. Spatial Lnmp (depends on: lnmp-core, lnmp-embedding)
           publish lnmp-spatial
 
+          # 8. Meta crate (depends on: all above crates)
+          publish lnmp
+
           echo "All crates published successfully!"

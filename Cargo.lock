@@ -366,6 +366,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df1d3c3b53da64cf5760482273a98e575c651a67eec7f77df96b5b642de8f039"
 
 [[package]]
+name = "lnmp"
+version = "0.5.4"
+dependencies = [
+ "lnmp-codec",
+ "lnmp-core",
+ "lnmp-embedding",
+ "lnmp-llb",
+ "lnmp-quant",
+ "lnmp-sanitize",
+ "lnmp-sfe",
+ "lnmp-spatial",
+]
+
+[[package]]
 name = "lnmp-cli"
 version = "0.5.4"
 dependencies = [
