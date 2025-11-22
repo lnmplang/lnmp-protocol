@@ -31,24 +31,63 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 
 This is a Rust workspace containing multiple crates:
 
-- **lnmp-core** (v0.5.2): Core type definitions for LNMP data structures (including nested structures and checksums)
-- **lnmp-codec** (v0.5.2): Parser and encoder implementations for LNMP text format (with normalization and equivalence mapping)
-- **lnmp-sfe** (v0.5.2): Semantic Fidelity Engine - semantic dictionary and equivalence mapping
-- **lnmp-llb** (v0.5.2): LNMP-LLM Bridge Layer - prompt optimization, explain mode, and ShortForm encoding
-- **lnmp-embedding** (v0.5.2): Vector embedding support with efficient delta encoding
-- **lnmp-sanitize** (v0.5.2): Security-focused input validation and sanitization
+- **lnmp** (v0.5.4): **Meta crate** - All-in-one package that re-exports all LNMP modules (recommended for most users)
+- **lnmp-core** (v0.5.4): Core type definitions for LNMP data structures (including nested structures and checksums)
+- **lnmp-codec** (v0.5.4): Parser and encoder implementations for LNMP text format (with normalization and equivalence mapping)
+- **lnmp-embedding** (v0.5.4): Vector embedding support with efficient delta encoding
 - **lnmp-spatial** (v0.5.4): Spatial awareness types and hybrid protocol for robotics and real-time control
 - **lnmp-quant** (v0.5.4): Adaptive quantization and compression for embedding vectors
+- **lnmp-llb** (v0.5.4): LNMP-LLM Bridge Layer - prompt optimization, explain mode, and ShortForm encoding
+- **lnmp-sfe** (v0.5.4): Semantic Fidelity Engine - semantic dictionary and equivalence mapping
+- **lnmp-sanitize** (v0.5.4): Security-focused input validation and sanitization
 
 
 ## Quick Start
 
-Add to your `Cargo.toml`:
+### Recommended: Use the Meta Crate (All-in-One)
+
+The easiest way to get started is with the `lnmp` meta crate, which includes all LNMP modules:
 
 ```toml
 [dependencies]
-lnmp-core = "0.5"
-lnmp-codec = "0.5"
+lnmp = "0.5.4"
+```
+
+Then use the convenient prelude:
+
+```rust
+use lnmp::prelude::*;
+
+// Parse LNMP text
+let lnmp_text = r#"F12=14532;F7=1;F23=["admin","dev"]"#;
+let mut parser = Parser::new(lnmp_text).unwrap();
+let record = parser.parse_record().unwrap();
+
+// Encode LNMP text
+let mut record = LnmpRecord::new();
+record.add_field(LnmpField {
+    fid: 12,
+    value: LnmpValue::Int(14532),
+});
+
+let encoder = Encoder::new();
+println!("{}", encoder.encode(&record)); // F12=14532
+```
+
+**All modules are accessible:**
+
+```rust
+use lnmp::{core, codec, embedding, spatial, quant, llb, sfe, sanitize};
+```
+
+### Alternative: Individual Crates
+
+For fine-grained control, you can use individual crates:
+
+```toml
+[dependencies]
+lnmp-core = "0.5.4"
+lnmp-codec = "0.5.4"
 ```
 
 > Developing against a local checkout? Replace the version strings with `path = "../lnmp-protocol/crates/…"`. See `REPO-STRUCTURE.md` for details.
