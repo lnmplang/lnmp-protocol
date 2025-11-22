@@ -1,14 +1,14 @@
-# LNMP v0.3 Formal Grammar Specification
+# LNMP v0.5 Formal Grammar Specification
 
 ## Overview
 
-This document provides the formal grammar specification for LNMP (LLM Native Minimal Protocol) version 0.3. The grammar is defined using PEG (Parsing Expression Grammar) notation with Pest syntax, ensuring zero-ambiguity parsing across all implementations.
+This document provides the formal grammar specification for LNMP (LLM Native Minimal Protocol) version 0.5. The grammar is defined using PEG (Parsing Expression Grammar) notation with Pest syntax, ensuring zero-ambiguity parsing across all implementations.
 
 ## Grammar Goals
 
 1. **Zero Ambiguity**: Every valid input has exactly one parse tree
 2. **Deterministic**: Parsing behavior is identical across all implementations
-3. **Complete**: All valid LNMP v0.3 syntax is covered
+3. **Complete**: All valid LNMP v0.5 syntax is covered
 4. **Extensible**: Grammar can accommodate future extensions
 
 ## PEG Grammar (Pest Syntax)
@@ -44,6 +44,9 @@ type_hint = { ":" ~ type_code }
 type_code = { 
     "ra"  // Record array (must come before "r" to avoid ambiguity)
   | "sa"  // String array (must come before "s")
+  | "ia"  // Integer array (v0.5.4)
+  | "fa"  // Float array (v0.5.4)
+  | "ba"  // Boolean array (v0.5.4)
   | "i"   // Integer
   | "f"   // Float
   | "b"   // Boolean
@@ -63,6 +66,9 @@ value = {
     nested_record
   | nested_array
   | string_array
+  | int_array
+  | float_array
+  | bool_array
   | boolean
   | number
   | string
@@ -96,6 +102,24 @@ string_array = { "[" ~ string_list? ~ "]" }
 
 /// List of strings
 string_list = { string ~ ("," ~ string)* }
+
+/// Integer array: [1,2,3] (v0.5.4)
+int_array = { "[" ~ int_list? ~ "]" }
+
+/// List of integers
+int_list = { (number | boolean) ~ ("," ~ (number | boolean))* }
+
+/// Float array: [1.1,2.2,3.3] (v0.5.4)
+float_array = { "[" ~ float_list? ~ "]" }
+
+/// List of floats
+float_list = { number ~ ("," ~ number)* }
+
+/// Boolean array: [1,0,1] (v0.5.4)
+bool_array = { "[" ~ bool_list? ~ "]" }
+
+/// List of booleans
+bool_list = { boolean ~ ("," ~ boolean)* }
 
 /// String value (quoted or unquoted)
 string = { quoted_string | unquoted_string }
@@ -155,7 +179,7 @@ COMMENT = _{ "#" ~ (!NEWLINE ~ ANY)* }
 |-------|---------|-------------|---------|
 | `field_prefix` | `F` | Field prefix marker | `F` |
 | `field_id` | `[0-9]+` | Field identifier (0-65535) | `12`, `1024` |
-| `type_code` | `i\|f\|b\|s\|sa\|r\|ra` | Type hint code | `:i`, `:sa` |
+| `type_code` | `i\|f\|b\|s\|sa\|ia\|fa\|ba\|r\|ra` | Type hint code | `:i`, `:sa`, `:ia` |
 | `equals` | `=` | Assignment operator | `=` |
 | `number` | `-?[0-9]+(\.[0-9]+)?` | Numeric literal | `42`, `-3.14` |
 | `boolean` | `0\|1` | Boolean literal | `0`, `1` |
@@ -175,6 +199,9 @@ COMMENT = _{ "#" ~ (!NEWLINE ~ ANY)* }
 | `nested_record` | Nested record structure |
 | `nested_array` | Array of nested records |
 | `string_array` | Array of strings |
+| `int_array` | Array of integers (v0.5.4) |
+| `float_array` | Array of floats (v0.5.4) |
+| `bool_array` | Array of booleans (v0.5.4) |
 
 ## Precedence and Associativity
 
@@ -182,10 +209,11 @@ COMMENT = _{ "#" ~ (!NEWLINE ~ ANY)* }
 
 1. **Nested Record** (`{...}`) - Highest priority
 2. **Nested Array** (`[{...}]`)
-3. **String Array** (`[...]`)
-4. **Boolean** (`0` or `1`)
-5. **Number** (`-?[0-9]+(\.[0-9]+)?`)
-6. **String** (quoted or unquoted) - Lowest priority
+3. **String Array** (`["...", ...]`)
+4. **Int/Float/Bool Arrays** (`[1,2,3]` - type hint disambiguates)
+5. **Boolean** (`0` or `1`)
+6. **Number** (`-?[0-9]+(\.[0-9]+)?`)
+7. **String** (quoted or unquoted) - Lowest priority
 
 ### Parsing Strategy
 
@@ -333,7 +361,7 @@ F7=1       # is_active
 ### Structural Validation
 
 1. **Field ID Range**: 0 ≤ FID ≤ 65535
-2. **Type Hint Validity**: Must be one of `i`, `f`, `b`, `s`, `sa`, `r`, `ra`
+2. **Type Hint Validity**: Must be one of `i`, `f`, `b`, `s`, `sa`, `ia`, `fa`, `ba`, `r`, `ra`
 3. **Nesting Depth**: Recommended maximum 10 levels
 4. **Array Size**: Recommended maximum 1000 elements
 
@@ -390,9 +418,10 @@ field             ::= "F" field_id type_hint? "=" value checksum?
 
 field_id          ::= [0-9]+
 type_hint         ::= ":" type_code
-type_code         ::= "i" | "f" | "b" | "s" | "sa" | "r" | "ra"
+type_code         ::= "i" | "f" | "b" | "s" | "sa" | "ia" | "fa" | "ba" | "r" | "ra"
 
 value             ::= nested_record | nested_array | string_array 
+                    | int_array | float_array | bool_array
                     | boolean | number | string
 
 nested_record     ::= "{" nested_field_list? "}"
@@ -404,6 +433,15 @@ record_list       ::= nested_record ("," nested_record)*
 
 string_array      ::= "[" string_list? "]"
 string_list       ::= string ("," string)*
+
+int_array         ::= "[" int_list? "]"
+int_list          ::= (number | boolean) ("," (number | boolean))*
+
+float_array       ::= "[" float_list? "]"
+float_list        ::= number ("," number)*
+
+bool_array        ::= "[" bool_list? "]"
+bool_list         ::= boolean ("," boolean)*
 
 string            ::= quoted_string | unquoted_string
 quoted_string     ::= '"' (escape_sequence | [^"\\])* '"'
@@ -464,12 +502,13 @@ The grammar is designed to accommodate these extensions without breaking existin
 Implementations should validate against these test cases:
 
 1. **Basic Fields**: `F12=14532`, `F7:b=1`, `F1:s=hello`
-2. **Nested Records**: `F50={F12=1;F7=1}`, `F100={F1=a;F2={F10=b}}`
-3. **Nested Arrays**: `F60=[{F12=1},{F12=2}]`, `F200=[]`
-4. **Checksums**: `F12:i=14532#36AAE667`
-5. **Escape Sequences**: `F1="hello\nworld"`, `F2="path\\file"`
-6. **Comments**: `F12=1 # comment`, `F7=1#A3F2B1C4`
-7. **Whitespace**: `F12 = 1 ; F7 = 0`, `F12=1\nF7=0`
+2. **Generic Arrays**: `F10:ia=[1,2,3]`, `F11:fa=[1.1,2.2]`, `F12:ba=[1,0,1]`
+3. **Nested Records**: `F50={F12=1;F7=1}`, `F100={F1=a;F2={F10=b}}`
+4. **Nested Arrays**: `F60=[{F12=1},{F12=2}]`, `F200=[]`
+5. **Checksums**: `F12:i=14532#36AAE667`
+6. **Escape Sequences**: `F1="hello\nworld"`, `F2="path\\file"`
+7. **Comments**: `F12=1 # comment`, `F7=1#A3F2B1C4`
+8. **Whitespace**: `F12 = 1 ; F7 = 0`, `F12=1\nF7=0`
 
 ### Error Handling Tests
 
@@ -490,6 +529,10 @@ Implementations should reject these invalid inputs:
 
 ## Version History
 
+- **v0.5.4** (2025): Generic array support
+  - Added IntArray (`:ia`), FloatArray (`:fa`), BoolArray (`:ba`) type hints
+  - Added corresponding array value types
+  - Enhanced type disambiguation with type hints
 - **v0.3.0** (2024): Initial formal grammar specification
   - Added nested record and array syntax
   - Added semantic checksum syntax
