@@ -39,7 +39,7 @@ fn test_embedding_module() {
     let vec2 = Vector::from_f32(vec![1.1, 2.0, 3.2]);
 
     let delta = VectorDelta::from_vectors(&vec1, &vec2, 1).unwrap();
-    
+
     assert!(!delta.changes.is_empty());
 }
 
