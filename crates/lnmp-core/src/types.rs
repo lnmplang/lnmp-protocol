@@ -6,7 +6,7 @@ use std::str::FromStr;
 /// Field identifier type (0-65535)
 pub type FieldId = u16;
 
-/// Supported value types in LNMP v0.3
+/// Supported/// Enum representing all LNMP value types
 #[derive(Debug, Clone, PartialEq)]
 pub enum LnmpValue {
     /// Integer value (i64)
@@ -19,6 +19,12 @@ pub enum LnmpValue {
     String(String),
     /// Array of strings
     StringArray(Vec<String>),
+    /// Array of integers (v0.6)
+    IntArray(Vec<i64>),
+    /// Array of floats (v0.6)
+    FloatArray(Vec<f64>),
+    /// Array of booleans (v0.6)
+    BoolArray(Vec<bool>),
     /// Nested record (v0.3)
     NestedRecord(Box<LnmpRecord>),
     /// Array of nested records (v0.3)
@@ -40,6 +46,9 @@ impl LnmpValue {
             | LnmpValue::Bool(_)
             | LnmpValue::String(_)
             | LnmpValue::StringArray(_)
+            | LnmpValue::IntArray(_)
+            | LnmpValue::FloatArray(_)
+            | LnmpValue::BoolArray(_)
             | LnmpValue::Embedding(_)
             | LnmpValue::EmbeddingDelta(_)
             | LnmpValue::QuantizedEmbedding(_) => 0,
@@ -89,6 +98,9 @@ impl LnmpValue {
                 | LnmpValue::Bool(_)
                 | LnmpValue::String(_)
                 | LnmpValue::StringArray(_)
+                | LnmpValue::IntArray(_)
+                | LnmpValue::FloatArray(_)
+                | LnmpValue::BoolArray(_)
                 | LnmpValue::Embedding(_)
                 | LnmpValue::EmbeddingDelta(_)
                 | LnmpValue::QuantizedEmbedding(_) => {}
@@ -122,6 +134,9 @@ impl LnmpValue {
             | LnmpValue::Bool(_)
             | LnmpValue::String(_)
             | LnmpValue::StringArray(_)
+            | LnmpValue::IntArray(_)
+            | LnmpValue::FloatArray(_)
+            | LnmpValue::BoolArray(_)
             | LnmpValue::Embedding(_)
             | LnmpValue::EmbeddingDelta(_)
             | LnmpValue::QuantizedEmbedding(_) => Ok(()),
@@ -160,6 +175,12 @@ pub enum TypeHint {
     String,
     /// String array type hint (:sa)
     StringArray,
+    /// Int array type hint (:ia) - v0.6
+    IntArray,
+    /// Float array type hint (:fa) - v0.6
+    FloatArray,
+    /// Bool array type hint (:ba) - v0.6
+    BoolArray,
     /// Record type hint (:r) - v0.3
     Record,
     /// Record array type hint (:ra) - v0.3
@@ -179,6 +200,9 @@ impl TypeHint {
             TypeHint::Bool => "b",
             TypeHint::String => "s",
             TypeHint::StringArray => "sa",
+            TypeHint::IntArray => "ia",
+            TypeHint::FloatArray => "fa",
+            TypeHint::BoolArray => "ba",
             TypeHint::Record => "r",
             TypeHint::RecordArray => "ra",
             TypeHint::Embedding => "v",
@@ -222,6 +246,9 @@ impl TypeHint {
                 | (TypeHint::Bool, LnmpValue::Bool(_))
                 | (TypeHint::String, LnmpValue::String(_))
                 | (TypeHint::StringArray, LnmpValue::StringArray(_))
+                | (TypeHint::IntArray, LnmpValue::IntArray(_))
+                | (TypeHint::FloatArray, LnmpValue::FloatArray(_))
+                | (TypeHint::BoolArray, LnmpValue::BoolArray(_))
                 | (TypeHint::Record, LnmpValue::NestedRecord(_))
                 | (TypeHint::RecordArray, LnmpValue::NestedArray(_))
                 | (TypeHint::Embedding, LnmpValue::Embedding(_))
@@ -244,6 +271,9 @@ impl FromStr for TypeHint {
             "b" => Ok(TypeHint::Bool),
             "s" => Ok(TypeHint::String),
             "sa" => Ok(TypeHint::StringArray),
+            "ia" => Ok(TypeHint::IntArray),
+            "fa" => Ok(TypeHint::FloatArray),
+            "ba" => Ok(TypeHint::BoolArray),
             "r" => Ok(TypeHint::Record),
             "ra" => Ok(TypeHint::RecordArray),
             "v" => Ok(TypeHint::Embedding),

@@ -65,17 +65,21 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
+pub mod builder;
 pub mod checksum;
 pub mod container;
 pub mod limits;
+pub mod profile;
 pub mod record;
 pub mod types;
 
+pub use builder::RecordBuilder;
 pub use container::{
     LnmpContainerError, LnmpContainerHeader, LnmpFileMode, LNMP_CONTAINER_VERSION_1,
     LNMP_FLAG_CHECKSUM_REQUIRED, LNMP_FLAG_COMPRESSED, LNMP_FLAG_ENCRYPTED,
     LNMP_FLAG_EXT_META_BLOCK, LNMP_FLAG_QKEX, LNMP_FLAG_QSIG, LNMP_HEADER_SIZE, LNMP_MAGIC,
 };
 pub use limits::{StructuralError, StructuralLimits};
-pub use record::{LnmpField, LnmpRecord};
+pub use profile::{LnmpProfile, StrictDeterministicConfig};
+pub use record::{FieldOrderingError, LnmpField, LnmpRecord};
 pub use types::{FieldId, LnmpValue, TypeHint};

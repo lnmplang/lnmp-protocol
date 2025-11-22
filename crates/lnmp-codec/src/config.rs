@@ -3,6 +3,7 @@
 use crate::equivalence::EquivalenceMapper;
 use crate::normalizer::NormalizationConfig;
 
+use lnmp_core::profile::{LnmpProfile, StrictDeterministicConfig};
 use lnmp_core::StructuralLimits;
 
 /// Parsing mode configuration
@@ -13,6 +14,16 @@ pub enum ParsingMode {
     /// Loose mode: tolerates formatting variations (default)
     #[default]
     Loose,
+}
+
+impl From<LnmpProfile> for ParsingMode {
+    fn from(profile: LnmpProfile) -> Self {
+        match profile {
+            LnmpProfile::Loose => ParsingMode::Loose,
+            LnmpProfile::Standard => ParsingMode::Loose, // Standard outputs canonical but accepts loose input
+            LnmpProfile::Strict => ParsingMode::Strict,
+        }
+    }
 }
 
 // Default implementation derived via #[derive(Default)] on the enum
@@ -45,6 +56,8 @@ pub struct ParserConfig {
     pub structural_limits: Option<StructuralLimits>,
     /// Optional semantic dictionary for equivalence normalization
     pub semantic_dictionary: Option<lnmp_sfe::SemanticDictionary>,
+    /// Profile configuration from lnmp-core (v0.5.4)
+    pub profile_config: Option<StrictDeterministicConfig>,
 }
 
 impl Default for ParserConfig {
@@ -58,11 +71,38 @@ impl Default for ParserConfig {
             text_input_mode: TextInputMode::Strict,
             structural_limits: None,
             semantic_dictionary: None,
+            profile_config: None, // None means use standard defaults
         }
     }
 }
 
 impl ParserConfig {
+    /// Creates a parser config from an LnmpProfile
+    pub fn from_profile(profile: LnmpProfile) -> Self {
+        let config = profile.config();
+        Self {
+            mode: profile.into(),
+            validate_checksums: config.require_type_hints, // Validate in strict mode
+            normalize_values: !config.canonical_boolean,   // Don't normalize in strict mode
+            require_checksums: false,                      // Checksums still optional
+            max_nesting_depth: None,
+            text_input_mode: TextInputMode::Strict,
+            structural_limits: None,
+            semantic_dictionary: None,
+            profile_config: Some(config),
+        }
+    }
+
+    /// Applies a profile configuration
+    pub fn with_profile_config(mut self, config: StrictDeterministicConfig) -> Self {
+        self.profile_config = Some(config.clone());
+        // Update parsing mode based on config
+        if config.reject_unsorted_fields {
+            self.mode = ParsingMode::Strict;
+        }
+        self
+    }
+
     /// Applies structural limits to the parser.
     pub fn with_structural_limits(mut self, limits: StructuralLimits) -> Self {
         self.structural_limits = Some(limits);
@@ -324,6 +364,7 @@ mod tests {
             text_input_mode: TextInputMode::Strict,
             structural_limits: None,
             semantic_dictionary: None,
+            profile_config: None,
         };
         assert_eq!(config.mode, ParsingMode::Strict);
         assert!(config.validate_checksums);
@@ -341,6 +382,7 @@ mod tests {
             text_input_mode: TextInputMode::Strict,
             structural_limits: None,
             semantic_dictionary: None,
+            profile_config: None,
         };
         assert!(config.validate_checksums);
         assert!(config.require_checksums);

@@ -67,6 +67,9 @@ impl PromptOptimizer {
                 }
             }
             LnmpValue::String(s) => self.optimize_string(s),
+            LnmpValue::IntArray(arr) => self.optimize_int_array(arr),
+            LnmpValue::FloatArray(arr) => self.optimize_float_array(arr),
+            LnmpValue::BoolArray(arr) => self.optimize_bool_array(arr),
             LnmpValue::StringArray(arr) => self.optimize_array(arr),
             LnmpValue::Embedding(_) => {
                 String::new() // Embeddings are not text, so they don't contribute to prompts
@@ -162,6 +165,41 @@ impl PromptOptimizer {
             }
         } else {
             format!("{}", f)
+        }
+    }
+
+    /// Optimizes int array encoding
+    fn optimize_int_array(&self, arr: &[i64]) -> String {
+        if self.config.optimize_arrays && self.config.minimize_symbols {
+            let items: Vec<String> = arr.iter().map(|i| i.to_string()).collect();
+            format!("[{}]", items.join(","))
+        } else {
+            // Standard spacing
+            let items: Vec<String> = arr.iter().map(|i| i.to_string()).collect();
+            format!("[{}]", items.join(", "))
+        }
+    }
+
+    /// Optimizes float array encoding
+    fn optimize_float_array(&self, arr: &[f64]) -> String {
+        let items: Vec<String> = arr.iter().map(|f| self.optimize_float(*f)).collect();
+        if self.config.optimize_arrays && self.config.minimize_symbols {
+            format!("[{}]", items.join(","))
+        } else {
+            format!("[{}]", items.join(", "))
+        }
+    }
+
+    /// Optimizes bool array encoding
+    fn optimize_bool_array(&self, arr: &[bool]) -> String {
+        let items: Vec<String> = arr
+            .iter()
+            .map(|b| if *b { "1".to_string() } else { "0".to_string() })
+            .collect();
+        if self.config.optimize_arrays && self.config.minimize_symbols {
+            format!("[{}]", items.join(","))
+        } else {
+            format!("[{}]", items.join(", "))
         }
     }
 }

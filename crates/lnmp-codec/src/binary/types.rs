@@ -27,12 +27,12 @@ pub enum TypeTag {
     Reserved09 = 0x09,
     /// Quantized embedding type (v0.5.2) - TAG + QUANTIZED_VECTOR
     QuantizedEmbedding = 0x0A,
-    /// Reserved for future use (v0.5+)
-    Reserved0B = 0x0B,
-    /// Reserved for future use (v0.5+)
-    Reserved0C = 0x0C,
-    /// Reserved for future use (v0.5+)
-    Reserved0D = 0x0D,
+    /// Integer array type (v0.6) - TAG + COUNT + INT entries
+    IntArray = 0x0B,
+    /// Float array type (v0.6) - TAG + COUNT + FLOAT entries
+    FloatArray = 0x0C,
+    /// Boolean array type (v0.6) - TAG + COUNT + BOOL entries
+    BoolArray = 0x0D,
     /// Reserved for future use (v0.5+)
     Reserved0E = 0x0E,
     /// Reserved for future use (v0.5+)
@@ -53,9 +53,9 @@ impl TypeTag {
             0x08 => Ok(TypeTag::Embedding),
             0x09 => Ok(TypeTag::Reserved09),
             0x0A => Ok(TypeTag::QuantizedEmbedding),
-            0x0B => Ok(TypeTag::Reserved0B),
-            0x0C => Ok(TypeTag::Reserved0C),
-            0x0D => Ok(TypeTag::Reserved0D),
+            0x0B => Ok(TypeTag::IntArray),
+            0x0C => Ok(TypeTag::FloatArray),
+            0x0D => Ok(TypeTag::BoolArray),
             0x0E => Ok(TypeTag::Reserved0E),
             0x0F => Ok(TypeTag::Reserved0F),
             _ => Err(BinaryError::InvalidTypeTag { tag: byte }),
@@ -76,9 +76,9 @@ impl TypeTag {
                 | TypeTag::Embedding
                 | TypeTag::QuantizedEmbedding
                 | TypeTag::Reserved09
-                | TypeTag::Reserved0B
-                | TypeTag::Reserved0C
-                | TypeTag::Reserved0D
+                | TypeTag::IntArray
+                | TypeTag::FloatArray
+                | TypeTag::BoolArray
                 | TypeTag::Reserved0E
                 | TypeTag::Reserved0F
         )
@@ -88,12 +88,7 @@ impl TypeTag {
     pub fn is_reserved(&self) -> bool {
         matches!(
             self,
-            TypeTag::Reserved09
-                | TypeTag::Reserved0B
-                | TypeTag::Reserved0C
-                | TypeTag::Reserved0D
-                | TypeTag::Reserved0E
-                | TypeTag::Reserved0F
+            TypeTag::Reserved09 | TypeTag::Reserved0E | TypeTag::Reserved0F
         )
     }
 }
@@ -111,6 +106,12 @@ pub enum BinaryValue {
     String(String),
     /// Array of strings
     StringArray(Vec<String>),
+    /// Array of integers (v0.6)
+    IntArray(Vec<i64>),
+    /// Array of floats (v0.6)
+    FloatArray(Vec<f64>),
+    /// Array of booleans (v0.6)
+    BoolArray(Vec<bool>),
     /// Nested record (v0.5)
     NestedRecord(Box<lnmp_core::LnmpRecord>),
     /// Array of nested records (v0.5)
@@ -132,6 +133,9 @@ impl BinaryValue {
             LnmpValue::Bool(b) => Ok(BinaryValue::Bool(*b)),
             LnmpValue::String(s) => Ok(BinaryValue::String(s.clone())),
             LnmpValue::StringArray(arr) => Ok(BinaryValue::StringArray(arr.clone())),
+            LnmpValue::IntArray(arr) => Ok(BinaryValue::IntArray(arr.clone())),
+            LnmpValue::FloatArray(arr) => Ok(BinaryValue::FloatArray(arr.clone())),
+            LnmpValue::BoolArray(arr) => Ok(BinaryValue::BoolArray(arr.clone())),
             LnmpValue::NestedRecord(rec) => Ok(BinaryValue::NestedRecord(rec.clone())),
             LnmpValue::NestedArray(arr) => Ok(BinaryValue::NestedArray(arr.clone())),
             LnmpValue::Embedding(vec) => Ok(BinaryValue::Embedding(vec.clone())),
@@ -155,6 +159,21 @@ impl BinaryValue {
             LnmpValue::Bool(b) => Ok(BinaryValue::Bool(*b)),
             LnmpValue::String(s) => Ok(BinaryValue::String(s.clone())),
             LnmpValue::StringArray(arr) => Ok(BinaryValue::StringArray(arr.clone())),
+            LnmpValue::IntArray(_) => Err(BinaryError::InvalidValue {
+                field_id: 0,
+                type_tag: 0x0B,
+                reason: "IntArray not supported in v0.4 binary format".to_string(),
+            }),
+            LnmpValue::FloatArray(_) => Err(BinaryError::InvalidValue {
+                field_id: 0,
+                type_tag: 0x0C,
+                reason: "FloatArray not supported in v0.4 binary format".to_string(),
+            }),
+            LnmpValue::BoolArray(_) => Err(BinaryError::InvalidValue {
+                field_id: 0,
+                type_tag: 0x0D,
+                reason: "BoolArray not supported in v0.4 binary format".to_string(),
+            }),
             LnmpValue::NestedRecord(_) => Err(BinaryError::InvalidValue {
                 field_id: 0,
                 type_tag: 0x06,
@@ -191,6 +210,9 @@ impl BinaryValue {
             BinaryValue::Bool(b) => LnmpValue::Bool(*b),
             BinaryValue::String(s) => LnmpValue::String(s.clone()),
             BinaryValue::StringArray(arr) => LnmpValue::StringArray(arr.clone()),
+            BinaryValue::IntArray(arr) => LnmpValue::IntArray(arr.clone()),
+            BinaryValue::FloatArray(arr) => LnmpValue::FloatArray(arr.clone()),
+            BinaryValue::BoolArray(arr) => LnmpValue::BoolArray(arr.clone()),
             BinaryValue::NestedRecord(rec) => LnmpValue::NestedRecord(rec.clone()),
             BinaryValue::NestedArray(arr) => LnmpValue::NestedArray(arr.clone()),
             BinaryValue::Embedding(vec) => LnmpValue::Embedding(vec.clone()),
@@ -206,6 +228,9 @@ impl BinaryValue {
             BinaryValue::Bool(_) => TypeTag::Bool,
             BinaryValue::String(_) => TypeTag::String,
             BinaryValue::StringArray(_) => TypeTag::StringArray,
+            BinaryValue::IntArray(_) => TypeTag::IntArray,
+            BinaryValue::FloatArray(_) => TypeTag::FloatArray,
+            BinaryValue::BoolArray(_) => TypeTag::BoolArray,
             BinaryValue::NestedRecord(_) => TypeTag::NestedRecord,
             BinaryValue::NestedArray(_) => TypeTag::NestedArray,
             BinaryValue::Embedding(_) => TypeTag::Embedding,
@@ -249,9 +274,9 @@ mod tests {
         assert_eq!(TypeTag::from_u8(0x08).unwrap(), TypeTag::Embedding);
         assert_eq!(TypeTag::from_u8(0x09).unwrap(), TypeTag::Reserved09);
         assert_eq!(TypeTag::from_u8(0x0A).unwrap(), TypeTag::QuantizedEmbedding);
-        assert_eq!(TypeTag::from_u8(0x0B).unwrap(), TypeTag::Reserved0B);
-        assert_eq!(TypeTag::from_u8(0x0C).unwrap(), TypeTag::Reserved0C);
-        assert_eq!(TypeTag::from_u8(0x0D).unwrap(), TypeTag::Reserved0D);
+        assert_eq!(TypeTag::from_u8(0x0B).unwrap(), TypeTag::IntArray);
+        assert_eq!(TypeTag::from_u8(0x0C).unwrap(), TypeTag::FloatArray);
+        assert_eq!(TypeTag::from_u8(0x0D).unwrap(), TypeTag::BoolArray);
         assert_eq!(TypeTag::from_u8(0x0E).unwrap(), TypeTag::Reserved0E);
         assert_eq!(TypeTag::from_u8(0x0F).unwrap(), TypeTag::Reserved0F);
     }
@@ -278,9 +303,9 @@ mod tests {
             TypeTag::Embedding,
             TypeTag::Reserved09,
             TypeTag::QuantizedEmbedding,
-            TypeTag::Reserved0B,
-            TypeTag::Reserved0C,
-            TypeTag::Reserved0D,
+            TypeTag::IntArray,
+            TypeTag::FloatArray,
+            TypeTag::BoolArray,
             TypeTag::Reserved0E,
             TypeTag::Reserved0F,
         ];
@@ -307,9 +332,9 @@ mod tests {
         assert!(TypeTag::Embedding.is_v0_5_type());
         assert!(TypeTag::Reserved09.is_v0_5_type());
         assert!(TypeTag::QuantizedEmbedding.is_v0_5_type());
-        assert!(TypeTag::Reserved0B.is_v0_5_type());
-        assert!(TypeTag::Reserved0C.is_v0_5_type());
-        assert!(TypeTag::Reserved0D.is_v0_5_type());
+        assert!(TypeTag::IntArray.is_v0_5_type());
+        assert!(TypeTag::FloatArray.is_v0_5_type());
+        assert!(TypeTag::BoolArray.is_v0_5_type());
         assert!(TypeTag::Reserved0E.is_v0_5_type());
         assert!(TypeTag::Reserved0F.is_v0_5_type());
     }
@@ -329,9 +354,9 @@ mod tests {
         assert!(!TypeTag::Embedding.is_reserved());
         assert!(TypeTag::Reserved09.is_reserved());
         assert!(!TypeTag::QuantizedEmbedding.is_reserved());
-        assert!(TypeTag::Reserved0B.is_reserved());
-        assert!(TypeTag::Reserved0C.is_reserved());
-        assert!(TypeTag::Reserved0D.is_reserved());
+        assert!(!TypeTag::IntArray.is_reserved());
+        assert!(!TypeTag::FloatArray.is_reserved());
+        assert!(!TypeTag::BoolArray.is_reserved());
         assert!(TypeTag::Reserved0E.is_reserved());
         assert!(TypeTag::Reserved0F.is_reserved());
     }

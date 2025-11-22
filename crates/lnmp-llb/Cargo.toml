@@ -17,3 +17,8 @@ lnmp-codec = { workspace = true }
 lnmp-sfe = { workspace = true }
 
 [dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "llb_benchmarks"
+harness = false

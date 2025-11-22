@@ -81,6 +81,13 @@ impl ValueNormalizer {
             LnmpValue::Embedding(vec) => LnmpValue::Embedding(vec.clone()),
             LnmpValue::EmbeddingDelta(delta) => LnmpValue::EmbeddingDelta(delta.clone()),
             LnmpValue::QuantizedEmbedding(qv) => LnmpValue::QuantizedEmbedding(qv.clone()),
+            LnmpValue::IntArray(arr) => LnmpValue::IntArray(arr.clone()),
+            LnmpValue::FloatArray(arr) => {
+                // Normalize each float in the array
+                let normalized_arr = arr.iter().map(|f| self.normalize_float(*f)).collect();
+                LnmpValue::FloatArray(normalized_arr)
+            }
+            LnmpValue::BoolArray(arr) => LnmpValue::BoolArray(arr.clone()),
         }
     }
 

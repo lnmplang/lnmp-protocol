@@ -4,8 +4,9 @@
 //! collision-safe ID generation.
 
 use lnmp_codec::binary::{BinaryDecoder, BinaryEncoder, BinaryError};
+use lnmp_codec::config::ParserConfig;
 use lnmp_codec::{LnmpError, Parser};
-use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
+use lnmp_core::{LnmpField, LnmpProfile, LnmpRecord, LnmpValue, StrictDeterministicConfig};
 use std::collections::HashMap;
 
 /// Configuration for LLB2 optimization features
@@ -17,6 +18,8 @@ pub struct LlbConfig {
     pub enable_semantic_hints: bool,
     /// Generate collision-safe short IDs for field names
     pub collision_safe_ids: bool,
+    /// Optional parser profile configuration for validation
+    pub profile_config: Option<StrictDeterministicConfig>,
 }
 
 impl LlbConfig {
@@ -40,6 +43,18 @@ impl LlbConfig {
     /// Enable or disable collision-safe ID generation
     pub fn with_collision_safe_ids(mut self, enable: bool) -> Self {
         self.collision_safe_ids = enable;
+        self
+    }
+
+    /// Set the parser profile for validation
+    pub fn with_profile(mut self, profile: LnmpProfile) -> Self {
+        self.profile_config = Some(profile.config());
+        self
+    }
+
+    /// Set a custom strict deterministic configuration
+    pub fn with_strict_config(mut self, config: StrictDeterministicConfig) -> Self {
+        self.profile_config = Some(config);
         self
     }
 }
@@ -166,6 +181,21 @@ impl LlbConverter {
                     .collect();
                 format!("[{}]", items.join(","))
             }
+            LnmpValue::IntArray(arr) => {
+                let items: Vec<String> = arr.iter().map(|i| i.to_string()).collect();
+                format!("[{}]", items.join(","))
+            }
+            LnmpValue::FloatArray(arr) => {
+                let items: Vec<String> = arr.iter().map(|f| f.to_string()).collect();
+                format!("[{}]", items.join(","))
+            }
+            LnmpValue::BoolArray(arr) => {
+                let items: Vec<String> = arr
+                    .iter()
+                    .map(|b| if *b { "1".to_string() } else { "0".to_string() })
+                    .collect();
+                format!("[{}]", items.join(","))
+            }
             LnmpValue::NestedRecord(record) => {
                 let fields: Vec<String> = record
                     .sorted_fields()
@@ -238,7 +268,15 @@ impl LlbConverter {
         let fulltext = self.shortform_to_fulltext(shortform);
 
         // Parse using standard LNMP parser
-        let mut parser = Parser::new(&fulltext)?;
+        let mut parser = if let Some(profile_config) = &self.config.profile_config {
+            let config = ParserConfig {
+                profile_config: Some(profile_config.clone()),
+                ..Default::default()
+            };
+            Parser::with_config(&fulltext, config)?
+        } else {
+            Parser::new(&fulltext)?
+        };
         Ok(parser.parse_record()?)
     }
 
@@ -346,7 +384,10 @@ impl LlbConverter {
             | LnmpValue::Float(_)
             | LnmpValue::Bool(_)
             | LnmpValue::String(_)
-            | LnmpValue::StringArray(_) => {
+            | LnmpValue::StringArray(_)
+            | LnmpValue::IntArray(_)
+            | LnmpValue::FloatArray(_)
+            | LnmpValue::BoolArray(_) => {
                 let fid = if path.is_empty() {
                     base_fid
                 } else {
@@ -544,6 +585,21 @@ impl LlbConverter {
                             s.clone()
                         }
                     })
+                    .collect();
+                format!("[{}]", items.join(","))
+            }
+            LnmpValue::IntArray(arr) => {
+                let items: Vec<String> = arr.iter().map(|i| i.to_string()).collect();
+                format!("[{}]", items.join(","))
+            }
+            LnmpValue::FloatArray(arr) => {
+                let items: Vec<String> = arr.iter().map(|f| f.to_string()).collect();
+                format!("[{}]", items.join(","))
+            }
+            LnmpValue::BoolArray(arr) => {
+                let items: Vec<String> = arr
+                    .iter()
+                    .map(|b| if *b { "1".to_string() } else { "0".to_string() })
                     .collect();
                 format!("[{}]", items.join(","))
             }

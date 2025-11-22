@@ -8,6 +8,8 @@ Parser and encoder implementations for LNMP (LLM Native Minimal Protocol) v0.3 t
 - **Deterministic serialization**: Fields always sorted by FID for consistent output
 - **Canonical format**: Newline-separated, no extra whitespace (v0.2)
 - **Type hints**: Optional type annotations (`:i`, `:f`, `:b`, `:s`, `:sa`, `:r`, `:ra`)
+- **Generic Array Support**: `IntArray`, `FloatArray`, `BoolArray` handling in parsing/encoding
+- **Strict Profile Integration**: `LnmpProfile` (Loose, Standard, Strict) for validation and canonical enforcement
 - **Nested structures**: Parse and encode nested records and arrays (v0.3)
 - **Semantic checksums**: Optional SC32 checksums for drift prevention (v0.3)
 - **Value normalization**: Canonical value transformations (v0.3)

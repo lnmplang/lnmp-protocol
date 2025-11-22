@@ -336,6 +336,33 @@ impl BinaryNestedEncoder {
 
                 Ok(buffer)
             }
+            LnmpValue::IntArray(arr) => {
+                let mut buffer = Vec::new();
+                buffer.push(TypeTag::IntArray.to_u8());
+                buffer.extend_from_slice(&varint::encode(arr.len() as i64));
+                for i in arr {
+                    buffer.extend_from_slice(&varint::encode(*i));
+                }
+                Ok(buffer)
+            }
+            LnmpValue::FloatArray(arr) => {
+                let mut buffer = Vec::new();
+                buffer.push(TypeTag::FloatArray.to_u8());
+                buffer.extend_from_slice(&varint::encode(arr.len() as i64));
+                for f in arr {
+                    buffer.extend_from_slice(&f.to_le_bytes());
+                }
+                Ok(buffer)
+            }
+            LnmpValue::BoolArray(arr) => {
+                let mut buffer = Vec::new();
+                buffer.push(TypeTag::BoolArray.to_u8());
+                buffer.extend_from_slice(&varint::encode(arr.len() as i64));
+                for b in arr {
+                    buffer.push(if *b { 0x01 } else { 0x00 });
+                }
+                Ok(buffer)
+            }
             LnmpValue::NestedRecord(record) => {
                 self.encode_nested_record_with_depth(record, current_depth)
             }

@@ -4,11 +4,51 @@
 //! LLM input drift and ensuring consistency. Checksums are computed from the combination
 //! of Field ID, type hint, and normalized value.
 //!
+//! ## Deterministic Guarantees
+//!
+//! The checksum computation is **field-order-independent** for nested structures.
+//! This is achieved by using `sorted_fields()` internally when serializing:
+//!
+//! ```
+//! use lnmp_core::{LnmpRecord, LnmpField, LnmpValue, TypeHint};
+//! use lnmp_core::checksum::SemanticChecksum;
+//!
+//! // Two records with same data but different insertion order
+//! let mut rec1 = LnmpRecord::new();
+//! rec1.add_field(LnmpField { fid: 12, value: LnmpValue::Int(1) });
+//! rec1.add_field(LnmpField { fid: 7, value: LnmpValue::Bool(true) });
+//!
+//! let mut rec2 = LnmpRecord::new();
+//! rec2.add_field(LnmpField { fid: 7, value: LnmpValue::Bool(true) });
+//! rec2.add_field(LnmpField { fid: 12, value: LnmpValue::Int(1) });
+//!
+//! let val1 = LnmpValue::NestedRecord(Box::new(rec1));
+//! let val2 = LnmpValue::NestedRecord(Box::new(rec2));
+//!
+//! // Both produce SAME checksum (field order doesn't matter)
+//! let cs1 = SemanticChecksum::compute(50, Some(TypeHint::Record), &val1);
+//! let cs2 = SemanticChecksum::compute(50, Some(TypeHint::Record), &val2);
+//! assert_eq!(cs1, cs2);
+//! ```
+//!
+//! ## Normalization Rules
+//!
+//! Values are normalized before checksum computation to ensure semantic equivalence:
+//!
+//! - **Booleans**: Always serialized as `"1"` (true) or `"0"` (false)
+//! - **Floats**:
+//!   - `-0.0` normalized to `0.0`
+//!   - Trailing zeros removed (`3.140` → `"3.14"`, `3.0` → `"3"`)
+//! - **Strings**: Used as-is (case normalization via `ValueNormalizer` if configured)
+//! - **Arrays**: Elements joined with `,` (order preserved)
+//! - **Nested Records**: Fields sorted by FID, then serialized as `{fid:type:value;...}`
+//! - **Nested Arrays**: Array elements serialized with sorted fields
+//!
 //! ## Algorithm
 //!
-//! 1. Normalize the value using ValueNormalizer
+//! 1. Normalize the value using the rules above
 //! 2. Serialize as: `{fid}:{type_hint}:{normalized_value}`
-//! 3. Compute CRC32 hash
+//! 3. Compute CRC32/ISO-HDLC hash
 //! 4. Return 32-bit checksum
 //!
 //! ## Example
@@ -173,6 +213,9 @@ impl SemanticChecksum {
             LnmpValue::Bool(_) => TypeHint::Bool,
             LnmpValue::String(_) => TypeHint::String,
             LnmpValue::StringArray(_) => TypeHint::StringArray,
+            LnmpValue::IntArray(_) => TypeHint::IntArray,
+            LnmpValue::FloatArray(_) => TypeHint::FloatArray,
+            LnmpValue::BoolArray(_) => TypeHint::BoolArray,
             LnmpValue::NestedRecord(_) => TypeHint::Record,
             LnmpValue::NestedArray(_) => TypeHint::RecordArray,
             LnmpValue::Embedding(_) => TypeHint::Embedding,
@@ -206,6 +249,35 @@ impl SemanticChecksum {
             LnmpValue::StringArray(arr) => {
                 // Serialize as comma-separated list
                 arr.join(",")
+            }
+            LnmpValue::IntArray(arr) => {
+                // Serialize as comma-separated list
+                arr.iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            }
+            LnmpValue::FloatArray(arr) => {
+                // Serialize as comma-separated list with float normalization
+                arr.iter()
+                    .map(|f| {
+                        let normalized = if *f == -0.0 { 0.0 } else { *f };
+                        let mut s = normalized.to_string();
+                        // Remove trailing zeros after decimal point
+                        if s.contains('.') {
+                            s = s.trim_end_matches('0').trim_end_matches('.').to_string();
+                        }
+                        s
+                    })
+                    .collect::<Vec<_>>()
+                    .join(",")
+            }
+            LnmpValue::BoolArray(arr) => {
+                // Serialize as comma-separated list (1 or 0)
+                arr.iter()
+                    .map(|b| if *b { "1" } else { "0" })
+                    .collect::<Vec<_>>()
+                    .join(",")
             }
             LnmpValue::NestedRecord(record) => {
                 // Serialize nested record fields in sorted order

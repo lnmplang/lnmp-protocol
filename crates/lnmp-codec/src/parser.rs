@@ -57,6 +57,15 @@ impl<'a> Parser<'a> {
         Self::with_config(input, config)
     }
 
+    /// Creates a new parser with the specified profile
+    pub fn with_profile(
+        input: &'a str,
+        profile: lnmp_core::profile::LnmpProfile,
+    ) -> Result<Self, LnmpError> {
+        let config = ParserConfig::from_profile(profile);
+        Self::with_config(input, config)
+    }
+
     /// Creates a new parser with specified configuration
     pub fn with_config(input: &'a str, config: ParserConfig) -> Result<Self, LnmpError> {
         let input_cow = match config.text_input_mode {
@@ -784,6 +793,15 @@ impl<'a> Parser<'a> {
                     line,
                     column,
                 });
+            }
+        }
+
+        // Check for unsorted fields if configured
+        if let Some(profile_config) = &self.config.profile_config {
+            if profile_config.reject_unsorted_fields {
+                if let Err(e) = record.validate_field_ordering() {
+                    return Err(LnmpError::ValidationError(e.to_string()));
+                }
             }
         }
 

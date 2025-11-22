@@ -221,6 +221,8 @@ pub enum LnmpError {
         /// Column where error was detected
         column: usize,
     },
+    /// Validation error (e.g. field ordering violation)
+    ValidationError(String),
 }
 
 impl LnmpError {
@@ -281,6 +283,7 @@ impl LnmpError {
             LnmpError::InvalidNestedStructure { line, column, .. } => (*line, *column),
             LnmpError::DuplicateFieldId { line, column, .. } => (*line, *column),
             LnmpError::UnclosedNestedStructure { line, column, .. } => (*line, *column),
+            LnmpError::ValidationError(_) => (0, 0), // Validation errors might not have specific line/col
         }
     }
 }
@@ -417,6 +420,7 @@ impl std::fmt::Display for LnmpError {
                 "DuplicateFieldId: Field ID {} appears multiple times at line {}, column {}",
                 field_id, line, column
             ),
+            LnmpError::ValidationError(msg) => write!(f, "Validation Error: {}", msg),
         }
     }
 }

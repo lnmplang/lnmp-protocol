@@ -237,6 +237,9 @@ impl ExplainEncoder {
             LnmpValue::Float(_) => TypeHint::Float,
             LnmpValue::Bool(_) => TypeHint::Bool,
             LnmpValue::String(_) => TypeHint::String,
+            LnmpValue::IntArray(_) => TypeHint::IntArray,
+            LnmpValue::FloatArray(_) => TypeHint::FloatArray,
+            LnmpValue::BoolArray(_) => TypeHint::BoolArray,
             LnmpValue::StringArray(_) => TypeHint::StringArray,
             LnmpValue::NestedRecord(_) => TypeHint::Record,
             LnmpValue::NestedArray(_) => TypeHint::RecordArray,
@@ -259,6 +262,21 @@ impl ExplainEncoder {
                 }
             }
             LnmpValue::String(s) => self.encode_string(s),
+            LnmpValue::IntArray(arr) => {
+                let items: Vec<String> = arr.iter().map(|i| i.to_string()).collect();
+                format!("[{}]", items.join(","))
+            }
+            LnmpValue::FloatArray(arr) => {
+                let items: Vec<String> = arr.iter().map(|f| f.to_string()).collect();
+                format!("[{}]", items.join(","))
+            }
+            LnmpValue::BoolArray(arr) => {
+                let items: Vec<String> = arr
+                    .iter()
+                    .map(|b| if *b { "1".to_string() } else { "0".to_string() })
+                    .collect();
+                format!("[{}]", items.join(","))
+            }
             LnmpValue::StringArray(arr) => {
                 let items: Vec<String> = arr.iter().map(|s| self.encode_string(s)).collect();
                 format!("[{}]", items.join(","))

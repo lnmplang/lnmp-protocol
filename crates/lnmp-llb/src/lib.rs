@@ -16,14 +16,12 @@
 //! ## Explain Mode
 //!
 //! ```
-//! use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
+//! use lnmp_core::{RecordBuilder, LnmpField, LnmpValue};
 //! use lnmp_llb::{ExplainEncoder, SemanticDictionary};
 //!
-//! let mut record = LnmpRecord::new();
-//! record.add_field(LnmpField {
-//!     fid: 12,
-//!     value: LnmpValue::Int(14532),
-//! });
+//! let record = RecordBuilder::new()
+//!     .add_field(LnmpField { fid: 12, value: LnmpValue::Int(14532) })
+//!     .build();
 //!
 //! let dict = SemanticDictionary::from_pairs(vec![(12, "user_id")]);
 //! let encoder = ExplainEncoder::new(dict);

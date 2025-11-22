@@ -210,6 +210,7 @@ impl TestRunner {
             },
             semantic_dictionary: None,
             structural_limits: None,
+            profile_config: None,
         };
 
         let mut parser = match Parser::with_config(&test.input, parser_config) {
@@ -266,6 +267,7 @@ impl TestRunner {
             },
             semantic_dictionary: None,
             structural_limits: None,
+            profile_config: None,
         };
 
         let mut parser = match Parser::with_config(&test.input, parser_config) {
@@ -293,16 +295,17 @@ impl TestRunner {
         let parser_config = ParserConfig {
             mode: ParsingMode::Loose,
             validate_checksums: test.config.validate_checksums,
+            semantic_dictionary: None,
             normalize_values: test.config.normalize_values,
             require_checksums: false,
-            max_nesting_depth: test.config.max_nesting_depth,
             text_input_mode: if test.config.lenient_mode {
                 TextInputMode::Lenient
             } else {
                 TextInputMode::Strict
             },
-            semantic_dictionary: None,
+            max_nesting_depth: test.config.max_nesting_depth,
             structural_limits: None,
+            profile_config: None,
         };
         let mut parser = match Parser::with_config(&test.input, parser_config) {
             Ok(p) => p,

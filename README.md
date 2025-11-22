@@ -2,7 +2,7 @@
 
 LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID-based data format designed for data exchange with large language models (LLMs).
 
-**Current Version: v0.5.4 - Advanced Protocol, Spatial Computing & Quantization**
+**Current Version: v0.5.5 - Determinism & Generic Arrays**
 
 ## Features
 
@@ -31,13 +31,13 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 
 This is a Rust workspace containing multiple crates:
 
-- **lnmp** (v0.5.4): **Meta crate** - All-in-one package that re-exports all LNMP modules (recommended for most users)
-- **lnmp-core** (v0.5.4): Core type definitions for LNMP data structures (including nested structures and checksums)
-- **lnmp-codec** (v0.5.4): Parser and encoder implementations for LNMP text format (with normalization and equivalence mapping)
+- **lnmp** (v0.5.5): **Meta crate** - All-in-one package that re-exports all LNMP modules (recommended for most users)
+- **lnmp-core** (v0.5.5): Core type definitions for LNMP data structures (including nested structures and checksums)
+- **lnmp-codec** (v0.5.5): Parser and encoder implementations for LNMP text format (with normalization and equivalence mapping)
 - **lnmp-embedding** (v0.5.4): Vector embedding support with efficient delta encoding
 - **lnmp-spatial** (v0.5.4): Spatial awareness types and hybrid protocol for robotics and real-time control
 - **lnmp-quant** (v0.5.4): Adaptive quantization and compression for embedding vectors
-- **lnmp-llb** (v0.5.4): LNMP-LLM Bridge Layer - prompt optimization, explain mode, and ShortForm encoding
+- **lnmp-llb** (v0.5.5): LNMP-LLM Bridge Layer - prompt optimization, explain mode, and ShortForm encoding
 - **lnmp-sfe** (v0.5.4): Semantic Fidelity Engine - semantic dictionary and equivalence mapping
 - **lnmp-sanitize** (v0.5.4): Security-focused input validation and sanitization
 
@@ -50,7 +50,7 @@ The easiest way to get started is with the `lnmp` meta crate, which includes all
 
 ```toml
 [dependencies]
-lnmp = "0.5.4"
+lnmp = "0.5.5"
 ```
 
 Then use the convenient prelude:
@@ -86,8 +86,8 @@ For fine-grained control, you can use individual crates:
 
 ```toml
 [dependencies]
-lnmp-core = "0.5.4"
-lnmp-codec = "0.5.4"
+lnmp-core = "0.5.5"
+lnmp-codec = "0.5.5"
 ```
 
 > Developing against a local checkout? Replace the version strings with `path = "../lnmp-protocol/crates/…"`. See `REPO-STRUCTURE.md` for details.
@@ -229,6 +229,7 @@ F60=[{F1=alice},{F1=bob}]
 - **Booleans**: `F5=1` (true), `F6=0` (false)
 - **Strings**: `F7="hello world"`, `F8=simple_string`
 - **String Arrays**: `F9=["a","b","c"]`
+- **Numeric Arrays**: `F10=[1,2,3]` (IntArray), `F11=[1.1,2.2]` (FloatArray), `F12=[1,0,1]` (BoolArray)
 
 **Nested Types (v0.3):**
 - **Nested Records**: `F50={F12=1;F7=1}` - Records within records
@@ -686,6 +687,13 @@ println!("Processed {} vectors in {:?}", results.stats.total, results.stats.tota
 - **Adaptive Overhead**: Zero (negligible)
 - **Batch Overhead**: <150ns per vector
 - **Throughput**: >2M vectors/sec (FP16)
+
+### v0.5.4 - Determinism & Generic Arrays ✅ (Current)
+- **Generic Arrays**: `IntArray`, `FloatArray`, `BoolArray` for efficient numeric data
+- **Strict Determinism**: `LnmpProfile` (Loose, Standard, Strict) for validation
+- **RecordBuilder**: Fluent API for canonical record construction
+- **Enhanced Validation**: Runtime field ordering checks
+- **Performance**: Sub-microsecond operations for all core types
 
 ## Migration Guide
 

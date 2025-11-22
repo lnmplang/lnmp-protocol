@@ -117,6 +117,27 @@ impl BinaryEntry {
                     bytes.extend_from_slice(utf8_bytes);
                 }
             }
+            BinaryValue::IntArray(arr) => {
+                // Count (VarInt) + repeated VarInts
+                bytes.extend_from_slice(&varint::encode(arr.len() as i64));
+                for i in arr {
+                    bytes.extend_from_slice(&varint::encode(*i));
+                }
+            }
+            BinaryValue::FloatArray(arr) => {
+                // Count (VarInt) + repeated f64 LE
+                bytes.extend_from_slice(&varint::encode(arr.len() as i64));
+                for f in arr {
+                    bytes.extend_from_slice(&f.to_le_bytes());
+                }
+            }
+            BinaryValue::BoolArray(arr) => {
+                // Count (VarInt) + repeated bytes
+                bytes.extend_from_slice(&varint::encode(arr.len() as i64));
+                for b in arr {
+                    bytes.push(if *b { 0x01 } else { 0x00 });
+                }
+            }
             BinaryValue::NestedRecord(_) | BinaryValue::NestedArray(_) => {
                 // Nested structure encoding will be implemented in task 2
                 // For now, this is a placeholder that should not be reached
@@ -197,9 +218,9 @@ impl BinaryEntry {
             }
             TypeTag::Reserved09
             | TypeTag::QuantizedEmbedding
-            | TypeTag::Reserved0B
-            | TypeTag::Reserved0C
-            | TypeTag::Reserved0D
+            | TypeTag::IntArray
+            | TypeTag::FloatArray
+            | TypeTag::BoolArray
             | TypeTag::Reserved0E
             | TypeTag::Reserved0F => {
                 return Err(BinaryError::InvalidValue {

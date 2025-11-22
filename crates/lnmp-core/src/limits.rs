@@ -177,6 +177,33 @@ impl StructuralLimits {
                 }
                 Ok(())
             }
+            LnmpValue::IntArray(ints) => {
+                if ints.len() > self.max_array_items {
+                    return Err(StructuralError::MaxArrayLengthExceeded {
+                        max_len: self.max_array_items,
+                        seen_len: ints.len(),
+                    });
+                }
+                Ok(())
+            }
+            LnmpValue::FloatArray(floats) => {
+                if floats.len() > self.max_array_items {
+                    return Err(StructuralError::MaxArrayLengthExceeded {
+                        max_len: self.max_array_items,
+                        seen_len: floats.len(),
+                    });
+                }
+                Ok(())
+            }
+            LnmpValue::BoolArray(bools) => {
+                if bools.len() > self.max_array_items {
+                    return Err(StructuralError::MaxArrayLengthExceeded {
+                        max_len: self.max_array_items,
+                        seen_len: bools.len(),
+                    });
+                }
+                Ok(())
+            }
             LnmpValue::NestedRecord(record) => {
                 self.validate_fields(record.fields(), depth, field_count)
             }

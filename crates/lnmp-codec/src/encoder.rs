@@ -142,6 +142,9 @@ impl Encoder {
             LnmpValue::Bool(_) => TypeHint::Bool,
             LnmpValue::String(_) => TypeHint::String,
             LnmpValue::StringArray(_) => TypeHint::StringArray,
+            LnmpValue::IntArray(_) => TypeHint::IntArray,
+            LnmpValue::FloatArray(_) => TypeHint::FloatArray,
+            LnmpValue::BoolArray(_) => TypeHint::BoolArray,
             LnmpValue::NestedRecord(_) => TypeHint::Record,
             LnmpValue::NestedArray(_) => TypeHint::RecordArray,
             LnmpValue::Embedding(_) => TypeHint::Embedding,
@@ -166,6 +169,21 @@ impl Encoder {
             LnmpValue::StringArray(arr) => {
                 // Canonical format: no spaces after commas
                 let items: Vec<String> = arr.iter().map(|s| self.encode_string(s)).collect();
+                format!("[{}]", items.join(","))
+            }
+            LnmpValue::IntArray(arr) => {
+                let items: Vec<String> = arr.iter().map(|i| i.to_string()).collect();
+                format!("[{}]", items.join(","))
+            }
+            LnmpValue::FloatArray(arr) => {
+                let items: Vec<String> = arr.iter().map(|f| f.to_string()).collect();
+                format!("[{}]", items.join(","))
+            }
+            LnmpValue::BoolArray(arr) => {
+                let items: Vec<String> = arr
+                    .iter()
+                    .map(|b| if *b { "1".to_string() } else { "0".to_string() })
+                    .collect();
                 format!("[{}]", items.join(","))
             }
             LnmpValue::NestedRecord(record) => self.encode_nested_record(record),
@@ -317,6 +335,9 @@ fn canonicalize_value(value: &LnmpValue) -> LnmpValue {
         LnmpValue::Bool(b) => LnmpValue::Bool(*b),
         LnmpValue::String(s) => LnmpValue::String(s.clone()),
         LnmpValue::StringArray(arr) => LnmpValue::StringArray(arr.clone()),
+        LnmpValue::IntArray(arr) => LnmpValue::IntArray(arr.clone()),
+        LnmpValue::FloatArray(arr) => LnmpValue::FloatArray(arr.clone()),
+        LnmpValue::BoolArray(arr) => LnmpValue::BoolArray(arr.clone()),
 
         // Recursively canonicalize nested record
         LnmpValue::NestedRecord(nested) => {
@@ -347,6 +368,9 @@ fn is_empty_value(value: &LnmpValue) -> bool {
     match value {
         LnmpValue::String(s) => s.is_empty(),
         LnmpValue::StringArray(arr) => arr.is_empty(),
+        LnmpValue::IntArray(arr) => arr.is_empty(),
+        LnmpValue::FloatArray(arr) => arr.is_empty(),
+        LnmpValue::BoolArray(arr) => arr.is_empty(),
         LnmpValue::NestedRecord(record) => record.fields().is_empty(),
         LnmpValue::NestedArray(arr) => arr.is_empty(),
         // Embeddings are never considered empty even if dimension is 0 (which shouldn't happen)
