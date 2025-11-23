@@ -100,6 +100,9 @@ lnmp-envelope = "0.5.6"
 
 ## [Unreleased]
 
+## [0.5.8] - 2025-11-23
+
+
 - Nothing yet.
 
 ## v0.5.0 - 2025-11-19

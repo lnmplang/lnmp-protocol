@@ -8,7 +8,7 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 [![Rust](https://img.shields.io/badge/rust-1.91%2B-orange.svg)](https://www.rust-lang.org)
 [![Downloads](https://img.shields.io/crates/d/lnmp.svg)](https://crates.io/crates/lnmp)
 
-**Current Version: v0.5.7 - Context Profiling & Advanced Protocol**
+**Current Version: v0.5.8
 
 ## Features
 
@@ -46,7 +46,7 @@ Add LNMP to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lnmp = "0.5.7"
+lnmp = "0.5.8"
 ```
 
 Or use cargo:
@@ -113,7 +113,7 @@ The easiest way to get started is with the `lnmp` meta crate, which includes all
 
 ```toml
 [dependencies]
-lnmp = "0.5.7"
+lnmp = "0.5.8"
 ```
 
 Then use the convenient prelude:
