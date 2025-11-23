@@ -43,7 +43,6 @@ fn main() {
     let scorer = ContextScorer::new();
     let now = current_timestamp_ms();
     let mut total_scoring_time = Duration::new(0, 0);
-    let total_ranking_time;
 
     let mut all_contexts = Vec::with_capacity(TOTAL_RECORDS);
 
@@ -81,7 +80,7 @@ fn main() {
     let weights = ScoringWeights::default();
     let top_k = ContextPrioritizer::select_top_k(all_contexts.clone(), 100, weights);
 
-    total_ranking_time = rank_start.elapsed();
+    let total_ranking_time = rank_start.elapsed();
     let total_duration = start_total.elapsed();
 
     println!("\n----------------------------------------");

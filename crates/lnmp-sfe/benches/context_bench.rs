@@ -3,7 +3,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 use lnmp_envelope::EnvelopeBuilder;
-use lnmp_sfe::{ContextPrioritizer, ContextScorer, ContextScorerConfig, ScoringWeights};
+use lnmp_sfe::{ContextPrioritizer, ContextScorer, ScoringWeights};
 use std::sync::Arc;
 
 fn create_sample_envelope(timestamp: u64) -> lnmp_envelope::LnmpEnvelope {

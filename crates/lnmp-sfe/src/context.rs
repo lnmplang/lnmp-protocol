@@ -867,7 +867,7 @@ mod tests {
 
             let envelope = EnvelopeBuilder::new(record)
                 .timestamp(1732373147000 - (i as u64 * 3_600_000))
-                .source(&format!("source-{}", i))
+                .source(format!("source-{}", i))
                 .build();
 
             let scorer = ContextScorer::new();

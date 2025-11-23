@@ -39,7 +39,7 @@ fn main() {
     let scorer = ContextScorer::new();
 
     // Create a collection of documents with different freshness and sources
-    let documents = vec![
+    let documents = [
         // Recent, official documentation
         (
             "Official API docs (fresh)",
