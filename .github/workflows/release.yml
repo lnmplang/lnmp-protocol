@@ -79,17 +79,17 @@ jobs:
           # 3. Core (depends on: lnmp-embedding, lnmp-quant)
           publish lnmp-core
           
-          # 4. SFE (depends on: lnmp-core)
+          # 4. Envelope (depends on: lnmp-core)
+          publish lnmp-envelope
+          
+          # 5. SFE (depends on: lnmp-core, lnmp-envelope)
           publish lnmp-sfe
           
-          # 5. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding, lnmp-quant)
+          # 6. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding, lnmp-quant)
           publish lnmp-codec
           
-          # 6. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
+          # 7. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
           publish lnmp-llb
-          
-          # 7. Envelope (depends on: lnmp-core)
-          publish lnmp-envelope
           
           # 8. Spatial (depends on: lnmp-core, lnmp-embedding)
           publish lnmp-spatial
