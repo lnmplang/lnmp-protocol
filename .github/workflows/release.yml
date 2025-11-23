@@ -2,9 +2,16 @@ name: Release
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch  # 0.5.7 -> 0.5.8
+          - minor  # 0.5.7 -> 0.6.0
+          - major  # 0.5.7 -> 1.0.0
+        default: 'patch'
 
 jobs:
   publish:
@@ -15,6 +22,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for version calculation
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -28,6 +37,84 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Calculate new version
+        id: version
+        run: |
+          # Get current version from workspace
+          CURRENT_VERSION=$(grep -A 5 '^\[workspace\.package\]' Cargo.toml | grep '^version = ' | sed 's/version = "\(.*\)"/\1/')
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Parse version components
+          MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+          MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+          PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+          
+          # Calculate new version based on bump type
+          case "${{ github.event.inputs.version_bump }}" in
+            major)
+              NEW_VERSION="$((MAJOR + 1)).0.0"
+              ;;
+            minor)
+              NEW_VERSION="${MAJOR}.$((MINOR + 1)).0"
+              ;;
+            patch)
+              NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+              ;;
+          esac
+          
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "🚀 Bumping version: $CURRENT_VERSION → $NEW_VERSION (${{ github.event.inputs.version_bump }})"
+
+      - name: Update workspace version
+        env:
+          VERSION: ${{ steps.version.outputs.new_version }}
+        run: |
+          echo "🔄 Updating workspace version to $VERSION..."
+          
+          # Update workspace version (all crates inherit automatically!)
+          sed -i '/^\[workspace\.package\]/,/^\[/ s/^version = .*/version = "'"$VERSION"'"/' Cargo.toml
+          
+          echo "✅ Workspace version updated to $VERSION"
+          grep -A 10 '^\[workspace\.package\]' Cargo.toml
+
+      - name: Update README and CHANGELOG
+        env:
+          VERSION: ${{ steps.version.outputs.new_version }}
+        run: |
+          # Update version in README
+          sed -i "s/Current Version: v.*/Current Version: v$VERSION/" README.md || true
+          sed -i "s/lnmp = \".*\"/lnmp = \"$VERSION\"/" README.md || true
+          
+          # Add entry to CHANGELOG
+          TODAY=$(date +%Y-%m-%d)
+          sed -i "/## \[Unreleased\]/a\\\n## [$VERSION] - $TODAY\n" CHANGELOG.md || true
+          
+          echo "✅ README and CHANGELOG updated"
+
+      - name: Commit version bump
+        env:
+          VERSION: ${{ steps.version.outputs.new_version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add Cargo.toml README.md CHANGELOG.md
+          git commit -m "chore: release v$VERSION"
+          
+          # Create tag
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          
+          echo "✅ Committed version bump and created tag v$VERSION"
+
+      - name: Push changes
+        env:
+          VERSION: ${{ steps.version.outputs.new_version }}
+        run: |
+          git push origin main
+          git push origin "v$VERSION"
+          
+          echo "✅ Pushed changes and tag to repository"
+
       - name: Format check
         run: cargo fmt --all --check
 
@@ -36,51 +123,6 @@ jobs:
 
       - name: Test
         run: cargo test --all
-
-      - name: Extract version from tag
-        id: get_version
-        run: |
-          # Extract version from tag (v0.5.8 -> 0.5.8)
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          VERSION=${TAG_NAME#v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Releasing version: $VERSION"
-
-      - name: Update workspace versions
-        env:
-          VERSION: ${{ steps.get_version.outputs.version }}
-        run: |
-          echo "🔄 Updating workspace version to $VERSION..."
-          
-          # Update ONLY workspace version - all crates inherit automatically!
-          sed -i.bak '/^\[workspace\.package\]/,/^\[/ s/^version = .*/version = "'"$VERSION"'"/' Cargo.toml
-          
-          # Clean up backup file
-          rm -f Cargo.toml.bak
-          
-          echo "✅ Workspace version updated to $VERSION"
-          echo "   All crates will automatically inherit this version"
-          
-          # Show the change
-          grep -A 10 '^\[workspace\.package\]' Cargo.toml
-
-      - name: Verify version consistency
-        env:
-          VERSION: ${{ steps.get_version.outputs.version }}
-        run: |
-          echo "🔍 Verifying version consistency..."
-          
-          # Check workspace version
-          WORKSPACE_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
-          if [ "$WORKSPACE_VERSION" != "$VERSION" ]; then
-            echo "❌ Workspace version mismatch: $WORKSPACE_VERSION != $VERSION"
-            exit 1
-          fi
-          
-          # Verify cargo check passes
-          cargo check --all
-          
-          echo "✅ Version consistency verified"
 
       - name: Publish crates
         run: |
@@ -111,17 +153,16 @@ jobs:
           }
           
           # Publish in dependency order (leaf nodes first)
-          # Note: lnmp-quant has lnmp-core as dev-dependency only (for tests)
-          # so we can publish lnmp-quant first even though lnmp-core needs it
+          # Note: lnmp-quant has no lnmp-core dependency anymore
           
           # 1. Base crates with no internal dependencies
           publish lnmp-embedding
           publish lnmp-sanitize
 
-          # 2. Quantization (depends on: lnmp-embedding; lnmp-core is dev-only)
+          # 2. Quantization (depends on: lnmp-embedding)
           publish lnmp-quant
           
-          # 3. Core (depends on: lnmp-embedding, lnmp-quant)
+          # 3. Core (depends on: lnmp-embedding, lnmp-quant optional)
           publish lnmp-core
           
           # 4. Envelope (depends on: lnmp-core)
@@ -146,3 +187,13 @@ jobs:
           publish lnmp
 
           echo "All crates published successfully!"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.new_version }}
+        run: |
+          gh release create "v$VERSION" \
+            --title "Release v$VERSION" \
+            --notes "Automated release v$VERSION (${{ github.event.inputs.version_bump }} bump)" \
+            --target main
