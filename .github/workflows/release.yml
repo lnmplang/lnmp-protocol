@@ -37,6 +37,51 @@ jobs:
       - name: Test
         run: cargo test --all
 
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          # Extract version from tag (v0.5.8 -> 0.5.8)
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Releasing version: $VERSION"
+
+      - name: Update workspace versions
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
+        run: |
+          echo "🔄 Updating workspace version to $VERSION..."
+          
+          # Update ONLY workspace version - all crates inherit automatically!
+          sed -i.bak '/^\[workspace\.package\]/,/^\[/ s/^version = .*/version = "'"$VERSION"'"/' Cargo.toml
+          
+          # Clean up backup file
+          rm -f Cargo.toml.bak
+          
+          echo "✅ Workspace version updated to $VERSION"
+          echo "   All crates will automatically inherit this version"
+          
+          # Show the change
+          grep -A 10 '^\[workspace\.package\]' Cargo.toml
+
+      - name: Verify version consistency
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
+        run: |
+          echo "🔍 Verifying version consistency..."
+          
+          # Check workspace version
+          WORKSPACE_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          if [ "$WORKSPACE_VERSION" != "$VERSION" ]; then
+            echo "❌ Workspace version mismatch: $WORKSPACE_VERSION != $VERSION"
+            exit 1
+          fi
+          
+          # Verify cargo check passes
+          cargo check --all
+          
+          echo "✅ Version consistency verified"
+
       - name: Publish crates
         run: |
           set -euo pipefail
