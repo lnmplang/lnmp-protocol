@@ -153,7 +153,7 @@ jobs:
           }
           
           # Publish in dependency order (leaf nodes first)
-          # Note: lnmp-quant has no lnmp-core dependency anymore
+          # Note: dev-dependencies also block publish!
           
           # 1. Base crates with no internal dependencies
           publish lnmp-embedding
@@ -165,14 +165,14 @@ jobs:
           # 3. Core (depends on: lnmp-embedding, lnmp-quant optional)
           publish lnmp-core
           
-          # 4. Envelope (depends on: lnmp-core)
+          # 4. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding, lnmp-quant)
+          publish lnmp-codec
+          
+          # 5. Envelope (depends on: lnmp-core; lnmp-codec is dev-dep)
           publish lnmp-envelope
           
-          # 5. SFE (depends on: lnmp-core, lnmp-envelope)
+          # 6. SFE (depends on: lnmp-core, lnmp-envelope)
           publish lnmp-sfe
-          
-          # 6. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding, lnmp-quant)
-          publish lnmp-codec
           
           # 7. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
           publish lnmp-llb
