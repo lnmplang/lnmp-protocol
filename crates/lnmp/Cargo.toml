@@ -20,3 +20,4 @@ lnmp-quant = { workspace = true }
 lnmp-sanitize = { workspace = true }
 lnmp-sfe = { workspace = true }
 lnmp-spatial = { workspace = true }
+lnmp-transport = { workspace = true }

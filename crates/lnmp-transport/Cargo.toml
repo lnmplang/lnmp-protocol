@@ -1,0 +1,32 @@
+[package]
+name = "lnmp-transport"
+version = "0.5.7"
+edition = "2021"
+authors = ["LNMP Contributors"]
+license = "MIT"
+description = "Transport bindings for LNMP protocol (HTTP, Kafka, gRPC)"
+repository = "https://github.com/lnmp-protocol/lnmp"
+
+[dependencies]
+lnmp-core = { workspace = true }
+lnmp-codec = { workspace = true }
+lnmp-envelope = { workspace = true }
+thiserror = "1.0"
+http = { version = "1.0", optional = true }
+opentelemetry = { version = "0.21", optional = true }
+
+[features]
+default = ["http"]
+http = ["dep:http"]
+kafka = []
+grpc = []
+nats = []
+otel = ["dep:opentelemetry"]
+
+[dev-dependencies]
+criterion = "0.5"
+hex = "0.4"
+
+[[bench]]
+name = "transport_bench"
+harness = false

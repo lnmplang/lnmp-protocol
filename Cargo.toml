@@ -11,6 +11,7 @@ members = [
     "crates/lnmp-sanitize",
     "crates/lnmp-sfe",
     "crates/lnmp-spatial",
+    "crates/lnmp-transport",
     "examples/examples",
     "tests/compliance/rust",
     "tools/cli",
@@ -37,6 +38,7 @@ lnmp-embedding = { version = "0.5.7", path = "crates/lnmp-embedding" }
 lnmp-envelope = { version = "0.5.7", path = "crates/lnmp-envelope" }
 lnmp-quant = { version = "0.5.7", path = "crates/lnmp-quant" }
 lnmp-spatial = { version = "0.5.7", path = "crates/lnmp-spatial" }
+lnmp-transport = { version = "0.5.7", path = "crates/lnmp-transport" }
 
 [profile.bench]
 debug = true

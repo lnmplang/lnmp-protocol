@@ -36,6 +36,7 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 - 🎯 **Strict Profiles** - Configurable validation levels (Loose/Standard/Strict) (v0.5.5)
 - 🏗️ **RecordBuilder** - Fluent API for canonical record construction (v0.5.5)
 - 🧠 **Context Profiling** - Automatic scoring for LLM prioritization (freshness, importance, risk, confidence) (v0.5.7)
+- 🚀 **Transport bindings** - Standard mappings for HTTP, Kafka, gRPC, NATS with W3C Trace Context and OpenTelemetry integration (v0.5.7)
 
 ## Quick Start
 
@@ -101,6 +102,7 @@ This is a Rust workspace containing multiple crates:
 - **lnmp-llb** (v0.5.7): LNMP-LLM Bridge Layer - prompt optimization, explain mode, and ShortForm encoding
 - **lnmp-sfe** (v0.5.7): Semantic Fidelity Engine - semantic dictionary, equivalence mapping, and **context profiling for LLM decision support**
 - **lnmp-sanitize** (v0.5.7): Security-focused input validation and sanitization
+- **lnmp-transport** (v0.5.7): Transport bindings for HTTP, Kafka, gRPC, NATS - W3C Trace Context integration and observability support
 
 
 ## Quick Start

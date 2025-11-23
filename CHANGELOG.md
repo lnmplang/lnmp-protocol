@@ -15,6 +15,17 @@
   - Field importance levels (0-255) in semantic dictionary
   - Statistics computation for context collections
 
+- **NEW: `lnmp-transport` crate** - Transport protocol bindings with observability support
+  - HTTP, Kafka, gRPC, and NATS transport bindings
+  - W3C Trace Context / OpenTelemetry integration (`traceparent` generation and parsing)
+  - Standard header naming conventions (X-LNMP-*, lnmp.*, lnmp-*)
+  - Fail-safe metadata parsing (graceful degradation on missing/invalid headers)
+  - HTTP body encoding/decoding (binary and text formats)
+  - Kafka value encoding with full round-trip support
+  - Production-ready with comprehensive documentation and examples
+  - Type alias `KafkaHeaders` for reduced type complexity
+  - `envelope_to_nats_message()` and `kafka_record_to_envelope()` helpers
+
 ### Changed
 
 - **Version Synchronization**: All crates synchronized to **v0.5.7** for consistency

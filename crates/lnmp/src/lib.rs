@@ -23,6 +23,7 @@
 //! - **`sanitize`**: Data sanitization and validation
 //! - **`sfe`**: Secure Function Evaluation primitives
 //! - **`spatial`**: Spatial data streaming and hybrid protocols
+//! - **`transport`**: Transport protocol bindings (HTTP, Kafka, gRPC, NATS) with W3C Trace Context
 //!
 //! ## Usage Examples
 //!
@@ -52,6 +53,7 @@
 //! - `lnmp-sanitize` - Sanitization
 //! - `lnmp-sfe` - Secure Function Evaluation
 //! - `lnmp-spatial` - Spatial streaming
+//! - `lnmp-transport` - Transport bindings
 //!
 //! ## Documentation
 //!
@@ -69,6 +71,7 @@ pub use lnmp_quant as quant;
 pub use lnmp_sanitize as sanitize;
 pub use lnmp_sfe as sfe;
 pub use lnmp_spatial as spatial;
+pub use lnmp_transport as transport;
 
 // Re-export commonly used types for convenience
 pub mod prelude {

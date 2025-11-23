@@ -70,11 +70,11 @@ jobs:
           publish lnmp-embedding
           publish lnmp-sanitize
 
-          # 2. Quantization (depends on: lnmp-embedding)
-          publish lnmp-quant
-          
-          # 3. Core (depends on: lnmp-embedding, lnmp-quant)
+          # 2. Core (depends on: lnmp-embedding)
           publish lnmp-core
+          
+          # 3. Quantization (depends on: lnmp-embedding, lnmp-core)
+          publish lnmp-quant
           
           # 4. SFE (depends on: lnmp-core)
           publish lnmp-sfe
@@ -88,10 +88,13 @@ jobs:
           # 7. Envelope (depends on: lnmp-core)
           publish lnmp-envelope
           
-          # 8. Spatial Lnmp (depends on: lnmp-core, lnmp-embedding)
+          # 8. Spatial (depends on: lnmp-core, lnmp-embedding)
           publish lnmp-spatial
 
-          # 9. Meta crate (depends on: all above crates)
+          # 9. Transport (depends on: lnmp-core, lnmp-codec, lnmp-envelope)
+          publish lnmp-transport
+
+          # 10. Meta crate (depends on: all above crates)
           publish lnmp
 
           echo "All crates published successfully!"
