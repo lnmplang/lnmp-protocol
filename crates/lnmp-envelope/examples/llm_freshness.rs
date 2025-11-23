@@ -12,7 +12,7 @@ fn main() {
         .as_millis() as u64;
 
     // Create records with different timestamps
-    let records = vec![
+    let records = [
         create_envelope("Recent data", now - 3_600_000), // 1 hour ago
         create_envelope("Medium data", now - 86_400_000), // 1 day ago
         create_envelope("Old data", now - 604_800_000),  // 1 week ago
