@@ -66,15 +66,18 @@ jobs:
           }
           
           # Publish in dependency order (leaf nodes first)
+          # Note: lnmp-quant has lnmp-core as dev-dependency only (for tests)
+          # so we can publish lnmp-quant first even though lnmp-core needs it
+          
           # 1. Base crates with no internal dependencies
           publish lnmp-embedding
           publish lnmp-sanitize
 
-          # 2. Core (depends on: lnmp-embedding)
-          publish lnmp-core
-          
-          # 3. Quantization (depends on: lnmp-embedding, lnmp-core)
+          # 2. Quantization (depends on: lnmp-embedding; lnmp-core is dev-only)
           publish lnmp-quant
+          
+          # 3. Core (depends on: lnmp-embedding, lnmp-quant)
+          publish lnmp-core
           
           # 4. SFE (depends on: lnmp-core)
           publish lnmp-sfe
