@@ -153,7 +153,10 @@ jobs:
           }
           
           # Publish in dependency order (leaf nodes first)
-          # Note: dev-dependencies also block publish!
+          # Full dependency analysis:
+          # codec → sfe → envelope (runtime deps)
+          # envelope → codec (dev-dep only)
+          # Breaking the cycle: envelope BEFORE codec
           
           # 1. Base crates with no internal dependencies
           publish lnmp-embedding
@@ -165,14 +168,15 @@ jobs:
           # 3. Core (depends on: lnmp-embedding, lnmp-quant optional)
           publish lnmp-core
           
-          # 4. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding, lnmp-quant)
-          publish lnmp-codec
-          
-          # 5. Envelope (depends on: lnmp-core; lnmp-codec is dev-dep)
+          # 4. Envelope (depends on: lnmp-core only)
+          # Must come BEFORE codec (even though envelope has codec as dev-dep)
           publish lnmp-envelope
           
-          # 6. SFE (depends on: lnmp-core, lnmp-envelope)
+          # 5. SFE (depends on: lnmp-core, lnmp-envelope)
           publish lnmp-sfe
+          
+          # 6. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding, lnmp-quant, lnmp-sfe)
+          publish lnmp-codec
           
           # 7. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
           publish lnmp-llb
