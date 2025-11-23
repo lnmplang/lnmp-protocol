@@ -15,7 +15,11 @@ crc32fast = "1.4"
 crc = "2.1"
 crc-catalog = "1.1"
 lnmp-embedding = { workspace = true }
-lnmp-quant = { workspace = true }
+lnmp-quant = { workspace = true, optional = true }
+
+[features]
+default = ["quant"]
+quant = ["dep:lnmp-quant"]
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

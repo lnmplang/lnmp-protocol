@@ -34,6 +34,7 @@ pub enum LnmpValue {
     /// Delta update for embedding vector
     EmbeddingDelta(lnmp_embedding::VectorDelta),
     /// Quantized embedding vector (v0.5.2)
+    #[cfg(feature = "quant")]
     QuantizedEmbedding(lnmp_quant::QuantizedVector),
 }
 
@@ -50,8 +51,9 @@ impl LnmpValue {
             | LnmpValue::FloatArray(_)
             | LnmpValue::BoolArray(_)
             | LnmpValue::Embedding(_)
-            | LnmpValue::EmbeddingDelta(_)
-            | LnmpValue::QuantizedEmbedding(_) => 0,
+            | LnmpValue::EmbeddingDelta(_) => 0,
+            #[cfg(feature = "quant")]
+            LnmpValue::QuantizedEmbedding(_) => 0,
             LnmpValue::NestedRecord(record) => {
                 1 + record
                     .fields()
@@ -102,8 +104,9 @@ impl LnmpValue {
                 | LnmpValue::FloatArray(_)
                 | LnmpValue::BoolArray(_)
                 | LnmpValue::Embedding(_)
-                | LnmpValue::EmbeddingDelta(_)
-                | LnmpValue::QuantizedEmbedding(_) => {}
+                | LnmpValue::EmbeddingDelta(_) => {}
+                #[cfg(feature = "quant")]
+                LnmpValue::QuantizedEmbedding(_) => {}
 
                 LnmpValue::NestedRecord(record) => {
                     for field in record.fields() {
@@ -138,8 +141,9 @@ impl LnmpValue {
             | LnmpValue::FloatArray(_)
             | LnmpValue::BoolArray(_)
             | LnmpValue::Embedding(_)
-            | LnmpValue::EmbeddingDelta(_)
-            | LnmpValue::QuantizedEmbedding(_) => Ok(()),
+            | LnmpValue::EmbeddingDelta(_) => Ok(()),
+            #[cfg(feature = "quant")]
+            LnmpValue::QuantizedEmbedding(_) => Ok(()),
 
             // Validate nested record
             LnmpValue::NestedRecord(record) => {
@@ -188,6 +192,7 @@ pub enum TypeHint {
     /// Embedding type hint (:v) - v0.5
     Embedding,
     /// Quantized embedding type hint (:qv) - v0.5.2
+    #[cfg(feature = "quant")]
     QuantizedEmbedding,
 }
 
@@ -206,6 +211,7 @@ impl TypeHint {
             TypeHint::Record => "r",
             TypeHint::RecordArray => "ra",
             TypeHint::Embedding => "v",
+            #[cfg(feature = "quant")]
             TypeHint::QuantizedEmbedding => "qv",
         }
     }
@@ -221,6 +227,7 @@ impl TypeHint {
             "r" => Some(TypeHint::Record),
             "ra" => Some(TypeHint::RecordArray),
             "v" => Some(TypeHint::Embedding),
+            #[cfg(feature = "quant")]
             "qv" => Some(TypeHint::QuantizedEmbedding),
             _ => None,
         }
@@ -239,24 +246,44 @@ impl TypeHint {
 
     /// Validates that a value matches this type hint
     pub fn validates(&self, value: &LnmpValue) -> bool {
-        matches!(
-            (self, value),
-            (TypeHint::Int, LnmpValue::Int(_))
-                | (TypeHint::Float, LnmpValue::Float(_))
-                | (TypeHint::Bool, LnmpValue::Bool(_))
-                | (TypeHint::String, LnmpValue::String(_))
-                | (TypeHint::StringArray, LnmpValue::StringArray(_))
-                | (TypeHint::IntArray, LnmpValue::IntArray(_))
-                | (TypeHint::FloatArray, LnmpValue::FloatArray(_))
-                | (TypeHint::BoolArray, LnmpValue::BoolArray(_))
-                | (TypeHint::Record, LnmpValue::NestedRecord(_))
-                | (TypeHint::RecordArray, LnmpValue::NestedArray(_))
-                | (TypeHint::Embedding, LnmpValue::Embedding(_))
-                | (
-                    TypeHint::QuantizedEmbedding,
-                    LnmpValue::QuantizedEmbedding(_)
-                )
-        )
+        #[cfg(feature = "quant")]
+        {
+            matches!(
+                (self, value),
+                (TypeHint::Int, LnmpValue::Int(_))
+                    | (TypeHint::Float, LnmpValue::Float(_))
+                    | (TypeHint::Bool, LnmpValue::Bool(_))
+                    | (TypeHint::String, LnmpValue::String(_))
+                    | (TypeHint::StringArray, LnmpValue::StringArray(_))
+                    | (TypeHint::IntArray, LnmpValue::IntArray(_))
+                    | (TypeHint::FloatArray, LnmpValue::FloatArray(_))
+                    | (TypeHint::BoolArray, LnmpValue::BoolArray(_))
+                    | (TypeHint::Record, LnmpValue::NestedRecord(_))
+                    | (TypeHint::RecordArray, LnmpValue::NestedArray(_))
+                    | (TypeHint::Embedding, LnmpValue::Embedding(_))
+                    | (
+                        TypeHint::QuantizedEmbedding,
+                        LnmpValue::QuantizedEmbedding(_)
+                    )
+            )
+        }
+        #[cfg(not(feature = "quant"))]
+        {
+            matches!(
+                (self, value),
+                (TypeHint::Int, LnmpValue::Int(_))
+                    | (TypeHint::Float, LnmpValue::Float(_))
+                    | (TypeHint::Bool, LnmpValue::Bool(_))
+                    | (TypeHint::String, LnmpValue::String(_))
+                    | (TypeHint::StringArray, LnmpValue::StringArray(_))
+                    | (TypeHint::IntArray, LnmpValue::IntArray(_))
+                    | (TypeHint::FloatArray, LnmpValue::FloatArray(_))
+                    | (TypeHint::BoolArray, LnmpValue::BoolArray(_))
+                    | (TypeHint::Record, LnmpValue::NestedRecord(_))
+                    | (TypeHint::RecordArray, LnmpValue::NestedArray(_))
+                    | (TypeHint::Embedding, LnmpValue::Embedding(_))
+            )
+        }
     }
 }
 
@@ -277,6 +304,7 @@ impl FromStr for TypeHint {
             "r" => Ok(TypeHint::Record),
             "ra" => Ok(TypeHint::RecordArray),
             "v" => Ok(TypeHint::Embedding),
+            #[cfg(feature = "quant")]
             "qv" => Ok(TypeHint::QuantizedEmbedding),
             _ => Err(()),
         }
