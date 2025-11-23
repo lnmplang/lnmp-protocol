@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.5.7] - 2024-11-23
+
+### Added
+
+- **NEW: Context Profiling in `lnmp-sfe`** - LLM decision support system
+  - `ContextProfile` struct with freshness, importance, risk, and confidence metrics
+  - `ContextScorer` for automatic scoring of LNMP records
+  - `ContextPrioritizer` with filtering, ranking, and top-K selection for RAG systems
+  - `RiskLevel` enum (Low/Medium/High/Critical)
+  - Configurable scoring weights for different use cases
+  - Exponential decay freshness scoring (configurable decay rate)
+  - Source-based trust and risk assessment
+  - Field importance levels (0-255) in semantic dictionary
+  - Statistics computation for context collections
+
+### Changed
+
+- **Version Synchronization**: All crates synchronized to **v0.5.7** for consistency
+  - Updated `lnmp-core`, `lnmp-codec`, `lnmp-llb`, `lnmp-sanitize`, `lnmp-embedding`, `lnmp-quant`, `lnmp-spatial`, `lnmp-envelope` to v0.5.7
+  - Updated workspace dependencies to use v0.5.7 baseline
+
+### Enhanced
+
+- **`SemanticDictionary`**: Extended with optional `importance` field (0-255)
+  - Backward compatible YAML schema extension
+  - New API: `get_importance()`, `add_importance()`, `importance_count()`
+  
+### Examples
+
+- `context_scoring.rs` - Basic context scoring with freshness decay demonstration
+- `rag_prioritization.rs` - RAG system use cases (top-K, filtering, ranking)
+
+### Use Cases
+
+- **RAG Systems**: Prioritize fresh, important, high-confidence contexts for LLM prompts
+- **News/Events**: Weight freshness heavily (80%) for time-sensitive queries
+- **Factual Data**: Weight confidence (70%) for reliable information retrieval
+- **Multi-tenant**: Filter by source risk level for security
+- **Token Budget Control**: Select top-K contexts to fit prompt limits
+
 ## [0.5.6] - 2024-11-23
 
 ### Added

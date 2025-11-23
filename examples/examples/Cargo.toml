@@ -96,10 +96,28 @@ path = "../spatial_jitter_sim.rs"
 name = "spatial_reflex_sim"
 path = "../spatial_reflex_sim.rs"
 
+[[example]]
+name = "context_scoring"
+path = "context_scoring.rs"
+
+[[example]]
+name = "rag_prioritization"
+path = "rag_prioritization.rs"
+
+[[example]]
+name = "context_filtering"
+path = "context_filtering.rs"
+
+[[example]]
+name = "context_stress_test"
+path = "context_stress_test.rs"
+
 [dependencies]
 lnmp-core.workspace = true
 lnmp-codec.workspace = true
 lnmp-llb.workspace = true
 lnmp-embedding.workspace = true
-lnmp-spatial = { path = "../../crates/lnmp-spatial" }
+lnmp-envelope.workspace = true
+lnmp-sfe.workspace = true
+lnmp-spatial.workspace = true
 hex = "0.4"

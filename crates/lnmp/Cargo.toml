@@ -1,6 +1,6 @@
 [package]
 name = "lnmp"
-version = "0.5.6"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true

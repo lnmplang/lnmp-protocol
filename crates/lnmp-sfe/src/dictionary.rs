@@ -10,6 +10,8 @@ pub struct SemanticDictionary {
     field_names: HashMap<FieldId, String>,
     equivalences: HashMap<FieldId, HashMap<String, String>>,
     normalized_equivalences: HashMap<FieldId, HashMap<String, String>>,
+    /// Field importance levels (0-255), used for context profiling
+    importance: HashMap<FieldId, u8>,
 }
 
 fn validate_field_type(fid: u16, field_type: &str) -> Result<(), DictionaryError> {
@@ -110,6 +112,7 @@ impl SemanticDictionary {
             field_names: HashMap::new(),
             equivalences: HashMap::new(),
             normalized_equivalences: HashMap::new(),
+            importance: HashMap::new(),
         }
     }
 
@@ -193,6 +196,23 @@ impl SemanticDictionary {
             let field_type = value.get("type").and_then(scalar_to_string);
             if let Some(ref kind) = field_type {
                 validate_field_type(fid, kind)?;
+            }
+
+            // Parse optional importance field (0-255)
+            if let Some(importance_val) = value.get("importance") {
+                if let Some(num) = importance_val.as_u64() {
+                    if num > 255 {
+                        return Err(DictionaryError::ParseError(format!(
+                            "importance for field {} out of range (0-255)",
+                            fid
+                        )));
+                    }
+                    dictionary.importance.insert(fid, num as u8);
+                } else {
+                    return Err(DictionaryError::ParseError(
+                        "importance must be a number".into(),
+                    ));
+                }
             }
 
             let mut equivalences_map: HashMap<String, String> = HashMap::new();
@@ -295,6 +315,30 @@ impl SemanticDictionary {
             .insert(normalize_key(&from), to);
     }
 
+    /// Gets the importance level for a field (if defined)
+    ///
+    /// # Arguments
+    ///
+    /// * `fid` - The field ID to look up
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(u8)` with the importance level (0-255) if defined,
+    /// or `None` if not defined
+    pub fn get_importance(&self, fid: FieldId) -> Option<u8> {
+        self.importance.get(&fid).copied()
+    }
+
+    /// Adds an importance level for a field
+    ///
+    /// # Arguments
+    ///
+    /// * `fid` - The field ID
+    /// * `importance` - The importance level (0-255)
+    pub fn add_importance(&mut self, fid: FieldId, importance: u8) {
+        self.importance.insert(fid, importance);
+    }
+
     /// Returns the number of fields defined in the dictionary
     pub fn field_count(&self) -> usize {
         self.field_names.len()
@@ -303,6 +347,11 @@ impl SemanticDictionary {
     /// Returns the number of fields with equivalence mappings
     pub fn equivalence_count(&self) -> usize {
         self.equivalences.len()
+    }
+
+    /// Returns the number of fields with importance levels
+    pub fn importance_count(&self) -> usize {
+        self.importance.len()
     }
 
     /// Iterator over (fid, field_name) pairs.

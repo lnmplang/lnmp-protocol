@@ -367,7 +367,7 @@ checksum = "df1d3c3b53da64cf5760482273a98e575c651a67eec7f77df96b5b642de8f039"
 
 [[package]]
 name = "lnmp"
-version = "0.5.6"
+version = "0.5.7"
 dependencies = [
  "lnmp-codec",
  "lnmp-core",
@@ -382,7 +382,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-cli"
-version = "0.5.4"
+version = "0.5.7"
 dependencies = [
  "lnmp-codec",
  "lnmp-core",
@@ -390,7 +390,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-codec"
-version = "0.5.5"
+version = "0.5.7"
 dependencies = [
  "criterion",
  "lnmp-core",
@@ -403,7 +403,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-compliance-tests"
-version = "0.5.5"
+version = "0.5.7"
 dependencies = [
  "lnmp-codec",
  "lnmp-core",
@@ -414,7 +414,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-core"
-version = "0.5.5"
+version = "0.5.7"
 dependencies = [
  "crc",
  "crc-catalog",
@@ -426,7 +426,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-embedding"
-version = "0.5.4"
+version = "0.5.7"
 dependencies = [
  "byteorder",
  "criterion",
@@ -436,7 +436,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-envelope"
-version = "0.5.6"
+version = "0.5.7"
 dependencies = [
  "criterion",
  "lnmp-codec",
@@ -453,13 +453,15 @@ dependencies = [
  "lnmp-codec",
  "lnmp-core",
  "lnmp-embedding",
+ "lnmp-envelope",
  "lnmp-llb",
+ "lnmp-sfe",
  "lnmp-spatial",
 ]
 
 [[package]]
 name = "lnmp-llb"
-version = "0.5.5"
+version = "0.5.7"
 dependencies = [
  "criterion",
  "lnmp-codec",
@@ -470,7 +472,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-quant"
-version = "0.5.4"
+version = "0.5.7"
 dependencies = [
  "byteorder",
  "criterion",
@@ -483,7 +485,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-sanitize"
-version = "0.5.5"
+version = "0.5.7"
 dependencies = [
  "criterion",
  "proptest",
@@ -491,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-sdk-rust"
-version = "0.5.4"
+version = "0.5.7"
 dependencies = [
  "lnmp-core",
  "lnmp-embedding",
@@ -499,9 +501,11 @@ dependencies = [
 
 [[package]]
 name = "lnmp-sfe"
-version = "0.5.5"
+version = "0.5.7"
 dependencies = [
+ "criterion",
  "lnmp-core",
+ "lnmp-envelope",
  "serde",
  "serde_yaml",
  "tempfile",
@@ -509,7 +513,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-spatial"
-version = "0.5.4"
+version = "0.5.7"
 dependencies = [
  "bincode",
  "bytes",

@@ -1,23 +1,23 @@
 [package]
 name = "lnmp-envelope"
-version = "0.5.6"
-edition = "2021"
-rust-version = "1.91.0"
-authors = ["LNMP Team"]
-license = "MIT"
-repository = "https://github.com/lnmp-protocol/lnmp"
-homepage = "https://lnmp.io"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 description = "Operational metadata envelope for LNMP records"
 keywords = ["lnmp", "envelope", "metadata", "tracing", "cloudevents"]
 categories = ["encoding", "data-structures"]
 
 [dependencies]
-lnmp-core = { version = "0.5.5", path = "../lnmp-core" }
+lnmp-core = { workspace = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 thiserror = "1.0"
 
 [dev-dependencies]
-lnmp-codec = { version = "0.5.5", path = "../lnmp-codec" }
+lnmp-codec = { workspace = true }
 criterion = "0.5"
 
 [[bench]]

@@ -8,7 +8,7 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 [![Rust](https://img.shields.io/badge/rust-1.91%2B-orange.svg)](https://www.rust-lang.org)
 [![Downloads](https://img.shields.io/crates/d/lnmp.svg)](https://crates.io/crates/lnmp)
 
-**Current Version: v0.5.5 - Determinism & Generic Arrays**
+**Current Version: v0.5.7 - Context Profiling & Advanced Protocol**
 
 ## Features
 
@@ -35,6 +35,7 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 - 🔧 **Generic Arrays** - IntArray, FloatArray, BoolArray for efficient numeric data (v0.5.5)
 - 🎯 **Strict Profiles** - Configurable validation levels (Loose/Standard/Strict) (v0.5.5)
 - 🏗️ **RecordBuilder** - Fluent API for canonical record construction (v0.5.5)
+- 🧠 **Context Profiling** - Automatic scoring for LLM prioritization (freshness, importance, risk, confidence) (v0.5.7)
 
 ## Quick Start
 
@@ -44,7 +45,7 @@ Add LNMP to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lnmp = "0.5.5"
+lnmp = "0.5.7"
 ```
 
 Or use cargo:
@@ -90,16 +91,16 @@ For more examples, see the [examples directory](examples/).
 
 This is a Rust workspace containing multiple crates:
 
-- **lnmp** (v0.5.5): **Meta crate** - All-in-one package that re-exports all LNMP modules (recommended for most users)
-- **lnmp-core** (v0.5.5): Core type definitions for LNMP data structures (including nested structures and checksums)
-- **lnmp-codec** (v0.5.5): Parser and encoder implementations for LNMP text format (with normalization and equivalence mapping)
-- **lnmp-embedding** (v0.5.4): Vector embedding support with efficient delta encoding
-- **lnmp-envelope** (v0.5.6): Operational metadata envelope (timestamp, source, trace_id, sequence) - CloudEvents/Kafka/OTel aligned
-- **lnmp-spatial** (v0.5.4): Spatial awareness types and hybrid protocol for robotics and real-time control
-- **lnmp-quant** (v0.5.4): Adaptive quantization and compression for embedding vectors
-- **lnmp-llb** (v0.5.5): LNMP-LLM Bridge Layer - prompt optimization, explain mode, and ShortForm encoding
-- **lnmp-sfe** (v0.5.4): Semantic Fidelity Engine - semantic dictionary and equivalence mapping
-- **lnmp-sanitize** (v0.5.4): Security-focused input validation and sanitization
+- **lnmp** (v0.5.7): **Meta crate** - All-in-one package that re-exports all LNMP modules (recommended for most users)
+- **lnmp-core** (v0.5.7): Core type definitions for LNMP data structures (including nested structures and checksums)
+- **lnmp-codec** (v0.5.7): Parser and encoder implementations for LNMP text format (with normalization and equivalence mapping)
+- **lnmp-embedding** (v0.5.7): Vector embedding support with efficient delta encoding
+- **lnmp-envelope** (v0.5.7): Operational metadata envelope (timestamp, source, trace_id, sequence) - CloudEvents/Kafka/OTel aligned
+- **lnmp-spatial** (v0.5.7): Spatial awareness types and hybrid protocol for robotics and real-time control
+- **lnmp-quant** (v0.5.7): Adaptive quantization and compression for embedding vectors
+- **lnmp-llb** (v0.5.7): LNMP-LLM Bridge Layer - prompt optimization, explain mode, and ShortForm encoding
+- **lnmp-sfe** (v0.5.7): Semantic Fidelity Engine - semantic dictionary, equivalence mapping, and **context profiling for LLM decision support**
+- **lnmp-sanitize** (v0.5.7): Security-focused input validation and sanitization
 
 
 ## Quick Start
@@ -110,7 +111,7 @@ The easiest way to get started is with the `lnmp` meta crate, which includes all
 
 ```toml
 [dependencies]
-lnmp = "0.5.5"
+lnmp = "0.5.7"
 ```
 
 Then use the convenient prelude:
@@ -146,8 +147,8 @@ For fine-grained control, you can use individual crates:
 
 ```toml
 [dependencies]
-lnmp-core = "0.5.5"
-lnmp-codec = "0.5.5"
+lnmp-core = "0.5.7"
+lnmp-codec = "0.5.7"
 ```
 
 > Developing against a local checkout? Replace the version strings with `path = "../lnmp-protocol/crates/…"`. See `REPO-STRUCTURE.md` for details.

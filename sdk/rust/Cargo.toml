@@ -1,6 +1,6 @@
 [package]
 name = "lnmp-sdk-rust"
-version = "0.5.4"
+version = "0.5.7"
 edition = "2021"
 publish = false
 
@@ -9,5 +9,5 @@ name = "lnmp_sdk_rust"
 path = "src/lib.rs"
 
 [dependencies]
-lnmp-core = { version = "0.5.4", path = "../../crates/lnmp-core" }
-lnmp-embedding = { version = "0.5.4", path = "../../crates/lnmp-embedding" }
+lnmp-core = { workspace = true }
+lnmp-embedding = { workspace = true }
