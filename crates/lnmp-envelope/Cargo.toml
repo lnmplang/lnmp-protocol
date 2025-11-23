@@ -1,0 +1,33 @@
+[package]
+name = "lnmp-envelope"
+version = "0.5.6"
+edition = "2021"
+rust-version = "1.91.0"
+authors = ["LNMP Team"]
+license = "MIT"
+repository = "https://github.com/lnmp-protocol/lnmp"
+homepage = "https://lnmp.io"
+description = "Operational metadata envelope for LNMP records"
+keywords = ["lnmp", "envelope", "metadata", "tracing", "cloudevents"]
+categories = ["encoding", "data-structures"]
+
+[dependencies]
+lnmp-core = { version = "0.5.5", path = "../lnmp-core" }
+serde = { version = "1.0", features = ["derive"], optional = true }
+thiserror = "1.0"
+
+[dev-dependencies]
+lnmp-codec = { version = "0.5.5", path = "../lnmp-codec" }
+criterion = "0.5"
+
+[[bench]]
+name = "envelope_benchmarks"
+harness = false
+
+[features]
+default = []
+serde = ["dep:serde"]
+
+[lib]
+name = "lnmp_envelope"
+path = "src/lib.rs"

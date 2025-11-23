@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.5.6] - 2024-11-23
+
+### Added
+
+- **NEW: `lnmp-envelope` crate** - Operational metadata envelope for LNMP records
+  - `EnvelopeMetadata` struct with timestamp, source, trace_id, sequence fields
+  - `LnmpEnvelope` wrapper for records with operational context
+  - `EnvelopeBuilder` fluent API for constructing envelopes
+  - Binary TLV codec for container metadata extension
+  - Text codec with `#ENVELOPE` header comment format
+  - Standards-aligned with CloudEvents, Kafka Headers, W3C Trace Context
+  - Transport binding examples for HTTP and Kafka
+  - Comprehensive documentation and examples
+
+### Technical Details
+
+- **Binary Format**: TLV (Type-Length-Value) encoding with canonical ordering
+  - Type codes: 0x10 (Timestamp), 0x11 (Source), 0x12 (TraceID), 0x13 (Sequence)
+  - Forward-compatible: unknown types gracefully skipped
+  - Deterministic encoding ensures same metadata → same binary output
+
+- **Text Format**: Header comment line before LNMP record
+  - Syntax: `#ENVELOPE timestamp=... source=... trace_id=... sequence=...`
+  - Backward compatible: parsers can ignore envelope if not present
+  - Space-separated key=value pairs with optional quoting
+
+- **Zero Overhead**: Envelope metadata does NOT affect `SemanticChecksum`
+  - Core determinism preserved
+  - Same record produces same checksum regardless of envelope
+
+### Examples
+
+- `examples/basic_usage.rs` - Binary TLV encoding demonstration
+- `examples/text_format.rs` - Text header format demonstration
+- `examples/http_binding.rs` - HTTP header mapping (X-LNMP-* pattern)
+- `examples/kafka_binding.rs` - Kafka record headers integration
+
+### Migration
+
+No breaking changes. lnmp-envelope is a new optional module.
+
+To use:
+```toml
+[dependencies]
+lnmp-envelope = "0.5.6"
+```
+
 ## [Unreleased]
 
 - Nothing yet.

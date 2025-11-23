@@ -34,6 +34,7 @@ This meta crate re-exports all LNMP modules:
 | **`core`** | Core type definitions and protocol structures |
 | **`codec`** | Encoding and decoding functionality |
 | **`embedding`** | Embedding vector operations and delta compression |
+| **`envelope`** | Secure message enveloping and integrity |
 | **`llb`** | Large Language Block operations |
 | **`quant`** | Quantization utilities for efficient data representation |
 | **`sanitize`** | Data sanitization and validation |

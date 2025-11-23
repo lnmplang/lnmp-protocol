@@ -85,10 +85,13 @@ jobs:
           # 6. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
           publish lnmp-llb
           
-          # 7. Spatial Lnmp (depends on: lnmp-core, lnmp-embedding)
+          # 7. Envelope (depends on: lnmp-core)
+          publish lnmp-envelope
+          
+          # 8. Spatial Lnmp (depends on: lnmp-core, lnmp-embedding)
           publish lnmp-spatial
 
-          # 8. Meta crate (depends on: all above crates)
+          # 9. Meta crate (depends on: all above crates)
           publish lnmp
 
           echo "All crates published successfully!"

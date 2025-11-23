@@ -1,6 +1,6 @@
 [package]
 name = "lnmp"
-version.workspace = true
+version = "0.5.6"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -14,6 +14,7 @@ categories = ["encoding", "data-structures"]
 lnmp-core = { workspace = true }
 lnmp-codec = { workspace = true }
 lnmp-embedding = { workspace = true }
+lnmp-envelope = { workspace = true }
 lnmp-llb = { workspace = true }
 lnmp-quant = { workspace = true }
 lnmp-sanitize = { workspace = true }

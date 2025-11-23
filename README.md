@@ -94,6 +94,7 @@ This is a Rust workspace containing multiple crates:
 - **lnmp-core** (v0.5.5): Core type definitions for LNMP data structures (including nested structures and checksums)
 - **lnmp-codec** (v0.5.5): Parser and encoder implementations for LNMP text format (with normalization and equivalence mapping)
 - **lnmp-embedding** (v0.5.4): Vector embedding support with efficient delta encoding
+- **lnmp-envelope** (v0.5.6): Operational metadata envelope (timestamp, source, trace_id, sequence) - CloudEvents/Kafka/OTel aligned
 - **lnmp-spatial** (v0.5.4): Spatial awareness types and hybrid protocol for robotics and real-time control
 - **lnmp-quant** (v0.5.4): Adaptive quantization and compression for embedding vectors
 - **lnmp-llb** (v0.5.5): LNMP-LLM Bridge Layer - prompt optimization, explain mode, and ShortForm encoding

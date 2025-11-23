@@ -63,6 +63,7 @@
 pub use lnmp_codec as codec;
 pub use lnmp_core as core;
 pub use lnmp_embedding as embedding;
+pub use lnmp_envelope as envelope;
 pub use lnmp_llb as llb;
 pub use lnmp_quant as quant;
 pub use lnmp_sanitize as sanitize;
