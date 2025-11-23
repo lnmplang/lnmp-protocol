@@ -501,7 +501,6 @@ dependencies = [
  "byteorder",
  "criterion",
  "half",
- "lnmp-core",
  "lnmp-embedding",
  "serde",
  "thiserror",

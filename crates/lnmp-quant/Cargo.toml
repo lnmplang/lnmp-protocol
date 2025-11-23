@@ -19,7 +19,6 @@ half = "2.4"  # For FP16 half-precision float support
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
-lnmp-core = { workspace = true }
 
 
 [[bench]]
