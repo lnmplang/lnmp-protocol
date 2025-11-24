@@ -17,7 +17,6 @@ serde = { version = "1.0", features = ["derive"], optional = true }
 thiserror = "1.0"
 
 [dev-dependencies]
-lnmp-codec = { workspace = true }
 criterion = "0.5"
 
 [[bench]]
