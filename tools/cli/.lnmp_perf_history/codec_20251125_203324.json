@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-11-25T20:33:24.562043+03:00",
+  "benchmark_type": "codec",
+  "iterations": 10000,
+  "metrics": {
+    "operations": 10000,
+    "duration": {
+      "secs": 0,
+      "nanos": 54000792
+    },
+    "ops_per_sec": 185182.4691756373,
+    "avg_latency_us": 5.4,
+    "memory_bytes": 41,
+    "peak_memory_bytes": 41,
+    "latency_per_op": {
+      "secs": 0,
+      "nanos": 5400
+    },
+    "throughput_bytes_sec": 18518246.91756373
+  },
+  "metadata": {
+    "size": "medium"
+  }
+}

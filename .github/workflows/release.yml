@@ -175,19 +175,22 @@ jobs:
           # 5. SFE (depends on: lnmp-core, lnmp-envelope)
           publish lnmp-sfe
           
-          # 6. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding, lnmp-quant, lnmp-sfe)
+          # 6. Net (depends on: lnmp-core, lnmp-envelope, lnmp-sfe)
+          publish lnmp-net
+          
+          # 7. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding, lnmp-quant, lnmp-sfe)
           publish lnmp-codec
           
-          # 7. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
+          # 8. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
           publish lnmp-llb
           
-          # 8. Spatial (depends on: lnmp-core, lnmp-embedding)
+          # 9. Spatial (depends on: lnmp-core, lnmp-embedding)
           publish lnmp-spatial
 
-          # 9. Transport (depends on: lnmp-core, lnmp-codec, lnmp-envelope)
+          # 10. Transport (depends on: lnmp-core, lnmp-codec, lnmp-envelope)
           publish lnmp-transport
 
-          # 10. Meta crate (depends on: all above crates)
+          # 11. Meta crate (depends on: all above crates)
           publish lnmp
 
           echo "All crates published successfully!"

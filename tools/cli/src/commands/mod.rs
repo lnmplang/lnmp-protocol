@@ -4,6 +4,7 @@ pub mod convert;
 pub mod embedding;
 pub mod envelope;
 pub mod info;
+pub mod net;
 pub mod perf;
 pub mod quant;
 pub mod spatial;

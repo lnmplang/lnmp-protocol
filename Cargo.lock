@@ -741,6 +741,8 @@ dependencies = [
  "crossterm",
  "indicatif",
  "lnmp",
+ "lnmp-envelope",
+ "lnmp-net",
  "predicates",
  "ratatui",
  "serde",

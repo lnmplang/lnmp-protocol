@@ -2,8 +2,8 @@ use clap::{Parser, Subcommand};
 
 use crate::commands::{
     codec::CodecCmd, container::ContainerCmd, convert::ConvertCmd, embedding::EmbeddingCmd,
-    envelope::EnvelopeCmd, info::InfoCmd, perf::PerfCmd, quant::QuantCmd, spatial::SpatialCmd,
-    transport::TransportCmd, validate::ValidateCmd,
+    envelope::EnvelopeCmd, info::InfoCmd, net::NetCmd, perf::PerfCmd, quant::QuantCmd,
+    spatial::SpatialCmd, transport::TransportCmd, validate::ValidateCmd,
 };
 
 /// LNMP CLI - Command-line tools for LNMP protocol
@@ -50,6 +50,9 @@ pub enum Commands {
 
     /// Performance benchmarking and comparison
     Perf(PerfCmd),
+
+    /// Network message routing and transport operations
+    Net(NetCmd),
 
     /// Interactive Terminal UI
     Tui,

@@ -39,6 +39,7 @@ fn run() -> Result<()> {
         cli::Commands::Info(cmd) => cmd.execute(),
         cli::Commands::Validate(cmd) => cmd.execute(),
         cli::Commands::Perf(cmd) => cmd.execute(),
+        cli::Commands::Net(cmd) => cmd.execute(),
         cli::Commands::Tui => {
             let mut app = tui::App::new();
             app.run()
