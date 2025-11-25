@@ -713,7 +713,7 @@ checksum = "df1d3c3b53da64cf5760482273a98e575c651a67eec7f77df96b5b642de8f039"
 
 [[package]]
 name = "lnmp"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "lnmp-codec",
  "lnmp-core",
@@ -753,7 +753,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-codec"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "criterion",
  "lnmp-core",
@@ -766,7 +766,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-compliance-tests"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "lnmp-codec",
  "lnmp-core",
@@ -777,7 +777,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-core"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "crc",
  "crc-catalog",
@@ -789,7 +789,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-embedding"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "byteorder",
  "criterion",
@@ -799,7 +799,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-envelope"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "criterion",
  "lnmp-core",
@@ -824,7 +824,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-llb"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "criterion",
  "lnmp-codec",
@@ -835,7 +835,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-net"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "criterion",
  "http",
@@ -848,7 +848,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-quant"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "byteorder",
  "criterion",
@@ -860,7 +860,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-sanitize"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "criterion",
  "proptest",
@@ -876,7 +876,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-sfe"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "criterion",
  "lnmp-core",
@@ -888,7 +888,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-spatial"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "bincode",
  "bytes",
@@ -902,7 +902,7 @@ dependencies = [
 
 [[package]]
 name = "lnmp-transport"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "criterion",
  "hex",
