@@ -40,6 +40,8 @@ This meta crate re-exports all LNMP modules:
 | **`sanitize`** | Data sanitization and validation |
 | **`sfe`** | Secure Function Evaluation primitives |
 | **`spatial`** | Spatial data streaming and hybrid protocols |
+| **`transport`** | Transport protocol bindings (HTTP, Kafka, gRPC, NATS) |
+| **`net`** | Network behavior layer (MessageKind, QoS, ECO routing) |
 
 ## Why Use the Meta Crate?
 
@@ -91,6 +93,19 @@ let streamer = SpatialStreamer::new(HybridProtocol::default());
 // Stream spatial data efficiently...
 ```
 
+### Network Routing
+
+```rust
+use lnmp::net::{NetMessage, MessageKind, RoutingPolicy};
+
+// Create a network message
+let msg = NetMessage::new(envelope, MessageKind::Alert);
+
+// Make intelligent routing decision
+let policy = RoutingPolicy::default();
+let decision = policy.decide(&msg, now_ms)?;
+```
+
 ## Individual Modules
 
 If you prefer fine-grained control and only need specific functionality, you can still depend on individual crates:
@@ -103,6 +118,8 @@ If you prefer fine-grained control and only need specific functionality, you can
 - [`lnmp-sanitize`](https://crates.io/crates/lnmp-sanitize) - Sanitization
 - [`lnmp-sfe`](https://crates.io/crates/lnmp-sfe) - Secure Function Evaluation
 - [`lnmp-spatial`](https://crates.io/crates/lnmp-spatial) - Spatial streaming
+- [`lnmp-transport`](https://crates.io/crates/lnmp-transport) - Transport bindings
+- [`lnmp-net`](https://crates.io/crates/lnmp-net) - Network behavior layer
 
 ## Documentation
 

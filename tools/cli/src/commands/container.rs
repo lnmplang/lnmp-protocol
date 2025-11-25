@@ -160,7 +160,7 @@ fn inspect(args: &InspectArgs) -> Result<()> {
 fn decode(args: &DecodeArgs) -> Result<()> {
     let data = read_file(&args.input)?;
     let frame = ContainerFrame::parse(&data)?;
-    
+
     if !args.quiet {
         log_decode_context(&frame);
     }

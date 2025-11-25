@@ -86,21 +86,22 @@ impl CodecCmd {
 fn parse(input: &PathBuf, detailed: bool) -> Result<()> {
     // Read file as bytes first
     let data = read_file(input)?;
-    
+
     // Auto-detect format: binary codec starts with magic bytes
     // Binary codec format: [varint_len][varint_field_count][fields...]
     // First byte is typically 0x04 or similar (small varint)
     let is_binary = data.len() >= 2 && data[0] < 0x20 && data[1] < 0x20;
-    
+
     let record = if is_binary {
         // Binary codec - use BinaryDecoder
         let decoder = BinaryDecoder::new();
-        decoder.decode(&data)
+        decoder
+            .decode(&data)
             .map_err(|e| anyhow::anyhow!("Binary decode failed: {}", e))?
     } else {
         // Text codec - use Parser
-        let text = String::from_utf8(data)
-            .map_err(|e| anyhow::anyhow!("Not valid UTF-8 text: {}", e))?;
+        let text =
+            String::from_utf8(data).map_err(|e| anyhow::anyhow!("Not valid UTF-8 text: {}", e))?;
         let mut parser = Parser::new(&text)?;
         parser.parse_record()?
     };

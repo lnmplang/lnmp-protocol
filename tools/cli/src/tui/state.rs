@@ -32,6 +32,7 @@ impl AppState {
         &self.current_screen
     }
 
+    #[allow(dead_code)]
     pub fn set_status(&mut self, message: String) {
         self.status_message = message;
     }

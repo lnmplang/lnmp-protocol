@@ -24,7 +24,9 @@ pub fn render(f: &mut Frame, area: Rect, _state: &AppState) {
         )),
     ];
 
-    let block = Block::default().borders(Borders::ALL).title("Decode Screen");
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title("Decode Screen");
     let paragraph = Paragraph::new(content).block(block);
     f.render_widget(paragraph, area);
 }

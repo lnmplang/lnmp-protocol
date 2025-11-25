@@ -1,4 +1,4 @@
 pub mod convert;
-pub mod encode;
 pub mod decode;
+pub mod encode;
 pub mod validate;

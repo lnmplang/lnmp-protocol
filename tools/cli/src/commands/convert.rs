@@ -1,8 +1,8 @@
 use anyhow::Result;
 use clap::{Args, Subcommand};
 use lnmp::codec::binary::{BinaryDecoder, BinaryEncoder};
-use lnmp::codec::{Encoder, Parser};
 use lnmp::codec::container::ContainerFrame;
+use lnmp::codec::Parser;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -152,64 +152,66 @@ fn from_json(input: &PathBuf, output: &PathBuf, mapping: Option<&PathBuf>) -> Re
     // Parse JSON
     let json_text = read_text(input)?;
     let json: serde_json::Value = serde_json::from_str(&json_text)?;
-    
+
     // Load or generate field mapping
     let field_map = if let Some(map_path) = mapping {
         load_json_mapping(map_path)?
     } else {
         generate_auto_mapping(&json)?
     };
-    
+
     // Convert JSON → LNMP
     let lnmp_text = json_object_to_lnmp(&json, &field_map)?;
-    
+
     write_text(output, &lnmp_text)?;
-    println!("Converted {} JSON keys → {} LNMP fields", 
-        count_json_keys(&json), 
-        field_map.len());
-    
+    println!(
+        "Converted {} JSON keys → {} LNMP fields",
+        count_json_keys(&json),
+        field_map.len()
+    );
+
     Ok(())
 }
 
 fn load_json_mapping(path: &PathBuf) -> Result<HashMap<String, u16>> {
     let text = read_text(path)?;
     let mapping: HashMap<String, u16> = serde_json::from_str(&text)?;
-    
+
     // Validate FIDs
-    for (&fid) in mapping.values() {
-        if fid == 0 || fid > 65535 {
+    for &fid in mapping.values() {
+        if fid == 0 {
             anyhow::bail!("Invalid FID in mapping: {} (must be 1-65535)", fid);
         }
     }
-    
+
     Ok(mapping)
 }
 
 fn generate_auto_mapping(json: &serde_json::Value) -> Result<HashMap<String, u16>> {
     let mut mapping = HashMap::new();
-    let mut next_fid = 1u16;
-    
+    let mut next_fid = 1u32; // Use u32 to allow checking for overflow
+
     // Only map top-level keys - keep it simple like gRPC/Protobuf
     if let serde_json::Value::Object(map) = json {
         let mut keys: Vec<_> = map.keys().collect();
         keys.sort();
-        
+
         for key in keys {
-            mapping.insert(key.clone(), next_fid);
-            next_fid += 1;
-            
             if next_fid > 65535 {
                 anyhow::bail!("Too many JSON keys (max 65535 fields)");
             }
+
+            mapping.insert(key.clone(), next_fid as u16);
+            next_fid += 1;
         }
     }
-    
+
     Ok(mapping)
 }
 
 fn json_object_to_lnmp(json: &serde_json::Value, mapping: &HashMap<String, u16>) -> Result<String> {
     let mut fields = Vec::new();
-    
+
     if let serde_json::Value::Object(map) = json {
         for (key, value) in map {
             if let Some(&fid) = mapping.get(key) {
@@ -220,21 +222,21 @@ fn json_object_to_lnmp(json: &serde_json::Value, mapping: &HashMap<String, u16>)
     } else {
         anyhow::bail!("JSON root must be an object");
     }
-    
+
     // Sort by FID for canonical form
     fields.sort_by_key(|(fid, _)| *fid);
-    
+
     let lnmp_lines: Vec<String> = fields
         .into_iter()
         .map(|(fid, value)| format!("F{}={}", fid, value))
         .collect();
-    
+
     Ok(lnmp_lines.join("\n"))
 }
 
 fn json_value_to_lnmp_value(value: &serde_json::Value) -> Result<String> {
     use serde_json::Value;
-    
+
     match value {
         Value::String(s) => {
             // Quote if contains special chars
@@ -243,7 +245,7 @@ fn json_value_to_lnmp_value(value: &serde_json::Value) -> Result<String> {
             } else {
                 Ok(s.clone())
             }
-        },
+        }
         Value::Number(n) => Ok(n.to_string()),
         Value::Bool(b) => Ok(b.to_string()),
         Value::Null => Ok("null".to_string()),
@@ -258,33 +260,52 @@ fn json_value_to_lnmp_value(value: &serde_json::Value) -> Result<String> {
 }
 
 fn convert_json_array(arr: &[serde_json::Value]) -> Result<String> {
-    use serde_json::Value;
-    
     if arr.is_empty() {
         return Ok("[]".to_string());
     }
-    
+
     // Only handle simple homogeneous arrays - keep it simple
     let all_strings = arr.iter().all(|v| v.is_string());
     let all_ints = arr.iter().all(|v| v.is_i64());
     let all_floats = arr.iter().all(|v| v.is_f64() || v.is_i64());
     let all_bools = arr.iter().all(|v| v.is_boolean());
-    
+
     if all_strings {
-        let strings: Vec<String> = arr.iter()
+        let strings: Vec<String> = arr
+            .iter()
             .filter_map(|v| v.as_str())
             .map(|s| s.to_string())
             .collect();
         Ok(format!("[{}]", strings.join(",")))
     } else if all_ints {
         let ints: Vec<i64> = arr.iter().filter_map(|v| v.as_i64()).collect();
-        Ok(format!("[{}]", ints.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",")))
+        Ok(format!(
+            "[{}]",
+            ints.iter()
+                .map(|i| i.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        ))
     } else if all_floats {
         let floats: Vec<f64> = arr.iter().filter_map(|v| v.as_f64()).collect();
-        Ok(format!("[{}]", floats.iter().map(|f| f.to_string()).collect::<Vec<_>>().join(",")))
+        Ok(format!(
+            "[{}]",
+            floats
+                .iter()
+                .map(|f| f.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        ))
     } else if all_bools {
         let bools: Vec<bool> = arr.iter().filter_map(|v| v.as_bool()).collect();
-        Ok(format!("[{}]", bools.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(",")))
+        Ok(format!(
+            "[{}]",
+            bools
+                .iter()
+                .map(|b| b.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        ))
     } else {
         // Complex/mixed arrays - serialize as JSON string
         let json_str = serde_json::to_string(arr)?;

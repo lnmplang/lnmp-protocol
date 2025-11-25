@@ -35,7 +35,10 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         ]),
         Line::from(""),
         Line::from(""),
-        Line::from(Span::styled("[ Convert ]", Style::default().fg(Color::Cyan))),
+        Line::from(Span::styled(
+            "[ Convert ]",
+            Style::default().fg(Color::Cyan),
+        )),
         Line::from(""),
         Line::from(""),
         Line::from(vec![

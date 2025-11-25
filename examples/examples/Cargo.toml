@@ -112,6 +112,11 @@ path = "context_filtering.rs"
 name = "context_stress_test"
 path = "context_stress_test.rs"
 
+[[example]]
+name = "lnmp_net_basic"
+path = "../lnmp-net-basic.rs"
+required-features = ["lnmp-net/transport"]
+
 [dependencies]
 lnmp-core.workspace = true
 lnmp-codec.workspace = true
@@ -120,4 +125,5 @@ lnmp-embedding.workspace = true
 lnmp-envelope.workspace = true
 lnmp-sfe.workspace = true
 lnmp-spatial.workspace = true
+lnmp-net = { workspace = true, features = ["transport"] }
 hex = "0.4"

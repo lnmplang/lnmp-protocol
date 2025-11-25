@@ -720,6 +720,7 @@ dependencies = [
  "lnmp-embedding",
  "lnmp-envelope",
  "lnmp-llb",
+ "lnmp-net",
  "lnmp-quant",
  "lnmp-sanitize",
  "lnmp-sfe",
@@ -814,6 +815,7 @@ dependencies = [
  "lnmp-embedding",
  "lnmp-envelope",
  "lnmp-llb",
+ "lnmp-net",
  "lnmp-sfe",
  "lnmp-spatial",
 ]
@@ -827,6 +829,19 @@ dependencies = [
  "lnmp-core",
  "lnmp-embedding",
  "lnmp-sfe",
+]
+
+[[package]]
+name = "lnmp-net"
+version = "0.5.11"
+dependencies = [
+ "criterion",
+ "http",
+ "lnmp-core",
+ "lnmp-envelope",
+ "lnmp-sfe",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]

@@ -87,15 +87,19 @@ impl App {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(3),  // Header
-                Constraint::Min(0),     // Content
-                Constraint::Length(3),  // Footer
+                Constraint::Length(3), // Header
+                Constraint::Min(0),    // Content
+                Constraint::Length(3), // Footer
             ])
             .split(f.size());
 
         // Header
         let header = Paragraph::new("🚀 LNMP CLI Manager")
-            .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+            .style(
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )
             .block(Block::default().borders(Borders::ALL));
         f.render_widget(header, chunks[0]);
 
@@ -115,7 +119,11 @@ impl App {
         let menu = List::new(menu_items)
             .block(Block::default().borders(Borders::ALL).title("Menu"))
             .style(Style::default().fg(Color::White))
-            .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+            .highlight_style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            );
         f.render_widget(menu, content_chunks[0]);
 
         // Right panel - Active screen
@@ -127,15 +135,13 @@ impl App {
         }
 
         // Footer
-        let footer = Paragraph::new(vec![
-            Line::from(vec![
-                Span::raw("Press "),
-                Span::styled("q", Style::default().fg(Color::Yellow)),
-                Span::raw(" to quit | "),
-                Span::styled("1-4", Style::default().fg(Color::Yellow)),
-                Span::raw(" to switch screens"),
-            ]),
-        ])
+        let footer = Paragraph::new(vec![Line::from(vec![
+            Span::raw("Press "),
+            Span::styled("q", Style::default().fg(Color::Yellow)),
+            Span::raw(" to quit | "),
+            Span::styled("1-4", Style::default().fg(Color::Yellow)),
+            Span::raw(" to switch screens"),
+        ])])
         .style(Style::default().fg(Color::Gray))
         .block(Block::default().borders(Borders::ALL));
         f.render_widget(footer, chunks[2]);

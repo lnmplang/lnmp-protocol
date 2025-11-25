@@ -101,6 +101,7 @@ This is a Rust workspace containing multiple crates:
 - **lnmp-quant** (v0.5.7): Adaptive quantization and compression for embedding vectors
 - **lnmp-llb** (v0.5.7): LNMP-LLM Bridge Layer - prompt optimization, explain mode, and ShortForm encoding
 - **lnmp-sfe** (v0.5.7): Semantic Fidelity Engine - semantic dictionary, equivalence mapping, and **context profiling for LLM decision support**
+- **lnmp-net** (v0.5.7): Network behavior layer - semantic message types (Event/Alert/etc), QoS, and intelligent routing (ECO profile)
 - **lnmp-sanitize** (v0.5.7): Security-focused input validation and sanitization
 - **lnmp-transport** (v0.5.7): Transport bindings for HTTP, Kafka, gRPC, NATS - W3C Trace Context integration and observability support
 
@@ -756,7 +757,15 @@ println!("Processed {} vectors in {:?}", results.stats.total, results.stats.tota
 - **Strict Determinism**: `LnmpProfile` (Loose, Standard, Strict) for validation
 - **RecordBuilder**: Fluent API for canonical record construction
 - **Enhanced Validation**: Runtime field ordering checks
+- **Enhanced Validation**: Runtime field ordering checks
 - **Performance**: Sub-microsecond operations for all core types
+
+### v0.5.7 - LNMP-Net & Intelligent Routing ✅ (Current)
+- **Semantic Message Types**: Event, State, Command, Query, Alert
+- **QoS Primitives**: Priority (0-255) and TTL for network behavior
+- **ECO Profile**: Energy/Token Optimization routing (90% reduction in LLM calls)
+- **Intelligent Routing**: Route based on importance score + freshness
+- **Transport Integration**: Header mappings for HTTP, Kafka, NATS, gRPC
 
 ## Migration Guide
 

@@ -24,6 +24,7 @@
 //! - **`sfe`**: Secure Function Evaluation primitives
 //! - **`spatial`**: Spatial data streaming and hybrid protocols
 //! - **`transport`**: Transport protocol bindings (HTTP, Kafka, gRPC, NATS) with W3C Trace Context
+//! - **`net`**: Network behavior layer (MessageKind, QoS, ECO routing)
 //!
 //! ## Usage Examples
 //!
@@ -39,6 +40,9 @@
 //!
 //! // Use spatial streaming
 //! use lnmp::spatial::protocol::SpatialStreamer;
+//!
+//! // Use network routing
+//! use lnmp::net::{NetMessage, MessageKind};
 //! ```
 //!
 //! ## Individual Module Usage
@@ -54,6 +58,7 @@
 //! - `lnmp-sfe` - Secure Function Evaluation
 //! - `lnmp-spatial` - Spatial streaming
 //! - `lnmp-transport` - Transport bindings
+//! - `lnmp-net` - Network behavior layer
 //!
 //! ## Documentation
 //!
@@ -67,6 +72,7 @@ pub use lnmp_core as core;
 pub use lnmp_embedding as embedding;
 pub use lnmp_envelope as envelope;
 pub use lnmp_llb as llb;
+pub use lnmp_net as net;
 pub use lnmp_quant as quant;
 pub use lnmp_sanitize as sanitize;
 pub use lnmp_sfe as sfe;
@@ -88,4 +94,7 @@ pub mod prelude {
 
     // Spatial types
     pub use lnmp_spatial::protocol::{SpatialFrame, SpatialStreamer};
+
+    // Network types
+    pub use lnmp_net::{MessageKind, NetMessage, RoutingPolicy};
 }

@@ -73,19 +73,19 @@ fn sanitize(input: &PathBuf, output: &PathBuf) -> Result<()> {
         .lines()
         .filter_map(|line| {
             let trimmed = line.trim();
-            
+
             // Keep empty lines and comments
             if trimmed.is_empty() || trimmed.starts_with('#') {
                 return Some(line.to_string());
             }
-            
+
             // Check field lines
             if trimmed.starts_with('F') {
                 // Extract field ID
                 if let Some(eq_pos) = trimmed.find('=') {
                     let fid_str = &trimmed[1..eq_pos];
                     if let Ok(fid) = fid_str.parse::<u32>() {
-                        if fid >= 1 && fid <= 65535 {
+                        if (1..=65535).contains(&fid) {
                             // Valid field ID
                             return Some(line.to_string());
                         } else {
@@ -97,12 +97,12 @@ fn sanitize(input: &PathBuf, output: &PathBuf) -> Result<()> {
                 eprintln!("[sanitize] Skipped malformed line: {}", trimmed);
                 return None;
             }
-            
+
             // Keep other lines
             Some(line.to_string())
         })
         .collect();
-    
+
     let sanitized = sanitized_lines.join("\n");
 
     // Validate after sanitization
@@ -111,7 +111,10 @@ fn sanitize(input: &PathBuf, output: &PathBuf) -> Result<()> {
 
     write_text(output, &sanitized)?;
     println!("✓ Sanitized and validated");
-    println!("  Input fields: {}", text.lines().filter(|l| l.trim().starts_with('F')).count());
+    println!(
+        "  Input fields: {}",
+        text.lines().filter(|l| l.trim().starts_with('F')).count()
+    );
     println!("  Output fields: {}", record.fields().len());
 
     Ok(())

@@ -7,6 +7,7 @@ members = [
     "crates/lnmp-embedding",
     "crates/lnmp-envelope",
     "crates/lnmp-llb",
+    "crates/lnmp-net",
     "crates/lnmp-quant",
     "crates/lnmp-sanitize",
     "crates/lnmp-sfe",
@@ -36,6 +37,7 @@ lnmp-llb = { version = "0.5.7", path = "crates/lnmp-llb" }
 lnmp-sfe = { version = "0.5.7", path = "crates/lnmp-sfe" }
 lnmp-embedding = { version = "0.5.7", path = "crates/lnmp-embedding" }
 lnmp-envelope = { version = "0.5.7", path = "crates/lnmp-envelope" }
+lnmp-net = { version = "0.5.7", path = "crates/lnmp-net" }
 lnmp-quant = { version = "0.5.7", path = "crates/lnmp-quant" }
 lnmp-spatial = { version = "0.5.7", path = "crates/lnmp-spatial" }
 lnmp-transport = { version = "0.5.7", path = "crates/lnmp-transport" }
