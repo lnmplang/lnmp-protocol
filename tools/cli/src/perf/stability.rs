@@ -201,35 +201,6 @@ pub fn calculate_overall_rate(tests: &[StabilityTest]) -> (f64, f64) {
     (lnmp_rate, json_rate)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_stability_metrics() {
-        let mut test = StabilityTest::new("test".to_string());
-        test.lnmp_success = 997;
-        test.lnmp_total = 1000;
-        test.json_success = 503;
-        test.json_total = 1000;
-
-        assert!((test.lnmp_rate() - 99.7).abs() < 0.1);
-        assert!((test.json_rate() - 50.3).abs() < 0.1);
-        assert!(test.difference() > 49.0);
-    }
-
-    #[test]
-    fn test_scenario_generation() {
-        let (lnmp, json) = ScenarioGenerator::clean(0);
-        assert!(lnmp.contains("F1="));
-        assert!(json.contains("field1"));
-
-        let (lnmp, json) = ScenarioGenerator::missing_quotes(0);
-        assert!(lnmp.contains("F1=value"));
-        assert!(json.contains("value_"));
-    }
-}
-
 /// Run stability tests and print report
 #[allow(dead_code)]
 pub fn run_stability(iterations: usize) -> anyhow::Result<()> {
@@ -267,4 +238,33 @@ pub fn run_stability(iterations: usize) -> anyhow::Result<()> {
     );
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_stability_metrics() {
+        let mut test = StabilityTest::new("test".to_string());
+        test.lnmp_success = 997;
+        test.lnmp_total = 1000;
+        test.json_success = 503;
+        test.json_total = 1000;
+
+        assert!((test.lnmp_rate() - 99.7).abs() < 0.1);
+        assert!((test.json_rate() - 50.3).abs() < 0.1);
+        assert!(test.difference() > 49.0);
+    }
+
+    #[test]
+    fn test_scenario_generation() {
+        let (lnmp, json) = ScenarioGenerator::clean(0);
+        assert!(lnmp.contains("F1="));
+        assert!(json.contains("field1"));
+
+        let (lnmp, json) = ScenarioGenerator::missing_quotes(0);
+        assert!(lnmp.contains("F1=value"));
+        assert!(json.contains("value_"));
+    }
 }

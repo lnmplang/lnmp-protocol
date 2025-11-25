@@ -157,7 +157,7 @@ pub fn ensure_parent_dir<P: AsRef<Path>>(path: P) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
+    // use std::io::Write;
 
     #[test]
     fn test_is_stdin() {

@@ -143,7 +143,7 @@ mod tests {
         let headers = net_to_nats_headers(&msg);
 
         assert_eq!(headers.len(), 3); // kind, priority, ttl only
-        assert!(headers.get("lnmp-class").is_none());
+        assert!(!headers.contains_key("lnmp-class"));
     }
 
     #[test]

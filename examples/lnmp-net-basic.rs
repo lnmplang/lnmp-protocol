@@ -36,7 +36,7 @@ impl NodeA {
         let envelope = EnvelopeBuilder::new(record)
             .timestamp(timestamp)
             .source(&self.name)
-            .trace_id(&format!("trace-{}", timestamp))
+            .trace_id(format!("trace-{}", timestamp))
             .build();
 
         NetMessageBuilder::new(envelope, MessageKind::Event)
@@ -57,7 +57,7 @@ impl NodeA {
         let envelope = EnvelopeBuilder::new(record)
             .timestamp(timestamp)
             .source(&self.name)
-            .trace_id(&format!("alert-{}", timestamp))
+            .trace_id(format!("alert-{}", timestamp))
             .build();
 
         NetMessageBuilder::new(envelope, MessageKind::Alert)
