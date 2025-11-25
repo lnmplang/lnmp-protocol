@@ -1,0 +1,4 @@
+[lnmp-cli] mode=LNMP/Text flags=none (0x0000) metadata=0 bytes
+F1=John
+F2=30
+F3=active

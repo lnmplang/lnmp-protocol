@@ -107,7 +107,11 @@ impl ContainerBuilder {
                 let text = encoder.encode(record);
                 self.wrap_payload_internal(text.as_bytes())
             }
-            LnmpFileMode::Binary | LnmpFileMode::Embedding | LnmpFileMode::Spatial => {
+            LnmpFileMode::Binary 
+            | LnmpFileMode::Embedding 
+            | LnmpFileMode::Spatial
+            | LnmpFileMode::Stream
+            | LnmpFileMode::Delta => {
                 let encoder = BinaryEncoder::new();
                 let binary = encoder
                     .encode(record)
@@ -282,7 +286,9 @@ impl<'a> ContainerFrame<'a> {
     pub fn decode_record(&self) -> Result<LnmpRecord, ContainerDecodeError> {
         match self.header.mode {
             LnmpFileMode::Text => self.decode_text_record(),
-            LnmpFileMode::Binary => self.decode_binary_record(),
+            LnmpFileMode::Binary 
+            | LnmpFileMode::Stream 
+            | LnmpFileMode::Delta => self.decode_binary_record(),
             mode => Err(ContainerDecodeError::UnsupportedMode(mode)),
         }
     }

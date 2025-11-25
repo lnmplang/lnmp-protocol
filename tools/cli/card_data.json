@@ -1,0 +1,13 @@
+{
+    "card_number": "4532-1234-5678-9010",
+    "holder_name": "Alice Johnson",
+    "balance": 5432.75,
+    "is_active": true,
+    "card_type": "platinum",
+    "limit": 10000,
+    "recent_transactions": [
+        150.50,
+        89.99,
+        1200.00
+    ]
+}

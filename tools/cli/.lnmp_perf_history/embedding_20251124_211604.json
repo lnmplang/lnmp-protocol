@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-11-24T21:16:04.448632+03:00",
+  "benchmark_type": "embedding",
+  "iterations": 50,
+  "metrics": {
+    "operations": 50,
+    "duration": {
+      "secs": 0,
+      "nanos": 2892375
+    },
+    "ops_per_sec": 17286.831755909934,
+    "avg_latency_us": 57.84,
+    "memory_bytes": 1536,
+    "peak_memory_bytes": 1536,
+    "latency_per_op": {
+      "secs": 0,
+      "nanos": 57847
+    },
+    "throughput_bytes_sec": 1728683.1755909936
+  },
+  "metadata": {
+    "dimensions": "384"
+  }
+}
