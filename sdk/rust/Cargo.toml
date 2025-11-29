@@ -9,5 +9,28 @@ name = "lnmp_sdk_rust"
 path = "src/lib.rs"
 
 [dependencies]
-lnmp-core = { workspace = true }
-lnmp-embedding = { workspace = true }
+lnmp = { workspace = true }
+
+[[example]]
+name = "basic_encoding"
+path = "examples/basic_encoding.rs"
+
+[[example]]
+name = "embedding_ops"
+path = "examples/embedding_ops.rs"
+
+[[example]]
+name = "spatial_demo"
+path = "examples/spatial_demo.rs"
+
+[[example]]
+name = "network_demo"
+path = "examples/network_demo.rs"
+
+[[example]]
+name = "complete_workflow"
+path = "examples/complete_workflow.rs"
+
+[[example]]
+name = "all_modules"
+path = "examples/all_modules.rs"

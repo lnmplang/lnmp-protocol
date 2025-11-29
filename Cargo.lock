@@ -870,8 +870,7 @@ dependencies = [
 name = "lnmp-sdk-rust"
 version = "0.5.7"
 dependencies = [
- "lnmp-core",
- "lnmp-embedding",
+ "lnmp",
 ]
 
 [[package]]

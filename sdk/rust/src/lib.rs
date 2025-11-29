@@ -1,5 +1,6 @@
-pub use lnmp_embedding::EmbeddingType;
-pub use lnmp_embedding::Vector as LnmpEmbedding;
+pub use lnmp;
+pub use lnmp::embedding::EmbeddingType;
+pub use lnmp::embedding::Vector as LnmpEmbedding;
 
 pub fn version() -> &'static str {
     "lnmp-sdk-rust v0.1.0"
