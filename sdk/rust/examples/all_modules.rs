@@ -2,7 +2,6 @@
 //!
 //! This example shows ALL available LNMP modules through the SDK
 
-
 fn main() {
     println!("=== LNMP SDK - All Available Modules ===\n");
 

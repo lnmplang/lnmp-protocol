@@ -17,6 +17,7 @@ members = [
     "tests/compliance/rust",
     "tools/cli",
     "sdk/rust",
+    "sdk/python",
 ]
 
 [workspace.package]

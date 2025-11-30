@@ -1,0 +1,16 @@
+[package]
+name = "lnmp-python"
+version = "0.5.7"
+edition = "2021"
+
+[lib]
+name = "lnmp_py_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.21", features = ["extension-module"] }
+lnmp = { workspace = true }
+http = "1.0"
+
+[build-dependencies]
+pyo3-build-config = "0.21"

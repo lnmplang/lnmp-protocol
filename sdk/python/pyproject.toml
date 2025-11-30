@@ -1,10 +1,31 @@
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
 
 [project]
-name = "lnmp-sdk-python"
-version = "0.1.0"
-description = "Python SDK for LNMP"
-authors = [ { name = "LNMP Contributors" } ]
-classifiers = [ "Programming Language :: Python :: 3" ]
+name = "lnmp"
+version = "0.5.7"
+description = "Python SDK for LNMP protocol"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "mypy>=1.0",
+    "ruff>=0.1",
+]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "lnmp_py_core"
+python-source = "."

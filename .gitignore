@@ -31,6 +31,7 @@ yarn-error.log*
 
 # Editors / env
 .env
+.venv/
 .vscode/
 .idea/
 *.swp
