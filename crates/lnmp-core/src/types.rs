@@ -8,7 +8,7 @@ pub type FieldId = u16;
 
 /// LNMP value types supporting all primitives, arrays, and nested structures.
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "wasm", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum LnmpValue {
     /// Integer value (i64)
     Int(i64),

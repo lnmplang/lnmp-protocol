@@ -220,6 +220,7 @@ impl SemanticChecksum {
             LnmpValue::NestedArray(_) => TypeHint::RecordArray,
             LnmpValue::Embedding(_) => TypeHint::Embedding,
             LnmpValue::EmbeddingDelta(_) => TypeHint::Embedding, // Delta uses same type hint
+            #[cfg(feature = "quant")]
             LnmpValue::QuantizedEmbedding(_) => TypeHint::QuantizedEmbedding,
         }
     }
@@ -341,6 +342,7 @@ impl SemanticChecksum {
                     Err(_) => "INVALID_DELTA".to_string(),
                 }
             }
+            #[cfg(feature = "quant")]
             LnmpValue::QuantizedEmbedding(qv) => {
                 // Serialize quantized vector as hex string of its data
                 // Include scheme, scale, and zero_point for completeness

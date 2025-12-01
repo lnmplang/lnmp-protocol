@@ -224,8 +224,9 @@ impl StructuralLimits {
             | LnmpValue::Float(_)
             | LnmpValue::Bool(_)
             | LnmpValue::Embedding(_)
-            | LnmpValue::EmbeddingDelta(_)
-            | LnmpValue::QuantizedEmbedding(_) => Ok(()),
+            | LnmpValue::EmbeddingDelta(_) => Ok(()),
+            #[cfg(feature = "quant")]
+            LnmpValue::QuantizedEmbedding(_) => Ok(()),
         }
     }
 }
