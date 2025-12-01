@@ -16,9 +16,14 @@ crc = "2.1"
 crc-catalog = "1.1"
 lnmp-embedding = { workspace = true }
 lnmp-quant = { workspace = true, optional = true }
+thiserror = "1.0"
+
+# Optional serde support for WASM
+serde = { version = "1.0", features = ["derive"], optional = true }
 
 [features]
-default = ["quant"]
+default = []
+wasm = ["serde"]
 quant = ["dep:lnmp-quant"]
 
 [dev-dependencies]

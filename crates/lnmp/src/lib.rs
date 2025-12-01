@@ -98,3 +98,7 @@ pub mod prelude {
     // Network types
     pub use lnmp_net::{MessageKind, NetMessage, RoutingPolicy};
 }
+
+// WASM bindings (only when wasm feature is enabled)
+#[cfg(feature = "wasm")]
+pub mod wasm;

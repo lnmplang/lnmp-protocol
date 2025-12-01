@@ -6,8 +6,9 @@ use std::str::FromStr;
 /// Field identifier type (0-65535)
 pub type FieldId = u16;
 
-/// Supported/// Enum representing all LNMP value types
+/// LNMP value types supporting all primitives, arrays, and nested structures.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "wasm", derive(serde::Serialize, serde::Deserialize))]
 pub enum LnmpValue {
     /// Integer value (i64)
     Int(i64),

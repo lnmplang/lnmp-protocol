@@ -15,6 +15,11 @@ lnmp-core = { workspace = true }
 lnmp-embedding = { workspace = true }
 lnmp-codec = { workspace = true }
 lnmp-sfe = { workspace = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[features]
+default = []
+serde = ["dep:serde"]
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

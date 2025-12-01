@@ -51,6 +51,7 @@ use crate::{FieldId, LnmpValue};
 
 /// A single field assignment (field ID + value pair)
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "wasm", derive(serde::Serialize, serde::Deserialize))]
 pub struct LnmpField {
     /// Field identifier
     pub fid: FieldId,
@@ -60,6 +61,7 @@ pub struct LnmpField {
 
 /// A complete LNMP record (collection of fields)
 #[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "wasm", derive(serde::Serialize, serde::Deserialize))]
 pub struct LnmpRecord {
     fields: Vec<LnmpField>,
 }

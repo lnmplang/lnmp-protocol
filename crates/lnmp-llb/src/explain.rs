@@ -11,6 +11,7 @@ use std::collections::HashMap;
 ///
 /// Maps field IDs to human-readable names for explain mode output.
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SemanticDictionary {
     field_names: HashMap<FieldId, String>,
 }

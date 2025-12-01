@@ -32,8 +32,6 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct LnmpEnvelope {
     /// The LNMP record (mandatory)
-    /// Note: Skipped in serde because LnmpRecord doesn't implement Serialize/Deserialize
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub record: LnmpRecord,
 
     /// Optional operational metadata
