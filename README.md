@@ -594,13 +594,11 @@ See the `examples/` directory for complete examples:
 - **v0.5 Specification**: See `specs/lnmp-v0.5-advanced-protocol/`
   - `requirements.md` - Formal requirements using EARS patterns
   - `design.md` - Architecture and component design
-  - `tasks.md` - Implementation task list
-- **v0.5 Migration Guide**: See `MIGRATION_V05.md` for upgrading from v0.4
-- **v0.5 API Reference**: See `API_V05.md` for complete API documentation
+- **[Migration Guides](./docs/migration/)** - Version upgrade guides (v0.3 → v0.4 → v0.5)
+- **[API Reference](./docs/api/)** - Complete API documentation for Rust, TypeScript, and other SDKs
 - **v0.3 Specification**: See `specs/lnmp-v0.3-semantic-fidelity/`
-- **Grammar**: See `spec/grammar.md` for PEG/EBNF specification
+- **[Grammar Specification](./spec/grammar.md)** - Formal grammar for LNMP v0.5EG/EBNF specification
 - **Error Classes**: See `spec/error-classes.md` for error classification
-- **API Docs**: Run `cargo doc --open`
 
 ## Testing
 
