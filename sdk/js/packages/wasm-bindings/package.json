@@ -15,10 +15,20 @@
     "keywords": [
         "lnmp",
         "wasm",
-        "rust"
+        "rust",
+        "llm",
+        "protocol"
     ],
     "author": "LNMP Team",
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/lnmplang/lnmp-protocol.git",
+        "directory": "sdk/js/packages/wasm-bindings"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
     "devDependencies": {
         "typescript": "^5.3.3"
     }

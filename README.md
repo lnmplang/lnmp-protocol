@@ -1,4 +1,10 @@
-# LNMP Protocol Implementation
+# LNMP Protocol
+
+[![Rust CI](https://github.com/lnmplang/lnmp-protocol/workflows/Rust%20CI/badge.svg)](https://github.com/lnmplang/lnmp-protocol/actions)
+[![TypeScript SDK](https://github.com/lnmplang/lnmp-protocol/workflows/WASM%20%26%20TypeScript%20SDK/badge.svg)](https://github.com/lnmplang/lnmp-protocol/actions)
+[![CLI Tests](https://github.com/lnmplang/lnmp-protocol/workflows/CLI%20Tests/badge.svg)](https://github.com/lnmplang/lnmp-protocol/actions)
+[![MCP Server](https://github.com/lnmplang/lnmp-protocol/workflows/MCP%20Server%20Tests/badge.svg)](https://github.com/lnmplang/lnmp-protocol/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) Implementation
 
 LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID-based data format designed for data exchange with large language models (LLMs).
 

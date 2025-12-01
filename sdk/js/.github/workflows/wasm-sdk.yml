@@ -1,0 +1,71 @@
+name: WASM & TypeScript SDK
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'sdk/js/**'
+      - 'crates/lnmp/**'
+      - '.github/workflows/wasm-sdk.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'sdk/js/**'
+      - 'crates/lnmp/**'
+
+jobs:
+  wasm-build:
+    name: Build WASM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      
+      - name: Build WASM
+        run: |
+          cd ../../crates/lnmp
+          wasm-pack build --target nodejs --features wasm \
+            --out-dir ../../sdk/js/packages/wasm-bindings/wasm
+      
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-bindings
+          path: sdk/js/packages/wasm-bindings/wasm
+
+  typescript-test:
+    name: TypeScript SDK Test
+    needs: wasm-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: sdk/js/package-lock.json
+      
+      - name: Download WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-bindings
+          path: packages/wasm-bindings/wasm
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Build TypeScript
+        run: npm run build --workspaces
+      
+      - name: Run integration tests
+        working-directory: packages/lnmp
+        run: node integration-test.js
+      
+      - name: Run benchmarks (smoke test)
+        working-directory: packages/lnmp
+        run: node benchmark.js

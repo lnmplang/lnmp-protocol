@@ -25,10 +25,10 @@
     },
     "keywords": [
         "lnmp",
-        "protocol",
+        "sdk",
+        "typescript",
         "llm",
-        "data-format",
-        "meta"
+        "protocol"
     ],
     "author": "LNMP Team",
     "license": "MIT",
@@ -36,5 +36,8 @@
         "type": "git",
         "url": "https://github.com/lnmplang/lnmp-protocol.git",
         "directory": "sdk/js/packages/lnmp"
+    },
+    "publishConfig": {
+        "access": "public"
     }
 }
