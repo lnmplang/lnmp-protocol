@@ -12,7 +12,7 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 
 ## Features
 
-- 🚀 **Minimal syntax** - 7-12× token reduction compared to JSON
+- 🚀 **Minimal syntax** - Token reduction compared to JSON
 - 🔢 **Semantic IDs** - Uses numeric field IDs for efficient learning
 - 📖 **Human-readable** - Text-based format that's easy to read and debug
 - 🦀 **Pure Rust** - Memory-safe implementation with minimal dependencies
