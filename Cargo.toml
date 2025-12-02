@@ -13,11 +13,12 @@ members = [
     "crates/lnmp-sfe",
     "crates/lnmp-spatial",
     "crates/lnmp-transport",
-    "examples/examples",
+
     "tests/compliance/rust",
     "tools/cli",
     "sdk/rust",
     "sdk/python",
+    "showcase/city-pulse",
 ]
 
 [workspace.package]

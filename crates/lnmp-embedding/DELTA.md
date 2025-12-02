@@ -163,7 +163,7 @@ impl UpdateStrategy {
 
 ## Examples
 
-See [`examples/delta_demo.rs`](../../examples/examples/delta_demo.rs) for comprehensive demonstrations of:
+See [`delta_demo.rs`](examples/delta_demo.rs) for comprehensive demonstrations of:
 - Basic delta operations
 - Size comparisons across dimensions
 - Streaming agent updates

@@ -25,7 +25,20 @@ Add to your `Cargo.toml`:
 lnmp-core = { path = "path/to/lnmp-core" }
 ```
 
-## Example
+## Examples
+
+This crate includes several examples in the `examples/` directory:
+
+- **[basic_record](./examples/basic_record.rs)**: Creating and using simple records
+- **[nested_structures](./examples/nested_structures.rs)**: Working with nested records and arrays
+
+Run examples with:
+```bash
+cargo run --example basic_record -p lnmp-core
+cargo run --example nested_structures -p lnmp-core
+```
+
+## Quick Start
 
 ```rust
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};

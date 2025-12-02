@@ -529,21 +529,21 @@ cargo run --example encode_example
 cargo run --example round_trip
 
 # Run v0.3 examples
-cargo run --example nested_structures
-cargo run --example semantic_checksums
-cargo run --example explain_mode
-cargo run --example shortform
+cargo run -p lnmp-core --example nested_structures
+cargo run -p lnmp-core --example semantic_checksums
+cargo run -p lnmp-core --example explain_mode
+cargo run -p lnmp-core --example shortform
 
 # Run v0.4 binary format examples
-cargo run --example binary_encoding
-cargo run --example binary_roundtrip
+cargo run -p lnmp-codec --example binary_encoding
+cargo run -p lnmp-codec --example binary_roundtrip
 
 # Run v0.5 advanced protocol examples
-cargo run --example v05_nested_binary
-cargo run --example v05_streaming
-cargo run --example v05_schema_negotiation
-cargo run --example v05_delta_encoding
-cargo run --example v05_llb2_binary
+cargo run -p lnmp-codec --example v05_nested_binary
+cargo run -p lnmp-codec --example v05_streaming
+cargo run -p lnmp-core --example v05_schema_negotiation
+cargo run -p lnmp-codec --example v05_delta_encoding
+cargo run -p lnmp-llb --example v05_llb2_binary
 
 # Run compliance tests
 cargo test --package lnmp-codec -- spec_compatibility
@@ -715,10 +715,10 @@ let state = streamer.process_frame(&frame)?;
 
 **Examples:**
 ```bash
-cargo run --example spatial_robot        # Robot + Embedding integration
-cargo run --example spatial_stream       # Continuous telemetry
-cargo run --example spatial_jitter_sim   # 1kHz control loop
-cargo run --example spatial_reflex_sim   # Prediction vs non-prediction
+cargo run -p lnmp-spatial --example robot        # Robot + Embedding integration
+cargo run -p lnmp-spatial --example stream       # Continuous telemetry
+cargo run -p lnmp-spatial --example jitter_sim   # 1kHz control loop
+cargo run -p lnmp-spatial --example reflex_sim   # Prediction vs non-prediction
 ```
 
 

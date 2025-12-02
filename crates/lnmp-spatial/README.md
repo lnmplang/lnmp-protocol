@@ -146,22 +146,22 @@ Benchmarks on Apple Silicon M-series:
 
 ### Robot Arm Control
 ```bash
-cargo run --example spatial_robot
+cargo run --example robot
 ```
 
 ### Telemetry Streaming
 ```bash
-cargo run --example spatial_stream
+cargo run --example stream
 ```
 
 ### 1kHz Control Loop
 ```bash
-cargo run --example spatial_jitter_sim
+cargo run --example jitter_sim
 ```
 
 ### Prediction vs Non-Prediction
 ```bash
-cargo run --example spatial_reflex_sim
+cargo run --example reflex_sim
 ```
 
 ## Design Philosophy

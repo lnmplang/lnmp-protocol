@@ -51,3 +51,23 @@ wasm = [
     "bincode",
     "console_error_panic_hook"
 ]
+
+[[example]]
+name = "iot_sensor_telemetry"
+path = "examples/iot_sensor_telemetry.rs"
+
+[[example]]
+name = "rag_context_manager"
+path = "examples/rag_context_manager.rs"
+
+[[example]]
+name = "secure_api_gateway"
+path = "examples/secure_api_gateway.rs"
+
+[[example]]
+name = "robot_fleet_coordinator"
+path = "examples/robot_fleet_coordinator.rs"
+
+[[example]]
+name = "distributed_cache"
+path = "examples/distributed_cache.rs"

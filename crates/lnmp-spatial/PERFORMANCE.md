@@ -136,7 +136,7 @@ loop {
 
 ### 1kHz Control Loop
 
-**Test:** `examples/spatial_jitter_sim.rs`
+**Test:** `crates/lnmp-spatial/examples/jitter_sim.rs`
 
 ```
 Target: 1000 Hz (1ms per frame)
@@ -153,7 +153,7 @@ Overhead: 26% (acceptable)
 
 ### Packet Loss Resilience
 
-**Test:** `examples/spatial_reflex_sim.rs`
+**Test:** `crates/lnmp-spatial/examples/reflex_sim.rs`
 
 | Mode              | 10% Loss | Uptime | Recovery      |
 |-------------------|----------|--------|---------------|

@@ -24,6 +24,19 @@ let similarity = v1.similarity(&v2, SimilarityMetric::Cosine).unwrap();
 assert_eq!(similarity, 0.0);
 ```
 
+## Examples
+
+This crate includes several examples in the `examples/` directory:
+
+- **[delta_compute](./examples/delta_compute.rs)**: Computing embedding deltas
+- **[batch_ops](./examples/batch_ops.rs)**: Batch vector operations (similarity, etc.)
+
+Run examples with:
+```bash
+cargo run --example delta_compute -p lnmp-embedding
+cargo run --example batch_ops -p lnmp-embedding
+```
+
 ## Integration
 
 This crate is designed to be used with `lnmp-core` and the LNMP SDKs. It is the underlying implementation for the `Embedding` mode (0x06) and `LnmpValue::Embedding` variant.

@@ -30,3 +30,7 @@ transport = ["dep:http"]
 [lib]
 name = "lnmp_net"
 path = "src/lib.rs"
+
+[[example]]
+name = "basic"
+required-features = ["transport"]

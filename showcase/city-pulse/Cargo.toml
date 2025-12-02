@@ -1,0 +1,26 @@
+[package]
+name = "city-pulse"
+version = "1.0.0"
+edition = "2021"
+authors = ["LNMP Team"]
+license = "MIT"
+description = "CityPulse - Smart City IoT Platform (LNMP Showcase)"
+
+[[bin]]
+name = "benchmark"
+path = "src/benchmark.rs"
+
+[[bin]]
+name = "llm_demo"
+path = "src/llm_demo.rs"
+
+[[bin]]
+name = "simulation"
+path = "src/simulation.rs"
+
+[dependencies]
+# Use meta lnmp crate for all LNMP functionality
+lnmp = { path = "../../crates/lnmp" }
+serde_json = "1.0"
+
+[dev-dependencies]

@@ -17,6 +17,8 @@ byteorder = "1.4"
 
 [dev-dependencies]
 criterion = "0.5"
+lnmp-core = { workspace = true }
+lnmp-codec = { workspace = true }
 
 [[bench]]
 name = "embedding_bench"

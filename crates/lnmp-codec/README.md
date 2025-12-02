@@ -463,42 +463,18 @@ let decoder = BinaryDecoder::with_config(decoder_config);
 
 ## Examples
 
-See the `examples/` directory for complete examples:
+This crate includes several examples in the `examples/` directory:
 
-**v0.2 Examples:**
-- `type_hints.rs`: Type hint usage
-- `strict_vs_loose.rs`: Parsing mode comparison
-- `deterministic_serialization.rs`: Canonical format demo
+- **[parse_simple](./examples/parse_simple.rs)**: Basic parsing of LNMP text
+- **[encode_with_hints](./examples/encode_with_hints.rs)**: Encoding with type hints and checksums
 
-**v0.3 Examples:**
-- `nested_structures.rs`: Nested records and arrays
-- `semantic_checksums.rs`: SC32 checksum usage
-- `explain_mode.rs`: Explain mode encoding
-- `shortform.rs`: ShortForm encoding/parsing
-- `structural_canonicalization.rs`: Structural canonicalization
-
-**v0.4 Examples (Binary Format):**
-- `binary_encoding.rs`: Basic binary encoding and decoding
-- `binary_roundtrip.rs`: Round-trip conversion and data integrity
-
-Run examples:
+Run examples with:
 ```bash
-# v0.2 examples
-cargo run --example type_hints
-cargo run --example strict_vs_loose
-cargo run --example deterministic_serialization
-
-# v0.3 examples
-cargo run --example nested_structures
-cargo run --example semantic_checksums
-cargo run --example explain_mode
-cargo run --example shortform
-cargo run --example structural_canonicalization
-
-# v0.4 examples (binary format)
-cargo run --example binary_encoding
-cargo run --example binary_roundtrip
+cargo run --example parse_simple -p lnmp-codec
+cargo run --example encode_with_hints -p lnmp-codec
 ```
+
+See the root `examples/` directory for integration examples and v0.4 binary format demos.
 
 ## License
 

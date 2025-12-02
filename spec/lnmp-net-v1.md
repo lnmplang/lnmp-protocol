@@ -953,7 +953,7 @@ By building on existing LNMP modules, LNMP-Net enables **intelligent, cost-effec
 - Example: 2-node basic communication
 
 ### Phase 4 - Documentation & Examples (~1 week)
-- `examples/lnmp-net-basic.rs`
+- `crates/lnmp-net/examples/basic.rs`
 - Update `lnmp` meta crate README
 - "LNMP-Net & LLM" integration guide
 - Multi-agent scenario walkthrough
