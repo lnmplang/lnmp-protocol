@@ -252,7 +252,9 @@ dependencies = [
 name = "city-pulse"
 version = "1.0.0"
 dependencies = [
+ "bincode",
  "lnmp",
+ "serde",
  "serde_json",
 ]
 

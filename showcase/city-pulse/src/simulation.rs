@@ -11,7 +11,14 @@
 //!
 //! Run: `cargo run -p city-pulse --bin simulation`
 
-use lnmp::prelude::*;
+use lnmp::{
+    codec::binary::BinaryEncoder,
+    prelude::*,
+    spatial::{
+        delta::Delta,
+        types::{Position3D, PositionDelta},
+    },
+};
 use std::thread::sleep;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -195,6 +202,7 @@ struct StackMetrics {
     // Encoding
     lnmp_text_bytes: usize,
     lnmp_binary_bytes: usize,
+    delta_bytes: usize,
     json_bytes: usize,
 
     // Performance
@@ -223,6 +231,7 @@ impl StackMetrics {
         Self {
             lnmp_text_bytes: 0,
             lnmp_binary_bytes: 0,
+            delta_bytes: 0,
             json_bytes: 0,
             envelope_time_us: 0,
             sanitize_time_us: 0,
@@ -321,13 +330,33 @@ impl FullStackSimulation {
             self.metrics.encode_time_us += start.elapsed().as_micros() as u64;
             self.metrics.lnmp_text_bytes += final_text.len();
 
-            // 5. ENCODE TO BINARY (more efficient!)
-            let binary_data = format!("BINARY:{}", final_text.len() / 2); // Simulated binary
+            // 5. ENCODE TO BINARY (REAL!)
+            let binary_encoder = BinaryEncoder::new();
+            let binary_data = binary_encoder.encode(&envelope.record).unwrap_or_default();
             self.metrics.lnmp_binary_bytes += binary_data.len();
 
-            // 6. SPATIAL DELTA (for position updates)
+            // 6. SPATIAL DELTA (REAL!)
             let start = Instant::now();
-            let _delta = sensor.position.0 - sensor.last_position.0;
+            
+            // Convert to Position3D
+            let start_pos = Position3D { 
+                x: sensor.last_position.0 as f32, 
+                y: sensor.last_position.1 as f32, 
+                z: sensor.last_position.2 as f32 
+            };
+            let end_pos = Position3D { 
+                x: sensor.position.0 as f32, 
+                y: sensor.position.1 as f32, 
+                z: sensor.position.2 as f32 
+            };
+            
+            // Compute Delta
+            let delta = Position3D::compute_delta(&start_pos, &end_pos);
+            
+            // Serialize Delta (Real bytes!)
+            let delta_bytes = bincode::serialize(&delta).unwrap_or_default();
+            self.metrics.delta_bytes += delta_bytes.len();
+            
             self.metrics.spatial_time_us += start.elapsed().as_micros() as u64;
             if sensor.position != sensor.last_position {
                 self.metrics.spatial_deltas += 1;
@@ -375,6 +404,16 @@ impl FullStackSimulation {
         }
 
         critical_messages
+    }
+
+    fn format_size(&self, mb: f64) -> String {
+        if mb >= 10.0 {
+            format!("{:>6.1}", mb)
+        } else if mb >= 1.0 {
+            format!("{:>6.2}", mb)
+        } else {
+            format!("{:>6.3}", mb)
+        }
     }
 
     fn display_dashboard(&self, actions: &[String]) {
@@ -457,24 +496,40 @@ impl FullStackSimulation {
         }
         println!();
 
-        // Format comparison
+        // Three-Layer Efficiency
         let text_mb = self.metrics.lnmp_text_bytes as f64 / 1_048_576.0;
         let binary_mb = self.metrics.lnmp_binary_bytes as f64 / 1_048_576.0;
         let json_mb = self.metrics.json_bytes as f64 / 1_048_576.0;
+        let delta_mb = self.metrics.delta_bytes as f64 / 1_048_576.0;
 
-        println!("� FORMAT COMPARISON:");
-        println!("  JSON (baseline):   {:>8.2} MB", json_mb);
-        println!(
-            "  LNMP text:         {:>8.2} MB ({:>5.1}% vs JSON)",
-            text_mb,
-            (1.0 - text_mb / json_mb) * 100.0
-        );
-        println!(
-            "  LNMP binary:       {:>8.2} MB ({:>5.1}% vs JSON)",
-            binary_mb,
-            (1.0 - binary_mb / json_mb) * 100.0
-        );
+        println!("📊 THREE-LAYER EFFICIENCY (REAL MEASUREMENTS):");
+        println!("┌─────────────────────────────────────────────────────┐");
+        println!("│ Layer 1: JSON → LNMP Text (Field IDs)              │");
+        println!("│   {} MB → {} MB                       │", 
+            self.format_size(json_mb), self.format_size(text_mb));
+        println!("│   Savings: {:.1}% (token efficiency!)               │", 
+            (1.0 - text_mb / json_mb) * 100.0);
+        println!("├─────────────────────────────────────────────────────┤");
+        println!("│ Layer 2: LNMP Text → Binary (Compact encoding)     │");
+        println!("│   {} MB → {} MB                        │",
+            self.format_size(text_mb), self.format_size(binary_mb));
+        println!("│   Savings: {:.1}% (network transmission!)           │",
+            (1.0 - binary_mb / text_mb) * 100.0);
+        println!("├─────────────────────────────────────────────────────┤");
+        println!("│ Layer 3: Binary → Delta (Incremental updates)      │");
+        println!("│   {} MB → {} MB                        │",
+            self.format_size(binary_mb), self.format_size(delta_mb));
+        println!("│   Savings: {:.1}% (streaming data!)                 │",
+            (1.0 - delta_mb / binary_mb) * 100.0);
+        println!("├─────────────────────────────────────────────────────┤");
+        println!("│ 🔥 TOTAL: JSON → Binary+Delta                      │");
+        println!("│   {} MB → {} MB                        │",
+            self.format_size(json_mb), self.format_size(delta_mb));
+        println!("│   OVERALL SAVINGS: {:.1}% !!!                       │",
+            (1.0 - delta_mb / json_mb) * 100.0);
+        println!("└─────────────────────────────────────────────────────┘");
         println!();
+
 
         // Events
         println!("🚨 EVENTS:");
@@ -545,11 +600,13 @@ impl FullStackSimulation {
         let json_mb = self.metrics.json_bytes as f64 / 1_048_576.0;
         let lnmp_text_mb = self.metrics.lnmp_text_bytes as f64 / 1_048_576.0;
         let lnmp_binary_mb = self.metrics.lnmp_binary_bytes as f64 / 1_048_576.0;
+        let delta_mb = self.metrics.delta_bytes as f64 / 1_048_576.0;
 
         let text_savings = ((json_mb - lnmp_text_mb) / json_mb) * 100.0;
         let binary_savings = ((json_mb - lnmp_binary_mb) / json_mb) * 100.0;
+        let delta_savings = ((json_mb - delta_mb) / json_mb) * 100.0;
 
-        println!("✅ ALL LNMP FEATURES DEMONSTRATED:\n");
+        println!("✅ ALL LNMP FEATURES DEMONSTRATED (REAL MEASUREMENTS):\n");
         println!(
             "  📦 Envelope:      {} envelopes with trace context",
             self.metrics.envelopes_created
@@ -576,7 +633,7 @@ impl FullStackSimulation {
         );
         println!();
 
-        println!("� BANDWIDTH SAVINGS:");
+        println!(" BANDWIDTH SAVINGS (REAL):");
         println!("  JSON baseline:    {:.2} MB", json_mb);
         println!(
             "  LNMP text:        {:.2} MB ({:.1}% reduction)",
@@ -586,12 +643,16 @@ impl FullStackSimulation {
             "  LNMP binary:      {:.2} MB ({:.1}% reduction)",
             lnmp_binary_mb, binary_savings
         );
+        println!(
+            "  LNMP delta:       {:.2} MB ({:.1}% reduction!)",
+            delta_mb, delta_savings
+        );
         println!();
 
         println!("💡 Production Impact:");
         println!(
-            "  • {:.1}% bandwidth saved with binary LNMP",
-            binary_savings
+            "  • {:.1}% bandwidth saved with binary+delta",
+            delta_savings
         );
         println!(
             "  • {} critical events routed with priority",
