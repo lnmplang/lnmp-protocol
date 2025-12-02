@@ -26,7 +26,7 @@ fn main() {
     println!("🔒 Secure API Gateway - LNMP Showcase\n");
 
     // Simulated untrusted API requests
-    let requests = vec![
+    let requests = [
         ApiRequest {
             endpoint: "/api/users".to_string(),
             user_input: r#"F20=<script>alert("XSS")</script>;F7=true"#.to_string(),

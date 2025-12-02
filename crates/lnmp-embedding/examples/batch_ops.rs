@@ -25,7 +25,7 @@ fn main() {
 
     // 3. Batch processing (e.g., finding closest vector)
     let query = Vector::from_f32(vec![0.9, 0.1, 0.9, 0.1]);
-    let candidates = vec![&vec_a, &vec_b, &vec_c];
+    let candidates = [&vec_a, &vec_b, &vec_c];
 
     println!("\nFinding closest vector to Query: {:?}", query);
 

@@ -96,7 +96,7 @@ fn main() {
     println!("🦾 Robot Fleet Coordinator - LNMP Showcase\n");
 
     // Create robot fleet
-    let mut robots = vec![
+    let mut robots = [
         Robot::new("robot-alpha".to_string(), (0.0, 0.0, 0.0)),
         Robot::new("robot-beta".to_string(), (5.0, 0.0, 0.0)),
         Robot::new("robot-gamma".to_string(), (0.0, 5.0, 0.0)),
@@ -106,6 +106,9 @@ fn main() {
     robots[0].velocity = (1.0, 0.5, 0.0);
     robots[1].velocity = (0.0, 1.0, 0.0);
     robots[2].velocity = (-0.5, 0.0, 0.5);
+
+    // Mark one robot as charging to exercise status variant
+    robots[1].status = RobotStatus::Charging;
 
     println!("🤖 Fleet initialized with {} robots\n", robots.len());
 

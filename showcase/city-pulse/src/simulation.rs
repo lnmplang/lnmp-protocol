@@ -15,10 +15,7 @@ use dotenv::dotenv;
 use lnmp::{
     codec::binary::BinaryEncoder,
     prelude::*,
-    spatial::{
-        delta::Delta,
-        types::Position3D,
-    },
+    spatial::{delta::Delta, types::Position3D},
 };
 use std::env;
 use std::thread::sleep;
