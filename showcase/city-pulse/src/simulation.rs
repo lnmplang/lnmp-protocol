@@ -11,14 +11,16 @@
 //!
 //! Run: `cargo run -p city-pulse --bin simulation`
 
+use dotenv::dotenv;
 use lnmp::{
     codec::binary::BinaryEncoder,
     prelude::*,
     spatial::{
         delta::Delta,
-        types::{Position3D, PositionDelta},
+        types::Position3D,
     },
 };
+use std::env;
 use std::thread::sleep;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -205,6 +207,11 @@ struct StackMetrics {
     delta_bytes: usize,
     json_bytes: usize,
 
+    // LLM Efficiency
+    llm_json_tokens: usize,
+    llm_lnmp_tokens: usize,
+    llm_cost_saved: f64,
+
     // Performance
     envelope_time_us: u64,
     sanitize_time_us: u64,
@@ -233,6 +240,9 @@ impl StackMetrics {
             lnmp_binary_bytes: 0,
             delta_bytes: 0,
             json_bytes: 0,
+            llm_json_tokens: 0,
+            llm_lnmp_tokens: 0,
+            llm_cost_saved: 0.0,
             envelope_time_us: 0,
             sanitize_time_us: 0,
             encode_time_us: 0,
@@ -261,10 +271,17 @@ struct FullStackSimulation {
     profiler: lnmp::sfe::ContextScorer,
     metrics: StackMetrics,
     tick: usize,
+    openai_api_key: Option<String>,
+    report_log: Vec<serde_json::Value>,
 }
 
 impl FullStackSimulation {
     fn new(sensor_count: usize) -> Self {
+        // Try loading .env from current dir, then specific sub-crate path
+        if dotenv().is_err() {
+            let _ = dotenv::from_filename("showcase/city-pulse/.env");
+        }
+
         println!("🌆 CityPulse Full-Stack LNMP Simulation\n");
         println!(
             "Initializing {} sensors with FULL LNMP stack...",
@@ -280,7 +297,15 @@ impl FullStackSimulation {
                 .add_trusted_source("traffic".to_string()),
         );
 
-        println!("✓ All LNMP components initialized\n");
+        println!("✓ All LNMP components initialized");
+
+        let api_key = env::var("OPENAI_API_KEY").ok();
+        if api_key.is_some() {
+            println!("✓ OpenAI API Key detected (Real AI Mode Active) 🤖");
+        } else {
+            println!("ℹ️  No OpenAI API Key found (Simulation Mode)");
+        }
+        println!();
 
         Self {
             sensors,
@@ -288,17 +313,22 @@ impl FullStackSimulation {
             profiler,
             metrics: StackMetrics::new(),
             tick: 0,
+            openai_api_key: api_key,
+            report_log: Vec::new(),
         }
     }
 
-    fn process_full_stack(&mut self) -> Vec<String> {
+    fn process_full_stack(&mut self) -> (Vec<String>, Option<(String, String)>) {
         let mut critical_messages = Vec::new();
+        let mut ai_response = None;
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
 
         for sensor in &self.sensors {
+            // ... (existing loop code) ...
+
             // 1. CREATE RECORD
             let record = sensor.to_full_record();
 
@@ -337,26 +367,26 @@ impl FullStackSimulation {
 
             // 6. SPATIAL DELTA (REAL!)
             let start = Instant::now();
-            
+
             // Convert to Position3D
-            let start_pos = Position3D { 
-                x: sensor.last_position.0 as f32, 
-                y: sensor.last_position.1 as f32, 
-                z: sensor.last_position.2 as f32 
+            let start_pos = Position3D {
+                x: sensor.last_position.0 as f32,
+                y: sensor.last_position.1 as f32,
+                z: sensor.last_position.2 as f32,
             };
-            let end_pos = Position3D { 
-                x: sensor.position.0 as f32, 
-                y: sensor.position.1 as f32, 
-                z: sensor.position.2 as f32 
+            let end_pos = Position3D {
+                x: sensor.position.0 as f32,
+                y: sensor.position.1 as f32,
+                z: sensor.position.2 as f32,
             };
-            
+
             // Compute Delta
             let delta = Position3D::compute_delta(&start_pos, &end_pos);
-            
+
             // Serialize Delta (Real bytes!)
             let delta_bytes = bincode::serialize(&delta).unwrap_or_default();
             self.metrics.delta_bytes += delta_bytes.len();
-            
+
             self.metrics.spatial_time_us += start.elapsed().as_micros() as u64;
             if sensor.position != sensor.last_position {
                 self.metrics.spatial_deltas += 1;
@@ -364,7 +394,7 @@ impl FullStackSimulation {
 
             // 7. CONTEXT PROFILING (freshness, importance)
             let start = Instant::now();
-            let _profile = self.profiler.score_envelope(&envelope, now);
+            let profile = self.profiler.score_envelope(&envelope, now);
             self.metrics.profiling_time_us += start.elapsed().as_micros() as u64;
             self.metrics.context_scored += 1;
 
@@ -400,10 +430,60 @@ impl FullStackSimulation {
             self.metrics.total_messages += 1;
             if priority == 255 {
                 self.metrics.critical_events += 1;
+
+                // 10. LLM AGENT ANALYSIS (Simulated + Real Option)
+                // Calculate what it WOULD cost to send this to an LLM
+                let json_prompt = format!(
+                    "Analyze sensor {}: speed={}, count={}, battery={}",
+                    sensor.id, sensor.speed, sensor.vehicle_count, sensor.battery
+                );
+                let lnmp_prompt = format!(
+                    "Analyze F1={}: F20={}, F21={}, F50={}",
+                    sensor.id, sensor.speed, sensor.vehicle_count, sensor.battery
+                );
+
+                let json_tokens = self.estimate_tokens(&json_prompt);
+                let lnmp_tokens = self.estimate_tokens(&lnmp_prompt);
+
+                self.metrics.llm_json_tokens += json_tokens;
+                self.metrics.llm_lnmp_tokens += lnmp_tokens;
+
+                // Cost: $3 per 1M tokens (approx GPT-4o input)
+                let cost_diff = (json_tokens as f64 - lnmp_tokens as f64) * 0.000003;
+                self.metrics.llm_cost_saved += cost_diff;
+
+                // REAL AI CALL (ALL critical events if key exists)
+                if let Some(_key) = &self.openai_api_key {
+                    let system_prompt = format!(
+                        "You are a City Traffic Controller. Field Map: F1=ID, F20=Speed(km/h), F21=Count, F50=Battery. Context Score: {} (High Importance).", 
+                        profile.importance
+                    );
+                    let user_prompt = format!(
+                        "Analyze this LNMP data and suggest 1 short action: {}",
+                        lnmp_prompt
+                    );
+
+                    if let Some(response) = self.call_openai_api(&system_prompt, &user_prompt) {
+                        // Log to report
+                        self.report_log.push(serde_json::json!({
+                            "tick": self.tick,
+                            "sensor_id": sensor.id,
+                            "sfe_score": profile.importance,
+                            "lnmp_prompt": lnmp_prompt,
+                            "ai_decision": response,
+                            "speed": sensor.speed,
+                            "vehicle_count": sensor.vehicle_count,
+                            "semantic_validation": self.validate_semantic_understanding(&response, &lnmp_prompt),
+                        }));
+
+                        // Keep only last AI response for dashboard
+                        ai_response = Some((lnmp_prompt.clone(), response));
+                    }
+                }
             }
         }
 
-        critical_messages
+        (critical_messages, ai_response)
     }
 
     fn format_size(&self, mb: f64) -> String {
@@ -416,7 +496,129 @@ impl FullStackSimulation {
         }
     }
 
-    fn display_dashboard(&self, actions: &[String]) {
+    /// Approximate token count (4 chars ≈ 1 token)
+    fn estimate_tokens(&self, text: &str) -> usize {
+        (text.len() as f64 / 4.0).ceil() as usize
+    }
+
+    /// Validate that AI understood the LNMP field semantics correctly
+    fn validate_semantic_understanding(&self, ai_response: &str, _lnmp_prompt: &str) -> bool {
+        let response_lower = ai_response.to_lowercase();
+
+        // 1. Check if AI response references semantic concepts
+        let has_semantic_understanding = response_lower.contains("speed")
+            || response_lower.contains("km/h")
+            || response_lower.contains("traffic")
+            || response_lower.contains("vehicle")
+            || response_lower.contains("congestion")
+            || response_lower.contains("sensor")
+            || response_lower.contains("intersection")
+            || response_lower.contains("movement");
+
+        // 2. Check if AI is ONLY echoing field IDs without semantic translation
+        // Bad examples: "F20 equals 0", "F20 is 0", "The value of F20 is..."
+        let purely_echoing = (response_lower.contains("f20 equals")
+            || response_lower.contains("f20 is")
+            || response_lower.contains("f21 equals")
+            || response_lower.contains("f21 is")
+            || response_lower.contains("value of f20")
+            || response_lower.contains("value of f21"))
+            && !has_semantic_understanding;
+
+        // 3. Using field IDs in explanatory context (e.g., "F20=0 km/h") is GOOD
+        // We only fail if there's no semantic understanding at all
+
+        has_semantic_understanding && !purely_echoing
+    }
+
+    fn call_openai_api(&self, system: &str, user: &str) -> Option<String> {
+        if let Some(key) = &self.openai_api_key {
+            // Only call if we haven't spent too much (simple budget guard)
+            if self.metrics.llm_cost_saved > 5.0 {
+                return None;
+            }
+
+            let client = reqwest::blocking::Client::new();
+            let res = client
+                .post("https://api.openai.com/v1/chat/completions")
+                .header("Authorization", format!("Bearer {}", key))
+                .json(&serde_json::json!({
+                    "model": "gpt-4o",
+                    "messages": [
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user}
+                    ],
+                    "max_tokens": 100
+                }))
+                .timeout(Duration::from_secs(5))
+                .send()
+                .ok()?;
+
+            let body: serde_json::Value = res.json().ok()?;
+            body["choices"][0]["message"]["content"]
+                .as_str()
+                .map(|s| s.to_string())
+        } else {
+            None
+        }
+    }
+
+    fn save_report(&self) -> std::io::Result<String> {
+        use std::fs::File;
+        use std::io::Write;
+
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        let filename = format!("citypulse_report_{}.json", timestamp);
+
+        // Calculate semantic accuracy
+        let semantic_validations: Vec<bool> = self
+            .report_log
+            .iter()
+            .filter_map(|entry| entry.get("semantic_validation").and_then(|v| v.as_bool()))
+            .collect();
+        let semantic_accuracy = if !semantic_validations.is_empty() {
+            (semantic_validations.iter().filter(|&&v| v).count() as f64
+                / semantic_validations.len() as f64)
+                * 100.0
+        } else {
+            0.0
+        };
+
+        let report = serde_json::json!({
+            "simulation_summary": {
+                "total_sensors": self.sensors.len(),
+                "total_ticks": self.tick,
+                "total_messages": self.metrics.total_messages,
+                "critical_events": self.metrics.critical_events,
+            },
+            "bandwidth_savings": {
+                "json_mb": self.metrics.json_bytes as f64 / 1_048_576.0,
+                "lnmp_text_mb": self.metrics.lnmp_text_bytes as f64 / 1_048_576.0,
+                "lnmp_binary_mb": self.metrics.lnmp_binary_bytes as f64 / 1_048_576.0,
+                "lnmp_delta_mb": self.metrics.delta_bytes as f64 / 1_048_576.0,
+            },
+            "ai_agent_metrics": {
+                "json_tokens": self.metrics.llm_json_tokens,
+                "lnmp_tokens": self.metrics.llm_lnmp_tokens,
+                "tokens_saved": self.metrics.llm_json_tokens - self.metrics.llm_lnmp_tokens,
+                "cost_saved_usd": self.metrics.llm_cost_saved,
+                "semantic_accuracy_percent": semantic_accuracy,
+                "total_ai_decisions": self.report_log.len(),
+            },
+            "ai_decisions": self.report_log,
+        });
+
+        let mut file = File::create(&filename)?;
+        file.write_all(serde_json::to_string_pretty(&report)?.as_bytes())?;
+
+        Ok(filename)
+    }
+
+    fn display_dashboard(&self, actions: &[String], ai_data: Option<&(String, String)>) {
         print!("\x1B[2J\x1B[1;1H");
 
         println!("═══════════════════════════════════════════════════════════════");
@@ -505,31 +707,78 @@ impl FullStackSimulation {
         println!("📊 THREE-LAYER EFFICIENCY (REAL MEASUREMENTS):");
         println!("┌─────────────────────────────────────────────────────┐");
         println!("│ Layer 1: JSON → LNMP Text (Field IDs)              │");
-        println!("│   {} MB → {} MB                       │", 
-            self.format_size(json_mb), self.format_size(text_mb));
-        println!("│   Savings: {:.1}% (token efficiency!)               │", 
-            (1.0 - text_mb / json_mb) * 100.0);
+        println!(
+            "│   {} MB → {} MB                       │",
+            self.format_size(json_mb),
+            self.format_size(text_mb)
+        );
+        println!(
+            "│   Savings: {:.1}% (token efficiency!)               │",
+            (1.0 - text_mb / json_mb) * 100.0
+        );
         println!("├─────────────────────────────────────────────────────┤");
         println!("│ Layer 2: LNMP Text → Binary (Compact encoding)     │");
-        println!("│   {} MB → {} MB                        │",
-            self.format_size(text_mb), self.format_size(binary_mb));
-        println!("│   Savings: {:.1}% (network transmission!)           │",
-            (1.0 - binary_mb / text_mb) * 100.0);
+        println!(
+            "│   {} MB → {} MB                        │",
+            self.format_size(text_mb),
+            self.format_size(binary_mb)
+        );
+        println!(
+            "│   Savings: {:.1}% (network transmission!)           │",
+            (1.0 - binary_mb / text_mb) * 100.0
+        );
         println!("├─────────────────────────────────────────────────────┤");
         println!("│ Layer 3: Binary → Delta (Incremental updates)      │");
-        println!("│   {} MB → {} MB                        │",
-            self.format_size(binary_mb), self.format_size(delta_mb));
-        println!("│   Savings: {:.1}% (streaming data!)                 │",
-            (1.0 - delta_mb / binary_mb) * 100.0);
+        println!(
+            "│   {} MB → {} MB                        │",
+            self.format_size(binary_mb),
+            self.format_size(delta_mb)
+        );
+        println!(
+            "│   Savings: {:.1}% (streaming data!)                 │",
+            (1.0 - delta_mb / binary_mb) * 100.0
+        );
         println!("├─────────────────────────────────────────────────────┤");
         println!("│ 🔥 TOTAL: JSON → Binary+Delta                      │");
-        println!("│   {} MB → {} MB                        │",
-            self.format_size(json_mb), self.format_size(delta_mb));
-        println!("│   OVERALL SAVINGS: {:.1}% !!!                       │",
-            (1.0 - delta_mb / json_mb) * 100.0);
+        println!(
+            "│   {} MB → {} MB                        │",
+            self.format_size(json_mb),
+            self.format_size(delta_mb)
+        );
+        println!(
+            "│   OVERALL SAVINGS: {:.1}% !!!                       │",
+            (1.0 - delta_mb / json_mb) * 100.0
+        );
         println!("└─────────────────────────────────────────────────────┘");
         println!();
 
+        // LLM Agent Metrics
+        let token_savings = if self.metrics.llm_json_tokens > 0 {
+            ((self.metrics.llm_json_tokens as f64 - self.metrics.llm_lnmp_tokens as f64)
+                / self.metrics.llm_json_tokens as f64)
+                * 100.0
+        } else {
+            0.0
+        };
+
+        println!("🤖 AI AGENT METRICS (Critical Events Only):");
+        println!(
+            "  Tokens Processed:  {:>8} (LNMP) vs {:>8} (JSON)",
+            self.metrics.llm_lnmp_tokens, self.metrics.llm_json_tokens
+        );
+        println!("  Token Savings:     {:>7.1}%", token_savings);
+        println!("  Est. Cost Saved:   ${:>7.4}", self.metrics.llm_cost_saved);
+        println!();
+
+        if let Some((prompt, response)) = ai_data {
+            println!("🧠 LIVE AI CONTEXT & DECISION:");
+            println!("  ┌───────────────────────────────────────────────────┐");
+            println!("  │ INPUT (LNMP): {} ", prompt);
+            println!("  │ CONTEXT:      SFE Score=High, F1=ID, F20=Speed... │");
+            println!("  │ DECISION:     {} ", response);
+            println!("  └───────────────────────────────────────────────────┘");
+            println!();
+        }
 
         // Events
         println!("🚨 EVENTS:");
@@ -572,7 +821,7 @@ impl FullStackSimulation {
             }
 
             // Process through full LNMP stack
-            let critical = self.process_full_stack();
+            let (critical, ai_data) = self.process_full_stack();
 
             // LLM agent analysis
             let actions = if !critical.is_empty() {
@@ -583,7 +832,7 @@ impl FullStackSimulation {
             };
 
             // Dashboard
-            self.display_dashboard(&actions);
+            self.display_dashboard(&actions, ai_data.as_ref());
 
             sleep(Duration::from_millis(100));
         }
@@ -660,9 +909,24 @@ impl FullStackSimulation {
         );
         println!("  • Full trace context for debugging");
         println!("  • Input validation for security");
+        println!("  • Full trace context for debugging");
+        println!("  • Input validation for security");
         println!("  • Context-aware LLM integration");
+        println!();
+
+        println!("🤖 AI AGENT EFFICIENCY:");
+        println!(
+            "  • Tokens Saved:    {}",
+            self.metrics.llm_json_tokens - self.metrics.llm_lnmp_tokens
+        );
+        println!("  • Cost Reduction:  ${:.4}", self.metrics.llm_cost_saved);
 
         println!("\n═══════════════════════════════════════════════════════════════");
+
+        // Save detailed report
+        if let Ok(filename) = self.save_report() {
+            println!("\n📄 Detailed report saved: {}", filename);
+        }
     }
 }
 

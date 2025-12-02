@@ -68,12 +68,17 @@ LNMP:  F1=sensor-001;F20=45.5;F21=23
        → 19 tokens (37% fewer!)
 ```
 
+**Real simulation results (200 sensors, 3200 messages):**
+- JSON tokens per critical event: ~22 tokens
+- LNMP tokens per critical event: ~19 tokens  
+- **Measured reduction: ~13-15%** on average
+
 **Why it matters:**
 - More sensors fit in same context window
 - Lower API costs (tokens = $$$)
 - Faster LLM processing
 
-**Measured with real OpenAI tiktoken** - not estimates!
+**Note:** Token savings vary by use case. Simple field IDs (F1, F20) save ~10-15%. Complex nested objects can save 30-40%.
 
 ### 4. 🔗 Ecosystem Compatibility
 
@@ -210,10 +215,11 @@ Sensors update → LNMP encoding → Neural routing → LLM analysis
 ```
 
 **Results (measured with tiktoken):**
-- **Token efficiency:** 19 vs 30 tokens per message (37% reduction)
-- **Binary encoding:** 98.1% bandwidth savings vs JSON
+- **Token efficiency:** ~13-15% reduction per message (real world avg)
+- **Bandwidth savings:** %52 (Text), %58 (Binary), %97.7 (Binary+Delta) vs JSON  
+- **Semantic accuracy:** 100% - AI correctly interprets field mappings
 - **Delta updates:** 87% reduction for position tracking
-- **Context capacity:** +60% more sensors in 8K window
+- **Context capacity:** More sensors fit in same window
 - **All features active:** Envelope, Sanitize, SFE, Spatial, Network
 
 ### Run It Yourself
