@@ -6,17 +6,23 @@ authors = ["LNMP Team"]
 license = "MIT"
 description = "CityPulse - Smart City IoT Platform (LNMP Showcase)"
 
-[[bin]]
-name = "benchmark"
-path = "src/benchmark.rs"
 
 [[bin]]
-name = "llm_demo"
-path = "src/llm_demo.rs"
+name = "test_components"
+path = "src/test_components.rs"
+
 
 [[bin]]
-name = "simulation"
-path = "src/simulation.rs"
+name = "test_agents"
+path = "src/test_agents.rs"
+
+[[bin]]
+name = "run_scenario"
+path = "src/run_scenario.rs"
+
+[[bin]]
+name = "performance_benchmark"
+path = "src/performance_benchmark.rs"
 
 [dependencies]
 # Use meta lnmp crate for all LNMP functionality
