@@ -154,9 +154,15 @@ impl Scenario for GangViolenceScenario {
             // 5. Execute Actions via Agents (with real AI or simulated)
             println!("\n   🤖 Calling AI for decision...");
             let parsed_response = pipeline.process_llm_response(&prompt);
-            println!("   💬 AI Analysis: {} chars", parsed_response.analysis.len());
-            println!("   📋 AI Actions: {} commands", parsed_response.actions.len());
-            
+            println!(
+                "   💬 AI Analysis: {} chars",
+                parsed_response.analysis.len()
+            );
+            println!(
+                "   📋 AI Actions: {} commands",
+                parsed_response.actions.len()
+            );
+
             let agent_responses = agents.process_commands(parsed_response.actions);
 
             for resp in agent_responses {

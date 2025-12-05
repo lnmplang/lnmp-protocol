@@ -1,9 +1,7 @@
 //! Run Crisis Scenario with Dashboard
 
 use city_pulse::agents::{AgentSystem, AmbulanceAgent, FireAgent, PoliceAgent, TrafficAgent};
-use city_pulse::scenarios::{
-    GangViolenceScenario, Scenario,
-};
+use city_pulse::scenarios::{GangViolenceScenario, Scenario};
 use city_pulse::visualization::Dashboard;
 use city_pulse::LNMPPipeline;
 use std::thread;

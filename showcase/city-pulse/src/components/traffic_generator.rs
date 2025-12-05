@@ -82,12 +82,11 @@ impl TrafficGenerator {
         for (i, (_, coords)) in districts.iter().enumerate() {
             let lat = coords.0;
             let lon = coords.1;
-            traffic_lights.push(            TrafficLight {
+            traffic_lights.push(TrafficLight {
                 id: format!("TL{:04}", i),
                 lat,
                 lon,
-            }
-);
+            });
         }
 
         Self {
