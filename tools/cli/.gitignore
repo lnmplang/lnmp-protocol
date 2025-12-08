@@ -1,8 +1,0 @@
-# Rust
-target/
-
-# Editor
-.vscode/
-
-# OS
-.DS_Store

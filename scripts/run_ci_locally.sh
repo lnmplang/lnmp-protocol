@@ -23,25 +23,8 @@ cargo build --all --verbose
 echo "\n--- cargo test --all --verbose ---"
 cargo test --all --verbose
 
-# 3) Examples (safe mode): run only if examples dir exists
-INCLUDE_EXAMPLES=false
-if [ "${1:-}" = "include-examples" ]; then
-  INCLUDE_EXAMPLES=true
-fi
-
-if [ "$INCLUDE_EXAMPLES" = true ] && [ -d "examples" ]; then
-  echo "\n--- Running examples ---"
-  for ex in examples/*.rs; do
-    name=$(basename "$ex" .rs)
-    echo "Running example: $name"
-    # Some examples may rely on default features or environment; allow failure to continue for debugging
-    if ! cargo run --example "$name" --quiet; then
-      echo "Example $name failed — continuing to capture other outputs"
-    fi
-  done
-else
-  echo "No examples directory, skipping example run."
-fi
+# 3) Examples (None in pure protocol repo)
+echo "\n--- Skipping examples (moved to separate repo) ---"
 
 # 4) Clippy (only on Linux runner in CI but we run it locally for debugging)
 # Run with all targets, all features and deny warnings (may require installing extra components)

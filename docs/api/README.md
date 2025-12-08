@@ -9,14 +9,14 @@ Comprehensive API reference for all LNMP implementations.
 - **[v0.3 (Legacy)](./rust/v0.3.md)** - Core types, parser, encoder, semantic fidelity
 
 ### Language SDKs
-- **[TypeScript SDK](../../sdk/js/packages/lnmp/API.md)** - WASM-based TypeScript/JavaScript SDK
-- **[Python SDK](../../sdk/python/README.md)** - PyO3-based native Python bindings
-- **[Rust SDK](../../sdk/rust/README.md)** - Meta-crate for direct Rust usage
-- **[Go SDK](../../sdk/go/README.md)** - (Coming soon)
+- **[TypeScript SDK](https://github.com/lnmplang/lnmp-sdk-js)** - WASM-based TypeScript/JavaScript SDK
+- **[Python SDK](https://github.com/lnmplang/lnmp-sdk-python)** - PyO3-based native Python bindings
+- **[Rust SDK](https://github.com/lnmplang/lnmp-sdk-rust)** - Meta-crate for direct Rust usage
+- **[Go SDK](https://github.com/lnmplang/lnmp-sdk-go)** - Native Go implementation
 
 ### Tools & CLIs
-- **[CLI Tools](../../tools/cli/README.md)** - Command-line interface
-- **[MCP Server](../../tools/mcp/README.md)** - Model Context Protocol server
+- **[CLI Tools](https://github.com/lnmplang/lnmp-cli)** - Command-line interface
+- **[MCP Server](https://github.com/lnmplang/lnmp-mcp)** - Model Context Protocol server
 
 ---
 
@@ -98,7 +98,7 @@ output = lnmp.encode(record)
 
 - **[LNMP Specification](../../spec/)** - Formal protocol specification
 - **[Grammar Reference](../../spec/grammar.md)** - PEG grammar
-- **[Examples](../../examples/)** - Code examples
+- **[Examples](https://github.com/lnmplang/lnmp-examples)** - Code examples
 - **[Crates.io](https://crates.io/crates/lnmp)** - Rust crate documentation
 
 ---

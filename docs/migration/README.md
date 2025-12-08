@@ -19,7 +19,7 @@ Step-by-step guides for migrating between LNMP protocol versions.
   - Semantic checksums
 
 ### Tool-Specific Migrations
-- **[CLI Tool](../../tools/cli/MIGRATION.md)** - Command-line interface updates
+- **[CLI Tool](https://github.com/lnmplang/lnmp-cli)** - Command-line interface updates
 
 ---
 
@@ -116,7 +116,7 @@ A: v0.5 has optimizations. Run benchmarks and check if you're using deprecated A
 
 - **[GitHub Issues](https://github.com/lnmplang/lnmp-protocol/issues)** - Report bugs or ask questions
 - **[Discussions](https://github.com/lnmplang/lnmp-protocol/discussions)** - Community support
-- **[Examples](../../examples/)** - Reference implementations
+- **[Examples](https://github.com/lnmplang/lnmp-examples)** - Reference implementations
 
 ---
 

@@ -149,64 +149,36 @@ Then create a Pull Request on GitHub.
 - Add appropriate tests
 - Update API documentation
 
-### SDKs
+### SDKs and Tools
 
-**Locations**: `sdk/js/`, `sdk/python/`, `sdk/rust/`, `sdk/go/`
+**SDKs and Tools are now maintained in separate repositories.**
+If you wish to contribute to an SDK or Tool, please visit its repository:
 
-**What to contribute:**
-- SDK feature additions
-- Language-specific optimizations
-- Bug fixes
-- WASM binding improvements
+- **Python SDK**: [lnmp-sdk-python](https://github.com/lnmplang/lnmp-sdk-python)
+- **JS/TS SDK**: [lnmp-sdk-js](https://github.com/lnmplang/lnmp-sdk-js)
+- **Rust SDK**: [lnmp-sdk-rust](https://github.com/lnmplang/lnmp-sdk-rust)
+- **Go SDK**: [lnmp-sdk-go](https://github.com/lnmplang/lnmp-sdk-go)
+- **CLI Tool**: [lnmp-cli](https://github.com/lnmplang/lnmp-cli)
+- **MCP Server**: [lnmp-mcp](https://github.com/lnmplang/lnmp-mcp)
+- **VSCode Extension**: [lnmp-vscode](https://github.com/lnmplang/lnmp-vscode)
 
-**Requirements:**
-- SDK-specific tests pass
-- README updated if API changed
-- Examples added for new features
+Please check the `CONTRIBUTING.md` in those specific repositories for guidelines.
 
 ### Documentation
 
-**Locations**: `docs/`, `README.md`, `spec/`
+**Locations**: `docs/`, `semver`, `spec/`
 
 **What to contribute:**
 - Typo fixes
 - Clarifications
-- New examples
+- Protocol specification updates
 - Migration guides
-- API documentation
-
-**Requirements:**
-- Markdown linting passes
-- Links work correctly
-- Code examples compile
 
 ### Examples
 
-**Location**: `examples/`
+**Location**: [lnmp-examples](https://github.com/lnmplang/lnmp-examples) or [lnmp-showcase](https://github.com/lnmplang/lnmp-showcase)
 
-**What to contribute:**
-- Real-world usage examples
-- Integration patterns
-- Best practices
-
-**Requirements:**
-- Code compiles and runs
-- README explains the example
-- Uses latest stable APIs
-
-### Tools & CLI
-
-**Locations**: `tools/cli/`, `tools/mcp/`
-
-**What to contribute:**
-- New commands
-- Bug fixes
-- UX improvements
-
-**Requirements:**
-- Tool-specific tests pass
-- Help text updated
-- MIGRATION.md updated if breaking
+Please contribute examples directly to those repositories.
 
 ---
 

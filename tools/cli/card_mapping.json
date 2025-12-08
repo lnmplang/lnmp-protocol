@@ -1,9 +1,0 @@
-{
-    "card_number": 1,
-    "holder_name": 2,
-    "balance": 5,
-    "is_active": 10,
-    "card_type": 15,
-    "limit": 20,
-    "recent_transactions": 50
-}

@@ -15,10 +15,6 @@ members = [
     "crates/lnmp-transport",
 
     "tests/compliance/rust",
-    "tools/cli",
-    "sdk/rust",
-    "sdk/python",
-    "showcase/city-pulse",
 ]
 
 [workspace.package]

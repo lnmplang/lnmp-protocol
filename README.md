@@ -86,24 +86,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-For more examples, see the [examples directory](examples/).
+For more examples, see the [lnmp-examples](https://github.com/lnmplang/lnmp-examples) repository.
 
 ## Project Structure
 
-This is a Rust workspace containing multiple crates:
+This is a **Pure Protocol** repository containing the core Rust crates:
+- **lnmp-core** (v0.5.7): Core type definitions and data structures
+- **lnmp-codec** (v0.5.7): Parser and encoder implementations
+- **lnmp-embedding** (v0.5.7): Vector embedding support
+- **lnmp-envelope** (v0.5.7): Operational metadata envelope
+- **lnmp-spatial** (v0.5.7): Spatial awareness types
+- **lnmp-quant** (v0.5.7): Adaptive quantization
+- **lnmp-llb** (v0.5.7): LNMP-LLM Bridge Layer
+- **lnmp-sfe** (v0.5.7): Semantic Fidelity Engine
+- **lnmp-net** (v0.5.7): Network behavior layer
+- **lnmp-sanitize** (v0.5.7): Input sanitization
+- **lnmp-transport** (v0.5.7): Transport bindings
 
-- **lnmp** (v0.5.7): **Meta crate** - All-in-one package that re-exports all LNMP modules (recommended for most users)
-- **lnmp-core** (v0.5.7): Core type definitions for LNMP data structures (including nested structures and checksums)
-- **lnmp-codec** (v0.5.7): Parser and encoder implementations for LNMP text format (with normalization and equivalence mapping)
-- **lnmp-embedding** (v0.5.7): Vector embedding support with efficient delta encoding
-- **lnmp-envelope** (v0.5.7): Operational metadata envelope (timestamp, source, trace_id, sequence) - CloudEvents/Kafka/OTel aligned
-- **lnmp-spatial** (v0.5.7): Spatial awareness types and hybrid protocol for robotics and real-time control
-- **lnmp-quant** (v0.5.7): Adaptive quantization and compression for embedding vectors
-- **lnmp-llb** (v0.5.7): LNMP-LLM Bridge Layer - prompt optimization, explain mode, and ShortForm encoding
-- **lnmp-sfe** (v0.5.7): Semantic Fidelity Engine - semantic dictionary, equivalence mapping, and **context profiling for LLM decision support**
-- **lnmp-net** (v0.5.7): Network behavior layer - semantic message types (Event/Alert/etc), QoS, and intelligent routing (ECO profile)
-- **lnmp-sanitize** (v0.5.7): Security-focused input validation and sanitization
-- **lnmp-transport** (v0.5.7): Transport bindings for HTTP, Kafka, gRPC, NATS - W3C Trace Context integration and observability support
+## 🌍 Ecosystem
+
+The LNMP ecosystem consists of several repositories:
+
+### SDKs
+- **Python**: [`lnmp-sdk-python`](https://github.com/lnmplang/lnmp-sdk-python)
+- **TypeScript/JS**: [`lnmp-sdk-js`](https://github.com/lnmplang/lnmp-sdk-js)
+- **Rust**: [`lnmp-sdk-rust`](https://github.com/lnmplang/lnmp-sdk-rust)
+- **Go**: [`lnmp-sdk-go`](https://github.com/lnmplang/lnmp-sdk-go)
+
+### Tools
+- **CLI**: [`lnmp-cli`](https://github.com/lnmplang/lnmp-cli)
+- **MCP Server**: [`lnmp-mcp`](https://github.com/lnmplang/lnmp-mcp)
+- **VS Code Extension**: [`lnmp-vscode`](https://github.com/lnmplang/lnmp-vscode)
+
+### Examples
+- **Showcase**: [`lnmp-showcase`](https://github.com/lnmplang/lnmp-showcase) - City Pulse Demo
+- **Examples**: [`lnmp-examples`](https://github.com/lnmplang/lnmp-examples)
 
 
 ## Quick Start
