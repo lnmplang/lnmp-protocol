@@ -7,9 +7,7 @@ use lnmp_transport::http;
 
 #[cfg(not(feature = "http"))]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!(
-        "HTTP feature not enabled. Run with: cargo run --example http_full --features http"
-    );
+    println!("HTTP feature not enabled. Run with: cargo run --example http_full --features http");
     Ok(())
 }
 

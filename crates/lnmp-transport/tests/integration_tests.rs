@@ -1,6 +1,16 @@
-#[cfg(any(feature = "http", feature = "kafka", feature = "grpc", feature = "nats"))]
+#[cfg(any(
+    feature = "http",
+    feature = "kafka",
+    feature = "grpc",
+    feature = "nats"
+))]
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
-#[cfg(any(feature = "http", feature = "kafka", feature = "grpc", feature = "nats"))]
+#[cfg(any(
+    feature = "http",
+    feature = "kafka",
+    feature = "grpc",
+    feature = "nats"
+))]
 use lnmp_envelope::{EnvelopeMetadata, LnmpEnvelope};
 
 #[cfg(feature = "grpc")]
@@ -12,7 +22,12 @@ use lnmp_transport::kafka;
 #[cfg(feature = "nats")]
 use lnmp_transport::nats;
 
-#[cfg(any(feature = "http", feature = "kafka", feature = "grpc", feature = "nats"))]
+#[cfg(any(
+    feature = "http",
+    feature = "kafka",
+    feature = "grpc",
+    feature = "nats"
+))]
 fn create_test_envelope() -> LnmpEnvelope {
     let mut labels = std::collections::HashMap::new();
     labels.insert("env".to_string(), "prod".to_string());
