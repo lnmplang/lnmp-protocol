@@ -1,0 +1,61 @@
+name: Protocol RFC
+description: Propose a change to the LNMP format, fixtures, or compatibility guarantees
+title: "[RFC] <summary>"
+labels:
+  - rfc
+  - needs-spec
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template when proposing changes to `.lnmp` container rules, fixtures, or spec documents.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Provide a concise description of the protocol change.
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation & goals
+      description: Why is this change necessary? Who benefits?
+    validations:
+      required: true
+  - type: textarea
+    id: spec-touchpoints
+    attributes:
+      label: Spec sections touched
+      description: List files/sections (e.g., `spec/lnmp-container-format.md#Delta Metadata`).
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility & migrations
+      description: Describe backward/forward compatibility story, fixture updates, and required checklist changes.
+      placeholder: |
+        - Container fixtures: ...
+        - Streaming fixtures: ...
+        - docs/lnmp-compat-matrix.md update: ...
+    validations:
+      required: true
+  - type: textarea
+    id: testing
+    attributes:
+      label: Test plan
+      description: Enumerate new or updated tests/fixtures (link to `docs/codec-ci-checklist.md`, etc.).
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I will update the compatibility matrix per [compat-reporting-guide](../../docs/compat-reporting-guide.md).
+          required: true
+        - label: I will submit matching PRs for specs, fixtures, and implementation code simultaneously.
+          required: true
+        - label: I will coordinate with maintainers on release planning (CHANGELOG, semver).
+          required: true

@@ -2,6 +2,10 @@
 
 This document tracks the performance optimizations implemented for LNMP v0.5.
 
+## Latest Benchmarks
+
+Use this section to capture the most recent `cargo bench -p lnmp-codec` summary (see `docs/compat-reporting-guide.md`).
+
 ## Completed Optimizations
 
 ### 1. VarInt Fast Paths (✅ Completed)

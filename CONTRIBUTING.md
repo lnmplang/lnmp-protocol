@@ -414,10 +414,14 @@ Update these files when making changes:
 1. Update versions in `Cargo.toml`
 2. Update `CHANGELOG.md`
 3. Run `cargo build --workspace` to update `Cargo.lock`
-4. Commit: `chore: bump version to 0.5.x`
-5. Tag: `git tag v0.5.x`
-6. Push: `git push && git push --tags`
-7. GitHub Release triggers automatic publish
+4. Run the LNMP compatibility suite (see `docs/compat-reporting-guide.md`) and write the results to `docs/lnmp-compat-matrix.md`.
+5. Record the latest codec benchmark summary in `crates/lnmp-codec/OPTIMIZATIONS.md` (even if it’s “unchanged”).
+6. Commit: `chore: bump version to 0.5.x`
+7. Tag: `git tag v0.5.x`
+8. Push: `git push && git push --tags`
+9. GitHub Release triggers automatic publish
+
+> These steps verify that the frozen `.lnmp` container rules remain deterministic (fixture table) and that our published performance claims are backed by fresh benchmark data.
 
 **NPM Packages:**
 1. Run `./scripts/bump-version.sh 0.6.x`

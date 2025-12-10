@@ -1,0 +1,69 @@
+name: Bug Report
+description: Report a regression or incorrect LNMP behavior
+title: "[BUG] <summary>"
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug! Please include enough detail to reproduce the issue on LNMP main.
+  - type: input
+    id: modules
+    attributes:
+      label: Affected module(s)
+      description: e.g. lnmp-core, lnmp-codec, lnmp-transport/http
+      placeholder: lnmp-codec (container header)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Observed LNMP version / commit
+      description: Tag, semver, or git commit SHA
+      placeholder: v0.5.13 / abc1234
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug description
+      description: What went wrong? Include actual vs expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include commands, `.lnmp` fixtures, or code snippets.
+      placeholder: |
+        1. Run cargo test -p lnmp-codec --test container_conformance
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: lnmp-sample
+    attributes:
+      label: Minimal `.lnmp` sample (record/envelope/container)
+      description: Paste the shortest LNMP sample that reproduces the failure.
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / stack traces
+      description: Include compiler/test failures or transport headers if applicable.
+      render: shell
+  - type: checkboxes
+    id: verification
+    attributes:
+      label: Verification checklist
+      description: Run through the relevant guides before filing.
+      options:
+        - label: I ran `cargo fmt` and `cargo clippy --all-targets --all-features`.
+          required: true
+        - label: I executed the applicable module checklist(s) ([core](../../docs/core-ci-checklist.md), [codec](../../docs/codec-ci-checklist.md), [transport](../../docs/transport-ci-checklist.md)).
+          required: true
+        - label: I referenced the compatibility workflow ([guide](../../docs/compat-reporting-guide.md)) if the issue affects fixtures or benchmarks.
+          required: false
+        - label: I can reproduce this issue on the `main` branch.
+          required: true

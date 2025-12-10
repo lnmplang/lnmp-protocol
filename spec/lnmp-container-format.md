@@ -88,6 +88,15 @@ Producers MUST emit these metadata blocks for Stream and Delta modes. Consumers 
 - Valid: text with checksum flag, binary with 16B metadata, stream with SC32 and 4KiB chunks, delta with base snapshot and op-list algorithm.  
 - Invalid: wrong magic, unsupported version, unknown mode, reserved flag set, truncated metadata, zero-length metadata in stream/delta, out-of-range metadata length.
 
+### Where to Find the Fixtures/Tests
+- **Container header & metadata:** `crates/lnmp-codec/tests/container_conformance.rs`
+- **Streaming layer:** `crates/lnmp-codec/tests/streaming_layer_tests.rs`
+- **Delta encoding:** `crates/lnmp-codec/tests/delta_encoding_tests.rs`
+- **Binary payload examples:** `crates/lnmp-codec/tests/binary_*`
+- **Transport header mappings:** `crates/lnmp-transport/tests/integration_tests.rs`
+
+> When updating this spec, keep the referenced fixtures green or update them alongside the change.
+
 ## Header Error Mapping (reference)
 
 When using the published fixtures, parsers should surface the following errors:

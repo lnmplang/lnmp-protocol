@@ -14,6 +14,14 @@ This document captures the container v1 compatibility expectations and points to
 - Source fixtures live under `fixtures/` and are used by conformance tests.
 - To publish a bundle for external use: `scripts/package-fixtures.sh` produces `artifacts/lnmp-fixtures-v1.tar.gz`.
 
+### Automated Status Table (update via CI)
+
+| Date (UTC) | Commit | Container | Streaming | Delta | Notes |
+| --- | --- | --- | --- | --- | --- |
+| _pending automation_ | `_` | `_` | `_` | `_` | Populate via CI pipeline |
+
+> See `docs/compat-reporting-guide.md` for how to keep this table current.
+
 ## Versioning / Freeze Policy
 - Header/mode bytes and stream/delta metadata layouts above are frozen for v1. Any change to magic/version/mode/flags/layouts requires a version bump + RFC.
 - Conformance fixtures/tests must remain green across releases.

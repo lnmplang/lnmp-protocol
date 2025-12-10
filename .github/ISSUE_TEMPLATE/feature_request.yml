@@ -1,0 +1,46 @@
+name: Feature Request
+description: Suggest an enhancement to the LNMP protocol or tooling
+title: "[Feature] <summary>"
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to propose a new capability or improvement. For protocol-level work, consider using the “Protocol RFC” template instead.
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Problem statement
+      description: What workflow or use-case needs improvement?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the desired behavior, APIs, or spec additions.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Why are existing LNMP features insufficient?
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impacted modules / specs
+      description: List crates or spec sections that would change.
+      placeholder: lnmp-transport/http (docs/transport-ci-checklist.md)
+  - type: checkboxes
+    id: readiness
+    attributes:
+      label: Readiness checklist
+      options:
+        - label: I reviewed existing issues/PRs to avoid duplicates.
+          required: true
+        - label: I will update the relevant checklist(s) (e.g., [codec](../../docs/codec-ci-checklist.md), [core](../../docs/core-ci-checklist.md), [transport](../../docs/transport-ci-checklist.md)) as part of the implementation.
+          required: true
+        - label: I will update specs and compatibility docs if this change affects the `.lnmp` format.
+          required: true
