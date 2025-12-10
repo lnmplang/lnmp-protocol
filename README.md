@@ -8,7 +8,7 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 [![Rust](https://img.shields.io/badge/rust-1.91%2B-orange.svg)](https://www.rust-lang.org)
 [![Downloads](https://img.shields.io/crates/d/lnmp.svg)](https://crates.io/crates/lnmp)
 
-**Current Version: v0.5.13
+**Current Version: v0.5.13**
 
 ## Features
 
@@ -36,6 +36,7 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 - 🎯 **Strict Profiles** - Configurable validation levels (Loose/Standard/Strict) (v0.5.5)
 - 🏗️ **RecordBuilder** - Fluent API for canonical record construction (v0.5.5)
 - 🧠 **Context Profiling** - Automatic scoring for LLM prioritization (freshness, importance, risk, confidence) (v0.5.7)
+- 🌐 **Network Intelligence** - `lnmp-net` layer for message classification, QoS, and intelligent routing (v0.5.7)
 - 🚀 **Transport bindings** - Standard mappings for HTTP, Kafka, gRPC, NATS with W3C Trace Context and OpenTelemetry integration (v0.5.7)
 
 ## Quick Start
@@ -86,22 +87,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-For more examples, see the [lnmp-examples](https://github.com/lnmplang/lnmp-examples) repository.
+For more examples, see the `examples/` directory in individual crates or the [lnmp-examples](https://github.com/lnmplang/lnmp-examples) repository.
 
 ## Project Structure
 
 This is a **Pure Protocol** repository containing the core Rust crates:
-- **lnmp-core** (v0.5.7): Core type definitions and data structures
-- **lnmp-codec** (v0.5.7): Parser and encoder implementations
-- **lnmp-embedding** (v0.5.7): Vector embedding support
-- **lnmp-envelope** (v0.5.7): Operational metadata envelope
-- **lnmp-spatial** (v0.5.7): Spatial awareness types
-- **lnmp-quant** (v0.5.7): Adaptive quantization
-- **lnmp-llb** (v0.5.7): LNMP-LLM Bridge Layer
-- **lnmp-sfe** (v0.5.7): Semantic Fidelity Engine
-- **lnmp-net** (v0.5.7): Network behavior layer
-- **lnmp-sanitize** (v0.5.7): Input sanitization
-- **lnmp-transport** (v0.5.7): Transport bindings
+- **lnmp-core** (v0.5.13): Core type definitions and data structures
+- **lnmp-codec** (v0.5.13): Parser and encoder implementations
+- **lnmp-embedding** (v0.5.13): Vector embedding support
+- **lnmp-envelope** (v0.5.13): Operational metadata envelope
+- **lnmp-spatial** (v0.5.13): Spatial awareness types
+- **lnmp-quant** (v0.5.13): Adaptive quantization
+- **lnmp-llb** (v0.5.13): LNMP-LLM Bridge Layer
+- **lnmp-sfe** (v0.5.13): Semantic Fidelity Engine
+- **lnmp-net** (v0.5.13): Network behavior layer
+- **lnmp-sanitize** (v0.5.13): Input sanitization
+- **lnmp-transport** (v0.5.13): Transport bindings
 
 ## 🌍 Ecosystem
 
@@ -571,7 +572,7 @@ cargo doc --open
 
 ## Examples
 
-See the `examples/` directory for complete examples:
+See the `examples/` directory in individual crates for complete examples:
 
 **Basic Examples:**
 - `parse_example.rs` - Parsing LNMP text

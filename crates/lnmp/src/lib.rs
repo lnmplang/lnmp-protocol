@@ -10,7 +10,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! lnmp = "0.5.4"
+//! lnmp = "0.5.13"
 //! ```
 //!
 //! ## Available Modules
@@ -36,7 +36,7 @@
 //! use lnmp::codec::{Encoder, Parser};
 //!
 //! // Work with embeddings
-//! use lnmp::embedding::{VectorDelta, Vector};
+//! use lnmp::embedding::{VectorDelta, Vector, EmbeddingType};
 //!
 //! // Use spatial streaming
 //! use lnmp::spatial::protocol::SpatialStreamer;

@@ -1,6 +1,6 @@
 # lnmp-core
 
-Core type definitions for LNMP (LLM Native Minimal Protocol) v0.5.4.
+Core type definitions for LNMP (LLM Native Minimal Protocol) v0.5.13.
 
 ## Overview
 

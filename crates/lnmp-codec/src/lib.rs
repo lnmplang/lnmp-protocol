@@ -5,8 +5,8 @@
 //! Parser and encoder implementations for LNMP (LLM Native Minimal Protocol) text format.
 //!
 //! This crate provides:
-//! - [`Parser`]: Converts LNMP text format into structured [`LnmpRecord`] objects
-//! - [`Encoder`]: Converts [`LnmpRecord`] objects into LNMP text format (canonical v0.2 format)
+//! - [`Parser`]: Converts LNMP text format into structured [`lnmp_core::LnmpRecord`] objects
+//! - [`Encoder`]: Converts [`lnmp_core::LnmpRecord`] objects into LNMP text format (canonical v0.2 format)
 //! - [`ParsingMode`]: Strict or loose parsing modes for validation
 //! - [`EncoderConfig`]: Configuration for encoder behavior (type hints, etc.)
 //! - [`LnmpError`]: Error types for parsing and encoding operations

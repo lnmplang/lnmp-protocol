@@ -9,13 +9,14 @@
 //! - [`LnmpValue`]: Enum representing all supported value types
 //! - [`LnmpField`]: A field ID and value pair
 //! - [`LnmpRecord`]: A collection of fields representing a complete record
-//! - [`TypeHint`]: Type annotations for values (v0.2+)
+//! - [`TypeHint`]: Type annotations for values
 //!
-//! ## LNMP v0.2 Features
+//! ## Features
 //!
-//! Version 0.2 adds:
 //! - **Type hints**: Optional type annotations (`:i`, `:f`, `:b`, `:s`, `:sa`)
 //! - **Sorted fields**: `sorted_fields()` method for deterministic ordering
+//! - **Record Builder**: Fluent API for constructing records
+//! - **Strict Profiling**: Validation profiles for data integrity
 //!
 //! ## Example
 //!

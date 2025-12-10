@@ -120,7 +120,7 @@ impl LlbConverter {
     /// Converts binary format to ShortForm text representation
     ///
     /// ShortForm omits the 'F' prefix for extreme token reduction:
-    /// Binary → Record → "12=14532;7=1;23=[admin,dev]"
+    /// Binary → Record → "12=14532;7=1;23=\[admin,dev\]"
     pub fn binary_to_shortform(&self, binary: &[u8]) -> Result<String, LlbError> {
         let decoder = BinaryDecoder::new();
         let record = decoder.decode(binary)?;
@@ -138,7 +138,7 @@ impl LlbConverter {
 
     /// Converts binary format to FullText (canonical LNMP text) representation
     ///
-    /// Binary → Record → "F12=14532\nF7=1\nF23=[admin,dev]"
+    /// Binary → Record → "F12=14532\nF7=1\nF23=\[admin,dev\]"
     pub fn binary_to_fulltext(&self, binary: &[u8]) -> Result<String, LlbError> {
         let decoder = BinaryDecoder::new();
         Ok(decoder.decode_to_text(binary)?)

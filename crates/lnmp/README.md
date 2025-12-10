@@ -12,7 +12,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lnmp = "0.5.4"
+lnmp = "0.5.13"
 ```
 
 Then use any LNMP module:
@@ -48,17 +48,17 @@ This meta crate re-exports all LNMP modules:
 ### Before (Multiple Dependencies)
 ```toml
 [dependencies]
-lnmp-core = "0.5.4"
-lnmp-codec = "0.5.4"
-lnmp-embedding = "0.5.4"
-lnmp-spatial = "0.5.4"
+lnmp-core = "0.5.13"
+lnmp-codec = "0.5.13"
+lnmp-embedding = "0.5.13"
+lnmp-spatial = "0.5.13"
 # ... which ones do I need?
 ```
 
 ### After (Single Dependency)
 ```toml
 [dependencies]
-lnmp = "0.5.4"  # Everything included!
+lnmp = "0.5.13"  # Everything included!
 ```
 
 ## Usage Examples
@@ -81,7 +81,8 @@ use lnmp::embedding::{VectorDelta, DeltaMode};
 let old_vector = vec![1.0, 2.0, 3.0];
 let new_vector = vec![1.1, 2.0, 3.2];
 
-let delta = VectorDelta::compute(&old_vector, &new_vector, DeltaMode::Sparse)?;
+// Compute delta (needs base_id for reconstruction)
+let delta = VectorDelta::from_vectors(&old_vector, &new_vector, 1)?;
 ```
 
 ### Spatial Streaming
