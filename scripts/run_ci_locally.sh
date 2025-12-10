@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Local reproduction script for .github/workflows/ci.yml
 # Run from repository root: ./scripts/run_ci_locally.sh
-# This script aims to replicate the CI pipeline steps for local debugging.
+# This script aims to replicate the CI pipeline steps for local debugging..
 
 echo "=== Running local CI steps ==="
 
