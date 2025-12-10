@@ -147,9 +147,33 @@ let trace_id = http::traceparent_to_trace_id(traceparent_header)?;
 ## Examples
 
 See `examples/` directory:
-- `basic_usage.rs` - Simple mapping example
+- `transport_basic_usage.rs` - Simple mapping example
 - `http_full.rs` - Complete HTTP request/response with body encoding
 - `otel_integration.rs` - OpenTelemetry context propagation
+
+## Testing & CI Guidance
+
+To ensure every optional transport binding stays healthy, run the test matrix locally (and wire the same commands into CI):
+
+| Feature flags | Command |
+| --- | --- |
+| none | `cargo test -p lnmp-transport --no-default-features` |
+| http (default) | `cargo test -p lnmp-transport --features http` |
+| kafka only | `cargo test -p lnmp-transport --no-default-features --features kafka` |
+| http + kafka | `cargo test -p lnmp-transport --features "http kafka"` |
+| all bindings | `cargo test -p lnmp-transport --features "http kafka grpc nats"` |
+
+Benchmarks/examples should also be covered in automation at least once per release:
+
+```bash
+cargo bench -p lnmp-transport --features "http kafka"
+cargo bench -p lnmp-transport --no-default-features   # verifies graceful skip
+cargo run  -p lnmp-transport --example transport_basic_usage --features "http kafka grpc nats"
+cargo run  -p lnmp-transport --example http_full --features http
+cargo run  -p lnmp-transport --example otel_integration --features http
+```
+
+> Tip: Keeping these commands in CI ensures unresolved-import regressions are caught immediately when optional modules change.
 
 ## Alignment with Industry Standards
 

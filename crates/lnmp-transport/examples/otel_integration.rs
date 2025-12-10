@@ -1,7 +1,19 @@
+#[cfg(feature = "http")]
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
+#[cfg(feature = "http")]
 use lnmp_envelope::EnvelopeBuilder;
+#[cfg(feature = "http")]
 use lnmp_transport::http;
 
+#[cfg(not(feature = "http"))]
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!(
+        "HTTP feature not enabled. Run with: cargo run --example otel_integration --features http"
+    );
+    Ok(())
+}
+
+#[cfg(feature = "http")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== LNMP OpenTelemetry Integration Example ===\n");
 

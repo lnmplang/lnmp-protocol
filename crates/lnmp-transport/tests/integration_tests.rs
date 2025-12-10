@@ -1,7 +1,18 @@
+#[cfg(any(feature = "http", feature = "kafka", feature = "grpc", feature = "nats"))]
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
+#[cfg(any(feature = "http", feature = "kafka", feature = "grpc", feature = "nats"))]
 use lnmp_envelope::{EnvelopeMetadata, LnmpEnvelope};
-use lnmp_transport::{grpc, http, kafka, nats};
 
+#[cfg(feature = "grpc")]
+use lnmp_transport::grpc;
+#[cfg(feature = "http")]
+use lnmp_transport::http;
+#[cfg(feature = "kafka")]
+use lnmp_transport::kafka;
+#[cfg(feature = "nats")]
+use lnmp_transport::nats;
+
+#[cfg(any(feature = "http", feature = "kafka", feature = "grpc", feature = "nats"))]
 fn create_test_envelope() -> LnmpEnvelope {
     let mut labels = std::collections::HashMap::new();
     labels.insert("env".to_string(), "prod".to_string());
@@ -61,6 +72,7 @@ fn test_http_mapping() {
     assert_eq!(meta.labels.get("env"), env.metadata.labels.get("env"));
 }
 
+#[cfg(feature = "kafka")]
 #[test]
 fn test_kafka_mapping() {
     let env = create_test_envelope();
@@ -80,6 +92,7 @@ fn test_kafka_mapping() {
     assert_eq!(meta.labels.get("env"), env.metadata.labels.get("env"));
 }
 
+#[cfg(feature = "grpc")]
 #[test]
 fn test_grpc_mapping() {
     let env = create_test_envelope();
@@ -99,6 +112,7 @@ fn test_grpc_mapping() {
     assert_eq!(meta.labels.get("env"), env.metadata.labels.get("env"));
 }
 
+#[cfg(feature = "nats")]
 #[test]
 fn test_nats_mapping() {
     let env = create_test_envelope();

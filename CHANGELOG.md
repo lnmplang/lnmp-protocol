@@ -83,7 +83,7 @@
 
 ### Examples
 
-- `examples/basic_usage.rs` - Binary TLV encoding demonstration
+- `examples/envelope_basic_usage.rs` - Binary TLV encoding demonstration
 - `examples/text_format.rs` - Text header format demonstration
 - `examples/http_binding.rs` - HTTP header mapping (X-LNMP-* pattern)
 - `examples/kafka_binding.rs` - Kafka record headers integration

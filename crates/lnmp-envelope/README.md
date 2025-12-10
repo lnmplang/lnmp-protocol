@@ -236,7 +236,7 @@ assert_eq!(cs1, cs2); // ✅ MUST pass
 
 See [`examples/`](examples/) directory:
 
-- [`basic_usage.rs`](examples/basic_usage.rs) - Creating and encoding envelopes (binary TLV)
+- [`envelope_basic_usage.rs`](examples/envelope_basic_usage.rs) - Creating and encoding envelopes (binary TLV)
 - [`text_format.rs`](examples/text_format.rs) - Text header format demonstration
 - [`http_binding.rs`](examples/http_binding.rs) - HTTP header mapping (X-LNMP-* pattern)
 - [`kafka_binding.rs`](examples/kafka_binding.rs) - Kafka record headers integration
@@ -244,7 +244,7 @@ See [`examples/`](examples/) directory:
 
 **Run an example:**
 ```bash
-cargo run --package lnmp-envelope --example basic_usage
+cargo run --package lnmp-envelope --example envelope_basic_usage
 cargo run --package lnmp-envelope --example llm_freshness
 ```
 

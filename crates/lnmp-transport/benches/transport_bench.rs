@@ -1,8 +1,15 @@
+#[cfg(any(feature = "http", feature = "kafka"))]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+#[cfg(any(feature = "http", feature = "kafka"))]
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
+#[cfg(any(feature = "http", feature = "kafka"))]
 use lnmp_envelope::{EnvelopeMetadata, LnmpEnvelope};
-use lnmp_transport::{http, kafka};
+#[cfg(feature = "http")]
+use lnmp_transport::http;
+#[cfg(feature = "kafka")]
+use lnmp_transport::kafka;
 
+#[cfg(any(feature = "http", feature = "kafka"))]
 fn create_bench_envelope() -> LnmpEnvelope {
     let mut labels = std::collections::HashMap::new();
     labels.insert("env".to_string(), "production".to_string());
@@ -28,6 +35,7 @@ fn create_bench_envelope() -> LnmpEnvelope {
     }
 }
 
+#[cfg(feature = "http")]
 fn bench_http_mapping(c: &mut Criterion) {
     let env = create_bench_envelope();
     c.bench_function("http_envelope_to_headers", |b| {
@@ -35,6 +43,7 @@ fn bench_http_mapping(c: &mut Criterion) {
     });
 }
 
+#[cfg(feature = "kafka")]
 fn bench_kafka_mapping(c: &mut Criterion) {
     let env = create_bench_envelope();
     c.bench_function("kafka_envelope_to_headers", |b| {
@@ -42,5 +51,16 @@ fn bench_kafka_mapping(c: &mut Criterion) {
     });
 }
 
+#[cfg(all(feature = "http", feature = "kafka"))]
 criterion_group!(benches, bench_http_mapping, bench_kafka_mapping);
+#[cfg(all(feature = "http", not(feature = "kafka")))]
+criterion_group!(benches, bench_http_mapping);
+#[cfg(all(feature = "kafka", not(feature = "http")))]
+criterion_group!(benches, bench_kafka_mapping);
+#[cfg(any(feature = "http", feature = "kafka"))]
 criterion_main!(benches);
+
+#[cfg(not(any(feature = "http", feature = "kafka")))]
+fn main() {
+    eprintln!("No transport features enabled; enable `http` or `kafka` to run benches.");
+}
