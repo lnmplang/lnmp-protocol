@@ -310,8 +310,8 @@ F60=[{F1=alice},{F1=bob}]
 - **Floats**: `F3=3.14`, `F4=-2.5`
 - **Booleans**: `F5=1` (true), `F6=0` (false)
 - **Strings**: `F7="hello world"`, `F8=simple_string`
-- **String Arrays**: `F9=["a","b","c"]`
-- **Numeric Arrays**: `F10=[1,2,3]` (IntArray), `F11=[1.1,2.2]` (FloatArray), `F12=[1,0,1]` (BoolArray)
+- **Arrays**: `F9=["a","b","c"]` (StringArray default in text format)
+- *> Note: Typed numeric arrays (IntArray, FloatArray) are supported in internal types (v0.6) and binary format, but text format currently parses all arrays as StringArrays.*
 
 **Nested Types (v0.3):**
 - **Nested Records**: `F50={F12=1;F7=1}` - Records within records

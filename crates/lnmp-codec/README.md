@@ -164,7 +164,8 @@ record.add_field(LnmpField { fid: 50, value: LnmpValue::Int(2) });
 let encoder = Encoder::new();
 let output = encoder.encode(&record);
 // Output: F5=1\nF50=2\nF100=3  (sorted)
-```
+- **Arrays**: `[...]` (Parsed as `StringArray` in text format)
+  > **Note**: Text format currently parses all arrays as `StringArray` (e.g., `["1", "2"]`). Typed arrays (`IntArray`, etc.) are supported in the **Binary Format** or via manual construction.
 
 ### Type Hints
 

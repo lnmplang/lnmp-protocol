@@ -6,9 +6,13 @@
 //! This crate does NOT implement HTTP/Kafka/gRPC clients or servers - it only provides
 //! helpers to map LNMP data to/from transport-specific headers and bodies.
 
+#[cfg(feature = "grpc")]
 pub mod grpc;
+#[cfg(feature = "http")]
 pub mod http;
+#[cfg(feature = "kafka")]
 pub mod kafka;
+#[cfg(feature = "nats")]
 pub mod nats;
 
 use thiserror::Error;

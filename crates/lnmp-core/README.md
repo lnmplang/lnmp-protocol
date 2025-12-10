@@ -105,6 +105,14 @@ pub enum LnmpValue {
 }
 ```
 
+| Type Code | Description | Example |
+| :--- | :--- | :--- |
+| `:sa` | String Array | `StringArray(["a", "b"])` |
+| `:ia` | Int Array | `IntArray([1, 2, 3])` |
+| `:fa` | Float Array | `FloatArray([1.1, 2.2])` |
+| `:ba` | Bool Array | `BoolArray([true, false])` |
+| `:r` | Nested Record | `NestedRecord(...)` |
+
 **v0.3 Nested Structure Support:**
 
 ```rust
