@@ -272,7 +272,10 @@ fn record_supports_binary(record: &LnmpRecord) -> bool {
 }
 
 fn value_supports_binary(value: &LnmpValue) -> bool {
-    !matches!(value, LnmpValue::NestedRecord(_) | LnmpValue::NestedArray(_))
+    !matches!(
+        value,
+        LnmpValue::NestedRecord(_) | LnmpValue::NestedArray(_)
+    )
 }
 
 fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, Box<dyn Error>> {
