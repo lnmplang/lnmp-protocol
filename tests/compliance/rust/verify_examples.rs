@@ -272,14 +272,11 @@ fn record_supports_binary(record: &LnmpRecord) -> bool {
 }
 
 fn value_supports_binary(value: &LnmpValue) -> bool {
-    match value {
-        LnmpValue::NestedRecord(_) | LnmpValue::NestedArray(_) => false,
-        _ => true,
-    }
+    !matches!(value, LnmpValue::NestedRecord(_) | LnmpValue::NestedArray(_))
 }
 
 fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-    if hex.len() % 2 != 0 {
+    if !hex.len().is_multiple_of(2) {
         return Err("hex string has odd length".into());
     }
     let mut bytes = Vec::with_capacity(hex.len() / 2);
@@ -451,7 +448,10 @@ fn validate_container(bytes: &[u8], manifest: &ContainerManifest) -> Result<(), 
                 .as_ref()
                 .ok_or_else(|| "stream metadata missing in manifest".to_string())?;
             if metadata_len != 6 {
-                return Err(format!("stream metadata must be 6 bytes (got {})", metadata_len));
+                return Err(format!(
+                    "stream metadata must be 6 bytes (got {})",
+                    metadata_len
+                ));
             }
             let chunk_size =
                 u32::from_be_bytes([metadata[0], metadata[1], metadata[2], metadata[3]]);
@@ -473,7 +473,10 @@ fn validate_container(bytes: &[u8], manifest: &ContainerManifest) -> Result<(), 
                 .as_ref()
                 .ok_or_else(|| "delta metadata missing in manifest".to_string())?;
             if metadata_len != 10 {
-                return Err(format!("delta metadata must be 10 bytes (got {})", metadata_len));
+                return Err(format!(
+                    "delta metadata must be 10 bytes (got {})",
+                    metadata_len
+                ));
             }
             let base_snapshot = u64::from_be_bytes([
                 metadata[0],
