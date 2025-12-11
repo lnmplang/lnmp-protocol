@@ -28,6 +28,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnp.*
 .pnp.json
+/internal/
 
 # Editors / env
 .env

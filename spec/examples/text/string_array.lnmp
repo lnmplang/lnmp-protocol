@@ -1,0 +1,2 @@
+# String array example from text format spec
+F23:sa=["admin","dev","ops"];F12=14532;F7=1

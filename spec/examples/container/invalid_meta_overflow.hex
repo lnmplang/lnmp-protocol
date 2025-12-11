@@ -1,0 +1,2 @@
+# Metadata length claims 4 bytes but only header present
+4C 4E 4D 50  01 01 00 00  00 00 00 04

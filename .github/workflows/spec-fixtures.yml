@@ -1,0 +1,36 @@
+name: Spec Fixture Verification
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'spec/examples/**'
+      - 'spec/*.md'
+      - 'tests/compliance/**'
+      - 'crates/lnmp-codec/**'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - '.github/workflows/spec-fixtures.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'spec/examples/**'
+      - 'spec/*.md'
+      - 'tests/compliance/**'
+      - 'crates/lnmp-codec/**'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - '.github/workflows/spec-fixtures.yml'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Verify spec fixtures
+        run: cargo run -p lnmp-compliance-tests --bin lnmp-verify-examples

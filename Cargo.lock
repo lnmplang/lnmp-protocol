@@ -439,6 +439,7 @@ dependencies = [
 name = "lnmp-compliance-tests"
 version = "0.5.13"
 dependencies = [
+ "hex",
  "lnmp-codec",
  "lnmp-core",
  "lnmp-sanitize",

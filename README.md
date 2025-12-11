@@ -311,7 +311,7 @@ F60=[{F1=alice},{F1=bob}]
 - **Booleans**: `F5=1` (true), `F6=0` (false)
 - **Strings**: `F7="hello world"`, `F8=simple_string`
 - **Arrays**: `F9=["a","b","c"]` (StringArray default in text format)
-- *> Note: Typed numeric arrays (IntArray, FloatArray) are supported in internal types (v0.6) and binary format, but text format currently parses all arrays as StringArrays.*
+- *> Typed numeric arrays (IntArray, FloatArray, BoolArray) now parse from text when the corresponding `:ia/:fa/:ba` hints are supplied, matching the codec and binary representations.*
 
 **Nested Types (v0.3):**
 - **Nested Records**: `F50={F12=1;F7=1}` - Records within records

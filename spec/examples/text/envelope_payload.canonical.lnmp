@@ -1,0 +1,5 @@
+# Canonical envelope payload
+F7=1
+F12=14532
+F20=Alice
+F23=[admin,developer]

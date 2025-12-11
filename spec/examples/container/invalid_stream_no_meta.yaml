@@ -1,0 +1,9 @@
+mode: stream
+version: 1
+flags: 0
+metadata_length: 0
+stream:
+  chunk_size: 4096
+  checksum_type: 2
+  flags: 0
+expect_error: "stream metadata"

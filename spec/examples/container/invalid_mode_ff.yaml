@@ -1,0 +1,5 @@
+mode: text
+version: 1
+flags: 0
+metadata_length: 0
+expect_error: "mode mismatch"
