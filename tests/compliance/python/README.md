@@ -1,6 +1,6 @@
-# LNMP v0.3 Python Compliance Test Runner
+# LNMP Compliance Test Runner (Python)
 
-This directory contains the Python implementation of the LNMP v0.3 compliance test runner.
+This directory mirrors the language-agnostic compliance vectors in `tests/compliance/test-cases.yaml` so that a Python LNMP implementation can validate itself against the modular specification set (`spec/lnmp-*-spec.md`). The runner loads YAML, applies per-test config (strict mode, checksum validation, lenient parsing, etc.), and asserts the expected output/error while emitting the referenced REQ IDs.
 
 ## Requirements
 
@@ -21,7 +21,7 @@ Run all compliance tests:
 pytest tests/compliance/python/
 ```
 
-Run tests with verbose output:
+Verbose:
 ```bash
 pytest tests/compliance/python/ -v
 ```
@@ -34,34 +34,35 @@ pytest tests/compliance/python/ -k error_handling
 pytest tests/compliance/python/ -k round_trip
 ```
 
-Run with detailed output:
-```bash
-pytest tests/compliance/python/ -vv
-```
-
 ## Structure
 
-- `runner.py`: Core test runner that loads and executes test cases
-- `test_compliance.py`: Pytest test suite that uses the runner
-- `README.md`: This file
+- `runner.py`: Loads `../test-cases.yaml`, applies config, validates results
+- `test_compliance.py`: Thin pytest wrapper
+- `README.md`: This document
 
 ## Test Case Format
 
-Test cases are loaded from `../test-cases.yaml` and executed against a Python LNMP implementation (to be provided).
+Vectors come from `../test-cases.yaml` (see parent README). Each case includes a `requirements` array referencing the relevant REQ IDs defined in `spec/lnmp-*-spec.md`.
 
 ## Implementation Status
 
-⚠️ **Note**: This test runner is ready to use, but requires a Python LNMP implementation to validate against. The test runner will skip tests until a Python implementation is available.
+⚠️ Ready, awaiting a Python LNMP parser/encoder. All tests currently skip with a friendly message until an implementation is wired in.
 
-To integrate with a Python LNMP implementation:
+### Integration Checklist
 
-1. Install the Python LNMP package
-2. Update the import in `runner.py` to use the actual implementation
-3. Implement the parser and encoder interfaces
+1. Install/import your LNMP Python package.  
+2. Update `runner.py` where indicated (`TODO: integrate parser/encoder`).  
+3. Ensure your parser supports strict/loose parsing, checksum validation, lenient sanitization, nested structures, etc.  
+4. Run the commands above and confirm failures, if any, cite the correct REQ IDs.
 
 ## Future Work
 
-- Integrate with Python LNMP implementation when available
-- Add performance benchmarks
-- Add memory usage tests
-- Add fuzzing tests
+- Hook into the official LNMP Python crate once available.
+- Mirror the Rust fixture verifier if binary/text fixture checking is needed in this repo.
+- Add optional benchmarking/fuzzing helpers once the implementation ships.
+
+## References
+
+- `tests/compliance/README.md` (suite overview & YAML format)
+- Modular specs: `spec/lnmp-core-spec.md`, `spec/lnmp-text-format.md`, `spec/lnmp-binary-format.md`, `spec/lnmp-canonicalization.md`, `spec/lnmp-security-compliance.md`, `spec/lnmp-migration-versioning.md`
+- `spec/grammar.md`, `spec/error-classes.md`

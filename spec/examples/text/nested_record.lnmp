@@ -1,0 +1,2 @@
+# Non-canonical nested record (tests REQ-CAN-TXT-06/07)
+F50={F12=1;F7=1;F23=["admin","dev"]};F1=job

@@ -1,6 +1,6 @@
-# LNMP v0.3 TypeScript Compliance Test Runner
+# LNMP Compliance Test Runner (TypeScript)
 
-This directory contains the TypeScript compliance test runner for LNMP v0.3. It loads test cases from the language-agnostic `test-cases.yaml` file and executes them against a TypeScript LNMP implementation.
+TypeScript support mirrors the shared YAML vectors under `tests/compliance/test-cases.yaml`. Once a TypeScript LNMP parser/encoder is available, this runner can validate it against the modular specification set (`spec/lnmp-*-spec.md`) and surface REQ IDs in failures.
 
 ## Structure
 
@@ -10,7 +10,7 @@ typescript/
 │   ├── types.ts       # TypeScript type definitions for test cases
 │   ├── runner.ts      # Main test runner implementation
 │   └── cli.ts         # CLI entry point
-├── runner.test.ts     # Vitest test file
+├── runner.test.ts     # Vitest bridge into the runner
 ├── package.json       # Node.js package configuration
 ├── tsconfig.json      # TypeScript configuration
 ├── vitest.config.ts   # Vitest configuration
@@ -26,6 +26,8 @@ npm install
 ```
 
 ## Usage
+
+> ⚠️ Until a TypeScript LNMP implementation is integrated, tests are skipped with a notice (`implementation not yet available`). The commands below are still useful once the parser/encoder exists.
 
 ### Run All Tests
 
@@ -65,73 +67,17 @@ node src/cli.ts -c structural -v
 
 The test suite is organized into four categories:
 
-1. **Structural Tests**: Canonicalization, field ordering, nested structures, whitespace handling
-2. **Semantic Tests**: Type fidelity, value normalization, semantic checksums, equivalence mapping
-3. **Error Handling Tests**: Lexical errors, syntactic errors, semantic errors, structural errors
-4. **Round-trip Tests**: Parse → Encode → Parse consistency
+1. **Structural** – canonicalization, field ordering, nested structures, whitespace (REQ-CAN/REQ-TXT)
+2. **Semantic** – type fidelity, normalization, semantic checksums, equivalence mapping (REQ-TXT/REQ-SC/REQ-SAN)
+3. **Error Handling** – lexical/syntactic/semantic/structural errors (REQ-ERR-*)
+4. **Round-trip** – parse ↔ encode stability (REQ-CAN-RT)
 
 ## Integration with TypeScript LNMP Implementation
 
-The test runner is designed to integrate with a future TypeScript LNMP implementation. Currently, all tests are skipped with the message "TypeScript LNMP implementation not yet available".
-
-To integrate with your TypeScript LNMP implementation:
-
-1. Install your LNMP package as a dependency
-2. Uncomment the integration code in `src/runner.ts`
-3. Update the import statements to match your package structure
-4. Implement the validation logic for nested structures
-
-Example integration points are marked with `// TODO:` comments in the code.
-
-## Expected TypeScript LNMP API
-
-The test runner expects the following API from the TypeScript LNMP implementation:
-
-```typescript
-// Parser
-class Parser {
-  constructor(input: string, options?: { mode?: ParsingMode });
-  parseRecord(): LnmpRecord;
-}
-
-enum ParsingMode {
-  Strict = 'strict',
-  Loose = 'loose',
-}
-
-// Encoder
-class Encoder {
-  constructor(config: EncoderConfig);
-  encode(record: LnmpRecord): string;
-}
-
-interface EncoderConfig {
-  includeTypeHints: boolean;
-  canonical: boolean;
-  includeChecksums: boolean;
-}
-
-// Data structures
-interface LnmpRecord {
-  fields: LnmpField[];
-  sortedFields(): LnmpField[];
-}
-
-interface LnmpField {
-  fid: number;
-  value: LnmpValue;
-  typeHint?: TypeHint;
-}
-
-type LnmpValue =
-  | { type: 'int'; value: number }
-  | { type: 'float'; value: number }
-  | { type: 'bool'; value: boolean }
-  | { type: 'string'; value: string }
-  | { type: 'string_array'; value: string[] }
-  | { type: 'nested_record'; value: LnmpRecord }
-  | { type: 'nested_array'; value: LnmpRecord[] };
-```
+1. Add your LNMP package as a dependency (parser/encoder exported as ES modules).  
+2. Wire the parser/encoder into `src/runner.ts` where the TODO markers appear.  
+3. Ensure the runner can toggle strict/loose parsing, checksum validation, lenient mode, and nested structures.  
+4. Run the commands above and confirm failing cases log the `requirements` array (REQ IDs) from the YAML entry.
 
 ## Test Results
 
@@ -156,17 +102,11 @@ Skipped: 85
 
 ## Development
 
-### Running Tests During Development
-
-Use watch mode to automatically re-run tests when files change:
-
-```bash
-npm run test:watch
-```
+`npm run test:watch` re-runs tests on file changes. Debug by adding `console.log` entries or running via `node --inspect`.
 
 ### Adding New Test Cases
 
-Test cases are defined in the shared `../test-cases.yaml` file. The TypeScript runner automatically loads and executes all test cases from this file.
+Add vectors to `../test-cases.yaml` (and include `requirements`). The TypeScript runner automatically loads them on the next run.
 
 ### Debugging
 
@@ -184,4 +124,10 @@ To debug the test runner:
 
 ## License
 
-This test runner is part of the LNMP v0.3 specification and follows the same license as the main project.
+This module is part of the LNMP specification repository and follows the main project license.
+
+## References
+
+- `tests/compliance/README.md`
+- Modular specs: `spec/lnmp-core-spec.md`, `spec/lnmp-text-format.md`, `spec/lnmp-binary-format.md`, `spec/lnmp-canonicalization.md`, `spec/lnmp-security-compliance.md`, `spec/lnmp-migration-versioning.md`
+- `spec/grammar.md`, `spec/error-classes.md`

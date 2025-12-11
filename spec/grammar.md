@@ -203,6 +203,10 @@ COMMENT = _{ "#" ~ (!NEWLINE ~ ANY)* }
 | `float_array` | Array of floats (v0.5.4) |
 | `bool_array` | Array of booleans (v0.5.4) |
 
+### Typed Numeric Arrays
+
+Type hints `:ia`, `:fa`, and `:ba` promote the bracket form from string arrays to strongly typed integer, float, and boolean arrays. Elements MUST conform to the hinted type (`[1,2,-3]`, `[1.2,3.4]`, `[1,0,true]`), and canonical form strips whitespace while normalizing booleans to `1/0`. See `spec/examples/text/array_types.lnmp` for the normative fixture exercised by `lnmp-verify-examples`.
+
 ## Precedence and Associativity
 
 ### Value Type Precedence (Highest to Lowest)

@@ -89,6 +89,9 @@ pub struct TestCase {
     pub config: TestConfig,
     #[serde(default)]
     pub expected_canonical: Option<String>,
+    /// List of requirement IDs (from modular specs) that this test verifies
+    #[serde(default)]
+    pub requirements: Vec<String>,
 }
 
 /// Test suite containing all test cases
@@ -171,6 +174,11 @@ impl TestRunner {
 
     /// Run a single test case
     pub fn run_test(&self, test: &TestCase) -> TestResult {
+        let result = self.execute_test(test);
+        self.annotate_result(test, result)
+    }
+
+    fn execute_test(&self, test: &TestCase) -> TestResult {
         // Handle round-trip tests separately
         if test.expected_canonical.is_some() {
             return self.run_round_trip_test(test);
@@ -185,6 +193,18 @@ impl TestRunner {
                 reason: "Test case has neither 'expected' nor 'expected_canonical' field"
                     .to_string(),
             },
+        }
+    }
+
+    fn annotate_result(&self, test: &TestCase, result: TestResult) -> TestResult {
+        match result {
+            TestResult::Fail { reason } if !test.requirements.is_empty() => {
+                let reqs = test.requirements.join(", ");
+                TestResult::Fail {
+                    reason: format!("{reason} [REQ: {reqs}]"),
+                }
+            }
+            other => other,
         }
     }
 
@@ -541,6 +561,96 @@ impl TestRunner {
                     Ok(())
                 } else {
                     Err(format!("expected string_array, got {:?}", actual))
+                }
+            }
+            "int_array" => {
+                if let LnmpValue::IntArray(actual_arr) = actual {
+                    let expected_arr = expected
+                        .as_sequence()
+                        .ok_or_else(|| "Expected value is not an array".to_string())?;
+                    if actual_arr.len() != expected_arr.len() {
+                        return Err(format!(
+                            "array length mismatch: expected {}, got {}",
+                            expected_arr.len(),
+                            actual_arr.len()
+                        ));
+                    }
+                    for (i, (actual_elem, expected_elem)) in
+                        actual_arr.iter().zip(expected_arr.iter()).enumerate()
+                    {
+                        let expected_int = expected_elem
+                            .as_i64()
+                            .ok_or_else(|| format!("Array element {} is not an integer", i))?;
+                        if *actual_elem != expected_int {
+                            return Err(format!(
+                                "array element {} mismatch: expected {}, got {}",
+                                i, expected_int, actual_elem
+                            ));
+                        }
+                    }
+                    Ok(())
+                } else {
+                    Err(format!("expected int_array, got {:?}", actual))
+                }
+            }
+            "float_array" => {
+                if let LnmpValue::FloatArray(actual_arr) = actual {
+                    let expected_arr = expected
+                        .as_sequence()
+                        .ok_or_else(|| "Expected value is not an array".to_string())?;
+                    if actual_arr.len() != expected_arr.len() {
+                        return Err(format!(
+                            "array length mismatch: expected {}, got {}",
+                            expected_arr.len(),
+                            actual_arr.len()
+                        ));
+                    }
+                    for (i, (actual_elem, expected_elem)) in
+                        actual_arr.iter().zip(expected_arr.iter()).enumerate()
+                    {
+                        let expected_float = expected_elem
+                            .as_f64()
+                            .ok_or_else(|| format!("Array element {} is not a float", i))?;
+                        if (actual_elem - expected_float).abs() >= 1e-10 {
+                            return Err(format!(
+                                "array element {} mismatch: expected {}, got {}",
+                                i, expected_float, actual_elem
+                            ));
+                        }
+                    }
+                    Ok(())
+                } else {
+                    Err(format!("expected float_array, got {:?}", actual))
+                }
+            }
+            "bool_array" => {
+                if let LnmpValue::BoolArray(actual_arr) = actual {
+                    let expected_arr = expected
+                        .as_sequence()
+                        .ok_or_else(|| "Expected value is not an array".to_string())?;
+                    if actual_arr.len() != expected_arr.len() {
+                        return Err(format!(
+                            "array length mismatch: expected {}, got {}",
+                            expected_arr.len(),
+                            actual_arr.len()
+                        ));
+                    }
+                    for (i, (actual_elem, expected_elem)) in
+                        actual_arr.iter().zip(expected_arr.iter()).enumerate()
+                    {
+                        let expected_bool = expected_elem
+                            .as_bool()
+                            .ok_or_else(|| format!("Array element {} is not a boolean", i))?;
+                        if *actual_elem != expected_bool {
+                            return Err(format!(
+                                "array element {} mismatch: expected {}, got {}",
+                                i, expected_bool, actual_elem
+                            ));
+                        }
+                    }
+                    Ok(())
+                } else {
+                    Err(format!("expected bool_array, got {:?}", actual))
                 }
             }
             "nested_record" => {

@@ -88,6 +88,8 @@ Producers MUST emit these metadata blocks for Stream and Delta modes. Consumers 
 - Valid: text with checksum flag, binary with 16B metadata, stream with SC32 and 4KiB chunks, delta with base snapshot and op-list algorithm.  
 - Invalid: wrong magic, unsupported version, unknown mode, reserved flag set, truncated metadata, zero-length metadata in stream/delta, out-of-range metadata length.
 
+Reference fixtures for the valid headers above now live under `spec/examples/container/` and are automatically checked by `lnmp-verify-examples` so that documentation and parser behavior never drifts. The same directory contains `invalid_*.hex` fixtures that exercise each error in the mapping below; the verifier expects them to fail with the documented reason, keeping the spec and parser diagnostics in lockstep.
+
 ### Where to Find the Fixtures/Tests
 - **Container header & metadata:** `crates/lnmp-codec/tests/container_conformance.rs`
 - **Streaming layer:** `crates/lnmp-codec/tests/streaming_layer_tests.rs`

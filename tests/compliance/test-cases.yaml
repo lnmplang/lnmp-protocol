@@ -48,6 +48,9 @@ structural_tests:
         - fid: 23
           type: int
           value: 3
+    requirements:
+      - "REQ-CAN-TXT-01"
+      - "REQ-CAN-TXT-02"
 
   - name: "Type hints preserved"
     category: "structural"
@@ -64,6 +67,9 @@ structural_tests:
         - fid: 23
           type: string
           value: "admin"
+    requirements:
+      - "REQ-TXT-05"
+      - "REQ-TXT-06"
 
   - name: "String array basic"
     category: "structural"
@@ -74,6 +80,9 @@ structural_tests:
         - fid: 23
           type: string_array
           value: ["admin", "developer", "user"]
+    requirements:
+      - "REQ-TXT-11"
+      - "REQ-CAN-TXT-07"
 
   - name: "String array with quoted strings"
     category: "structural"
@@ -84,6 +93,9 @@ structural_tests:
         - fid: 23
           type: string_array
           value: ["admin user", "dev,ops", "test;data"]
+    requirements:
+      - "REQ-TXT-10"
+      - "REQ-CAN-TXT-05"
 
   - name: "Empty string array"
     category: "structural"
@@ -94,6 +106,27 @@ structural_tests:
         - fid: 23
           type: string_array
           value: []
+    requirements:
+      - "REQ-CAN-TXT-08"
+
+  - name: "Typed numeric arrays"
+    category: "structural"
+    description: "Int/float/bool arrays should honor their type hints"
+    input: "F14:ba=[1 ,0 ,true ,False ];F13:fa=[1.10, 2.20 ,3.30];F12:ia=[1, 2 ,3 ,-4]"
+    expected:
+      fields:
+        - fid: 12
+          type: int_array
+          value: [1, 2, 3, -4]
+        - fid: 13
+          type: float_array
+          value: [1.1, 2.2, 3.3]
+        - fid: 14
+          type: bool_array
+          value: [true, false, true, false]
+    requirements:
+      - "REQ-TXT-11"
+      - "REQ-CAN-TXT-07"
 
   # Nested Record Tests
   - name: "Nested record basic"
@@ -112,6 +145,9 @@ structural_tests:
               - fid: 12
                 type: int
                 value: 1
+    requirements:
+      - "REQ-TXT-12"
+      - "REQ-CAN-TXT-06"
 
   - name: "Nested record with type hints"
     category: "structural"
@@ -132,6 +168,10 @@ structural_tests:
               - fid: 23
                 type: string
                 value: "admin"
+    requirements:
+      - "REQ-TXT-05"
+      - "REQ-TXT-12"
+      - "REQ-CAN-TXT-06"
 
   - name: "Nested record field ordering"
     category: "structural"
@@ -152,6 +192,9 @@ structural_tests:
               - fid: 23
                 type: string
                 value: "admin"
+    requirements:
+      - "REQ-CAN-TXT-01"
+      - "REQ-CAN-TXT-06"
 
   - name: "Deep nested record"
     category: "structural"
@@ -180,6 +223,9 @@ structural_tests:
                           - fid: 20
                             type: string
                             value: "deep"
+    requirements:
+      - "REQ-TXT-12"
+      - "REQ-LIM-01"
 
   - name: "Nested record with string array"
     category: "structural"
@@ -197,6 +243,9 @@ structural_tests:
               - fid: 23
                 type: string_array
                 value: ["admin", "dev"]
+    requirements:
+      - "REQ-TXT-11"
+      - "REQ-CAN-TXT-06"
 
   # Nested Array Tests
   - name: "Nested array basic"
@@ -220,6 +269,9 @@ structural_tests:
                 - fid: 12
                   type: int
                   value: 3
+    requirements:
+      - "REQ-TXT-11"
+      - "REQ-CAN-TXT-07"
 
   - name: "Nested array with multiple fields per record"
     category: "structural"
@@ -244,6 +296,9 @@ structural_tests:
                 - fid: 2
                   type: string
                   value: "user"
+    requirements:
+      - "REQ-TXT-11"
+      - "REQ-CAN-TXT-07"
 
   - name: "Empty nested array"
     category: "structural"
@@ -254,6 +309,8 @@ structural_tests:
         - fid: 60
           type: nested_array
           value: []
+    requirements:
+      - "REQ-CAN-TXT-08"
 
   - name: "Nested array with nested records"
     category: "structural"
@@ -286,6 +343,10 @@ structural_tests:
                       - fid: 10
                         type: string
                         value: "data2"
+    requirements:
+      - "REQ-TXT-11"
+      - "REQ-CAN-TXT-06"
+      - "REQ-CAN-TXT-07"
 
   # Whitespace Handling
   - name: "Whitespace normalization"
@@ -300,6 +361,9 @@ structural_tests:
         - fid: 12
           type: int
           value: 1
+    requirements:
+      - "REQ-TXT-03"
+      - "REQ-CAN-TXT-03"
 
   - name: "Newline separators"
     category: "structural"
@@ -319,6 +383,9 @@ structural_tests:
         - fid: 23
           type: string
           value: "admin"
+    requirements:
+      - "REQ-TXT-03"
+      - "REQ-CAN-TXT-02"
 
 # ============================================================================
 # SEMANTIC TESTS - Type Fidelity and Checksums
@@ -335,6 +402,8 @@ semantic_tests:
         - fid: 12
           type: int
           value: 9223372036854775807
+    requirements:
+      - "REQ-TXT-07"
 
   - name: "Negative integer"
     category: "semantic"
@@ -345,6 +414,8 @@ semantic_tests:
         - fid: 12
           type: int
           value: -42
+    requirements:
+      - "REQ-TXT-07"
 
   - name: "Float type fidelity"
     category: "semantic"
@@ -355,6 +426,9 @@ semantic_tests:
         - fid: 15
           type: float
           value: 3.14159265359
+    requirements:
+      - "REQ-TXT-08"
+      - "REQ-CAN-TXT-04"
 
   - name: "Negative float"
     category: "semantic"
@@ -365,6 +439,8 @@ semantic_tests:
         - fid: 15
           type: float
           value: -2.5
+    requirements:
+      - "REQ-TXT-08"
 
   - name: "Boolean true"
     category: "semantic"
@@ -375,6 +451,8 @@ semantic_tests:
         - fid: 7
           type: bool
           value: true
+    requirements:
+      - "REQ-TXT-09"
 
   - name: "Boolean false"
     category: "semantic"
@@ -385,6 +463,8 @@ semantic_tests:
         - fid: 7
           type: bool
           value: false
+    requirements:
+      - "REQ-TXT-09"
 
   - name: "String with special characters"
     category: "semantic"
@@ -395,6 +475,8 @@ semantic_tests:
         - fid: 23
           type: string
           value: "user@example.com"
+    requirements:
+      - "REQ-TXT-10"
 
   - name: "String with escape sequences"
     category: "semantic"
@@ -405,6 +487,8 @@ semantic_tests:
         - fid: 23
           type: string
           value: "line1\nline2\ttab"
+    requirements:
+      - "REQ-TXT-10"
 
   # Value Normalization
   - name: "Float normalization - negative zero"
@@ -418,6 +502,8 @@ semantic_tests:
         - fid: 15
           type: float
           value: 0.0
+    requirements:
+      - "REQ-CAN-TXT-04"
 
   - name: "Float normalization - trailing zeros"
     category: "semantic"
@@ -430,6 +516,8 @@ semantic_tests:
         - fid: 15
           type: float
           value: 3.14
+    requirements:
+      - "REQ-CAN-TXT-04"
 
   - name: "Boolean normalization - text to numeric"
     category: "semantic"
@@ -442,6 +530,9 @@ semantic_tests:
         - fid: 7
           type: bool
           value: true
+    requirements:
+      - "REQ-TXT-09"
+      - "REQ-SAN-01"
 
   # Semantic Checksums
   - name: "Checksum validation - valid"
@@ -456,6 +547,9 @@ semantic_tests:
           type: int
           value: 14532
           checksum: "36AAE667"
+    requirements:
+      - "REQ-SC-01"
+      - "REQ-SC-02"
 
   - name: "Checksum validation - invalid"
     category: "semantic"
@@ -467,6 +561,8 @@ semantic_tests:
       error: "ChecksumMismatch"
       message: "Checksum mismatch for field 12"
       field_id: 12
+    requirements:
+      - "REQ-SC-02"
 
   - name: "Multiple fields with checksums"
     category: "semantic"
@@ -484,6 +580,9 @@ semantic_tests:
           type: int
           value: 14532
           checksum: "36AAE667"
+    requirements:
+      - "REQ-SC-01"
+      - "REQ-SC-02"
 
   - name: "Checksum with nested record"
     category: "semantic"
@@ -504,6 +603,8 @@ semantic_tests:
               - fid: 12
                 type: int
                 value: 1
+    requirements:
+      - "REQ-SC-01"
 
   # Semantic Equivalence
   - name: "Equivalence mapping - boolean synonyms"
@@ -520,6 +621,8 @@ semantic_tests:
         - fid: 7
           type: bool
           value: true
+    requirements:
+      - "REQ-SAN-03"
 
   - name: "Equivalence mapping - string synonyms"
     category: "semantic"
@@ -535,6 +638,8 @@ semantic_tests:
         - fid: 23
           type: string
           value: "administrator"
+    requirements:
+      - "REQ-SAN-03"
 
 # ============================================================================
 # ERROR HANDLING TESTS
@@ -549,6 +654,8 @@ error_handling_tests:
     expected:
       error: "UnexpectedToken"
       message: "expected FieldPrefix"
+    requirements:
+      - "REQ-TXT-01"
 
   - name: "Unterminated string"
     category: "error-handling"
@@ -557,6 +664,8 @@ error_handling_tests:
     expected:
       error: "UnterminatedString"
       message: "Unterminated string"
+    requirements:
+      - "REQ-TXT-10"
 
   - name: "Invalid escape sequence"
     category: "error-handling"
@@ -565,6 +674,8 @@ error_handling_tests:
     expected:
       error: "InvalidEscapeSequence"
       message: "Invalid escape sequence"
+    requirements:
+      - "REQ-TXT-10"
 
   # Syntactic Errors
   - name: "Missing equals sign"
@@ -574,6 +685,8 @@ error_handling_tests:
     expected:
       error: "UnexpectedToken"
       message: "expected Equals"
+    requirements:
+      - "REQ-TXT-02"
 
   - name: "Missing field value"
     category: "error-handling"
@@ -582,6 +695,8 @@ error_handling_tests:
     expected:
       error: "UnexpectedToken"
       message: "expected value"
+    requirements:
+      - "REQ-TXT-02"
 
   - name: "Unclosed nested record"
     category: "error-handling"
@@ -590,6 +705,8 @@ error_handling_tests:
     expected:
       error: "UnexpectedToken"
       message: "expected semicolon or closing brace"
+    requirements:
+      - "REQ-TXT-12"
 
   - name: "Unclosed nested array"
     category: "error-handling"
@@ -598,6 +715,8 @@ error_handling_tests:
     expected:
       error: "UnexpectedToken"
       message: "expected comma or closing bracket"
+    requirements:
+      - "REQ-TXT-11"
 
   - name: "Invalid nested array element"
     category: "error-handling"
@@ -606,6 +725,8 @@ error_handling_tests:
     expected:
       error: "UnexpectedToken"
       message: "expected left brace for nested record"
+    requirements:
+      - "REQ-TXT-11"
 
   # Semantic Errors
   - name: "Type hint mismatch - integer"
@@ -616,6 +737,8 @@ error_handling_tests:
       error: "TypeHintMismatch"
       message: "expected type 'i'"
       field_id: 12
+    requirements:
+      - "REQ-TXT-05"
 
   - name: "Type hint mismatch - float"
     category: "error-handling"
@@ -625,6 +748,8 @@ error_handling_tests:
       error: "TypeHintMismatch"
       message: "expected type 'f'"
       field_id: 15
+    requirements:
+      - "REQ-TXT-05"
 
   - name: "Type hint mismatch - boolean"
     category: "error-handling"
@@ -634,6 +759,8 @@ error_handling_tests:
       error: "TypeHintMismatch"
       message: "expected type 'b'"
       field_id: 7
+    requirements:
+      - "REQ-TXT-05"
 
   - name: "Invalid checksum format"
     category: "error-handling"
@@ -642,6 +769,8 @@ error_handling_tests:
     expected:
       error: "InvalidChecksum"
       message: "invalid checksum format"
+    requirements:
+      - "REQ-SC-01"
 
   - name: "Invalid checksum characters"
     category: "error-handling"
@@ -650,6 +779,8 @@ error_handling_tests:
     expected:
       error: "InvalidChecksum"
       message: "invalid checksum format"
+    requirements:
+      - "REQ-SC-01"
 
   # Structural Errors
   - name: "Nesting too deep"
@@ -662,6 +793,8 @@ error_handling_tests:
       error: "NestingTooDeep"
       message: "Maximum nesting depth exceeded"
       max_depth: 10
+    requirements:
+      - "REQ-LIM-01"
 
   - name: "Duplicate field ID"
     category: "error-handling"
@@ -673,6 +806,9 @@ error_handling_tests:
       error: "DuplicateFieldId"
       message: "Field ID 12 appears multiple times"
       field_id: 12
+    requirements:
+      - "REQ-TXT-14"
+      - "REQ-CONF-01"
 
   - name: "Fields not sorted in strict mode"
     category: "error-handling"
@@ -683,6 +819,8 @@ error_handling_tests:
     expected:
       error: "StrictModeViolation"
       message: "Fields must be sorted by FID in strict mode"
+    requirements:
+      - "REQ-CONF-01"
 
   - name: "Empty nested record"
     category: "structural"
@@ -694,6 +832,8 @@ error_handling_tests:
           type: nested_record
           value:
             fields: []
+    requirements:
+      - "REQ-CAN-TXT-08"
 
   # Edge Cases
   - name: "Field ID zero"
@@ -705,6 +845,8 @@ error_handling_tests:
         - fid: 0
           type: string
           value: "value"
+    requirements:
+      - "REQ-TXT-01"
 
   - name: "Field ID maximum"
     category: "error-handling"
@@ -715,6 +857,8 @@ error_handling_tests:
         - fid: 65535
           type: string
           value: "value"
+    requirements:
+      - "REQ-TXT-01"
 
   - name: "Field ID overflow"
     category: "error-handling"
@@ -723,6 +867,8 @@ error_handling_tests:
     expected:
       error: "InvalidFieldId"
       message: "Invalid field ID"
+    requirements:
+      - "REQ-TXT-01"
 
 # ============================================================================
 # ROUND-TRIP TESTS - Encode/Decode Consistency
@@ -734,18 +880,27 @@ round_trip_tests:
     description: "Parse and re-encode should produce canonical form"
     input: "F23=admin;F12=1;F7=2"
     expected_canonical: "F7=2\nF12=1\nF23=admin"
+    requirements:
+      - "REQ-CAN-RT-01"
+      - "REQ-CAN-TXT-01"
 
   - name: "Round-trip nested record"
     category: "structural"
     description: "Nested record should maintain structure"
     input: "F50={F23=admin;F12=1}"
     expected_canonical: "F50={F12=1;F23=admin}"
+    requirements:
+      - "REQ-CAN-RT-01"
+      - "REQ-CAN-TXT-06"
 
   - name: "Round-trip nested array"
     category: "structural"
     description: "Nested array should maintain order and structure"
     input: "F60=[{F12=1},{F12=2}]"
     expected_canonical: "F60=[{F12=1},{F12=2}]"
+    requirements:
+      - "REQ-CAN-RT-01"
+      - "REQ-CAN-TXT-07"
 
   - name: "Round-trip with checksums"
     category: "semantic"
@@ -754,9 +909,15 @@ round_trip_tests:
     config:
       preserve_checksums: true
     expected_canonical: "F12:i=14532#36AAE667"
+    requirements:
+      - "REQ-CAN-RT-01"
+      - "REQ-CAN-TXT-09"
 
   - name: "Round-trip complex structure"
     category: "structural"
     description: "Complex nested structure with multiple types"
     input: "F100={F1=user;F2={F10=nested;F11=[a,b,c]};F3=[{F20=1},{F20=2}]}"
     expected_canonical: "F100={F1=user;F2={F10=nested;F11=[a,b,c]};F3=[{F20=1},{F20=2}]}"
+    requirements:
+      - "REQ-CAN-RT-01"
+      - "REQ-CAN-TXT-06"

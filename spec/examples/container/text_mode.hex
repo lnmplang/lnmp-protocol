@@ -1,0 +1,2 @@
+# LNMP container header: text mode (mode=0x01) with checksum flag set
+4C 4E 4D 50  01  01  00 01  00 00 00 00

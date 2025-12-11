@@ -1,0 +1,2 @@
+# Nested array example from grammar spec
+F60=[{F12=1},{F12=2}]

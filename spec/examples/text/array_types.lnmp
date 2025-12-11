@@ -1,0 +1,2 @@
+# Typed numeric arrays from grammar §4 (REQ-TXT-11)
+F14:ba=[1 ,0 ,true ,False ];F13:fa=[1.10, 2.20 ,3.30];F12:ia=[1, 2 ,3 ,-4]

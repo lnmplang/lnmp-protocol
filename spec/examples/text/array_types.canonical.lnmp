@@ -1,0 +1,4 @@
+# Canonical typed array output (REQ-CAN-TXT-07)
+F12:ia=[1,2,3,-4]
+F13:fa=[1.1,2.2,3.3]
+F14:ba=[1,0,1,0]

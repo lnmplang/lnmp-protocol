@@ -1,0 +1,2 @@
+#ENVELOPE timestamp=1732373147000 source=auth-service trace_id="abc-123-xyz" sequence=42
+F12=14532;F7=1;F20="Alice";F23=["admin","developer"]

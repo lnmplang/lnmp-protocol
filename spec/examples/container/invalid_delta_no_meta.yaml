@@ -1,0 +1,9 @@
+mode: delta
+version: 1
+flags: 0
+metadata_length: 0
+delta:
+  base_snapshot: 1
+  algorithm: 0
+  compression: 0
+expect_error: "delta metadata"

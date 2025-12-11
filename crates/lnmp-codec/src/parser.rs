@@ -321,19 +321,38 @@ impl<'a> Parser<'a> {
         // Handle empty array - use type hint to determine type
         if self.current_token == Token::RightBracket {
             self.advance()?;
-            // If type hint is RecordArray, return empty NestedArray
-            if type_hint == Some(TypeHint::RecordArray) {
-                return Ok(LnmpValue::NestedArray(Vec::new()));
-            }
-            // Otherwise default to StringArray
-            return Ok(LnmpValue::StringArray(Vec::new()));
+            return Ok(match type_hint {
+                Some(TypeHint::RecordArray) => LnmpValue::NestedArray(Vec::new()),
+                Some(TypeHint::IntArray) => LnmpValue::IntArray(Vec::new()),
+                Some(TypeHint::FloatArray) => LnmpValue::FloatArray(Vec::new()),
+                Some(TypeHint::BoolArray) => LnmpValue::BoolArray(Vec::new()),
+                _ => LnmpValue::StringArray(Vec::new()),
+            });
         }
 
-        // Check if it's a nested array (starts with '{') or string array
-        if self.current_token == Token::LeftBrace {
-            self.parse_nested_array()
-        } else {
-            self.parse_string_array()
+        match type_hint {
+            Some(TypeHint::RecordArray) => {
+                if self.current_token != Token::LeftBrace {
+                    let (line, column) = self.lexer.position_original();
+                    return Err(LnmpError::UnexpectedToken {
+                        expected: "nested record ({...}) inside record array".to_string(),
+                        found: self.current_token.clone(),
+                        line,
+                        column,
+                    });
+                }
+                self.parse_nested_array()
+            }
+            Some(TypeHint::IntArray) => self.parse_int_array(),
+            Some(TypeHint::FloatArray) => self.parse_float_array(),
+            Some(TypeHint::BoolArray) => self.parse_bool_array(),
+            _ => {
+                if self.current_token == Token::LeftBrace {
+                    self.parse_nested_array()
+                } else {
+                    self.parse_string_array()
+                }
+            }
         }
     }
 
@@ -385,6 +404,170 @@ impl<'a> Parser<'a> {
         }
 
         Ok(LnmpValue::StringArray(items))
+    }
+
+    fn parse_int_array(&mut self) -> Result<LnmpValue, LnmpError> {
+        let mut items = Vec::new();
+
+        loop {
+            let (line, column) = self.lexer.position_original();
+            let value = match &self.current_token {
+                Token::Number(num_str) => {
+                    num_str
+                        .parse::<i64>()
+                        .map_err(|_| LnmpError::InvalidValue {
+                            field_id: 0,
+                            reason: format!("invalid integer: {}", num_str),
+                            line,
+                            column,
+                        })?
+                }
+                _ => {
+                    return Err(LnmpError::UnexpectedToken {
+                        expected: "integer literal".to_string(),
+                        found: self.current_token.clone(),
+                        line,
+                        column,
+                    })
+                }
+            };
+            items.push(value);
+            self.advance()?;
+
+            match &self.current_token {
+                Token::Comma => {
+                    self.advance()?;
+                }
+                Token::RightBracket => {
+                    self.advance()?;
+                    break;
+                }
+                _ => {
+                    return Err(LnmpError::UnexpectedToken {
+                        expected: "comma or closing bracket".to_string(),
+                        found: self.current_token.clone(),
+                        line,
+                        column,
+                    });
+                }
+            }
+        }
+
+        Ok(LnmpValue::IntArray(items))
+    }
+
+    fn parse_float_array(&mut self) -> Result<LnmpValue, LnmpError> {
+        let mut items = Vec::new();
+
+        loop {
+            let (line, column) = self.lexer.position_original();
+            let value = match &self.current_token {
+                Token::Number(num_str) => {
+                    num_str
+                        .parse::<f64>()
+                        .map_err(|_| LnmpError::InvalidValue {
+                            field_id: 0,
+                            reason: format!("invalid float: {}", num_str),
+                            line,
+                            column,
+                        })?
+                }
+                _ => {
+                    return Err(LnmpError::UnexpectedToken {
+                        expected: "float literal".to_string(),
+                        found: self.current_token.clone(),
+                        line,
+                        column,
+                    })
+                }
+            };
+            items.push(value);
+            self.advance()?;
+
+            match &self.current_token {
+                Token::Comma => {
+                    self.advance()?;
+                }
+                Token::RightBracket => {
+                    self.advance()?;
+                    break;
+                }
+                _ => {
+                    return Err(LnmpError::UnexpectedToken {
+                        expected: "comma or closing bracket".to_string(),
+                        found: self.current_token.clone(),
+                        line,
+                        column,
+                    });
+                }
+            }
+        }
+
+        Ok(LnmpValue::FloatArray(items))
+    }
+
+    fn parse_bool_array(&mut self) -> Result<LnmpValue, LnmpError> {
+        let mut items = Vec::new();
+
+        loop {
+            let (line, column) = self.lexer.position_original();
+            let value = match &self.current_token {
+                Token::Number(num_str) => match num_str.as_str() {
+                    "0" => false,
+                    "1" => true,
+                    _ => {
+                        return Err(LnmpError::InvalidValue {
+                            field_id: 0,
+                            reason: format!("invalid boolean literal: {}", num_str),
+                            line,
+                            column,
+                        })
+                    }
+                },
+                Token::UnquotedString(s) => match s.to_ascii_lowercase().as_str() {
+                    "true" | "yes" => true,
+                    "false" | "no" => false,
+                    _ => {
+                        return Err(LnmpError::InvalidValue {
+                            field_id: 0,
+                            reason: format!("invalid boolean literal: {}", s),
+                            line,
+                            column,
+                        })
+                    }
+                },
+                _ => {
+                    return Err(LnmpError::UnexpectedToken {
+                        expected: "boolean literal".to_string(),
+                        found: self.current_token.clone(),
+                        line,
+                        column,
+                    })
+                }
+            };
+            items.push(value);
+            self.advance()?;
+
+            match &self.current_token {
+                Token::Comma => {
+                    self.advance()?;
+                }
+                Token::RightBracket => {
+                    self.advance()?;
+                    break;
+                }
+                _ => {
+                    return Err(LnmpError::UnexpectedToken {
+                        expected: "comma or closing bracket".to_string(),
+                        found: self.current_token.clone(),
+                        line,
+                        column,
+                    });
+                }
+            }
+        }
+
+        Ok(LnmpValue::BoolArray(items))
     }
 
     /// Parses a nested record {F<id>=<value>;F<id>=<value>}
@@ -2209,6 +2392,54 @@ F5:sa=[a,b]"#;
         assert_eq!(
             record.get_field(12).unwrap().value,
             parsed.get_field(12).unwrap().value
+        );
+    }
+
+    #[test]
+    fn test_parse_typed_int_array() {
+        let mut parser = Parser::new("F12:ia=[1,2,-3]").unwrap();
+        let record = parser.parse_record().unwrap();
+        assert_eq!(
+            record.get_field(12).unwrap().value,
+            LnmpValue::IntArray(vec![1, 2, -3])
+        );
+    }
+
+    #[test]
+    fn test_parse_typed_float_array() {
+        let mut parser = Parser::new("F13:fa=[1.1,2.2,3.3]").unwrap();
+        let record = parser.parse_record().unwrap();
+        assert_eq!(
+            record.get_field(13).unwrap().value,
+            LnmpValue::FloatArray(vec![1.1, 2.2, 3.3])
+        );
+    }
+
+    #[test]
+    fn test_parse_typed_bool_array() {
+        let mut parser = Parser::new("F14:ba=[1,0,true,False]").unwrap();
+        let record = parser.parse_record().unwrap();
+        assert_eq!(
+            record.get_field(14).unwrap().value,
+            LnmpValue::BoolArray(vec![true, false, true, false])
+        );
+    }
+
+    #[test]
+    fn test_parse_empty_typed_arrays() {
+        let mut parser = Parser::new("F12:ia=[];F13:fa=[];F14:ba=[]").unwrap();
+        let record = parser.parse_record().unwrap();
+        assert_eq!(
+            record.get_field(12).unwrap().value,
+            LnmpValue::IntArray(Vec::new())
+        );
+        assert_eq!(
+            record.get_field(13).unwrap().value,
+            LnmpValue::FloatArray(Vec::new())
+        );
+        assert_eq!(
+            record.get_field(14).unwrap().value,
+            LnmpValue::BoolArray(Vec::new())
         );
     }
 }

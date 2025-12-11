@@ -1,0 +1,2 @@
+# Escape sequence sample from spec/grammar.md §Escape Sequences
+F1="hello\nworld" ; F2="path\\to\\file" ; F3="say \"hello\""

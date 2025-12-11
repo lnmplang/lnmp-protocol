@@ -1,0 +1,2 @@
+# Stream mode requires 6-byte metadata but length is 0
+4C 4E 4D 50  01 03 00 00  00 00 00 00

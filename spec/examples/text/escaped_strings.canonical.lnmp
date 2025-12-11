@@ -1,0 +1,4 @@
+# Canonical escape output (REQ-TXT-10)
+F1="hello\nworld"
+F2="path\\to\\file"
+F3="say \"hello\""
