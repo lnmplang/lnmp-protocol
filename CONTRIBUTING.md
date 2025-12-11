@@ -73,6 +73,8 @@ cd sdk/python && poetry install
 
 ## 🔄 Development Workflow
 
+Refer to [`docs/branching-strategy.md`](docs/branching-strategy.md) for our official branch policy (protected `main`, release branches, and naming conventions).
+
 ### 1. Create a Branch
 
 ```bash
@@ -422,6 +424,8 @@ Update these files when making changes:
 9. GitHub Release triggers automatic publish
 
 > These steps verify that the frozen `.lnmp` container rules remain deterministic (fixture table) and that our published performance claims are backed by fresh benchmark data.
+
+For branch management expectations during release prep, see [`docs/branching-strategy.md`](docs/branching-strategy.md).
 
 **NPM Packages:**
 1. Run `./scripts/bump-version.sh 0.6.x`
