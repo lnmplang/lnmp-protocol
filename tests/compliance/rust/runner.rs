@@ -447,17 +447,12 @@ impl TestRunner {
                     }
                 }
                 lnmp_core::LnmpValue::NestedRecord(inner) => {
-                    // Recreate nested records from owned boxes
-                    let mut nested = *inner.clone();
-                    Self::apply_equivalence_mapping_to_record(&mut nested, mapper);
-                    *inner = Box::new(nested);
+                    Self::apply_equivalence_mapping_to_record(inner.as_mut(), mapper);
                 }
                 lnmp_core::LnmpValue::NestedArray(arr) => {
-                    for r in arr.iter_mut() {
-                        let mut nested = r.clone();
-                        Self::apply_equivalence_mapping_to_record(&mut nested, mapper);
-                        *r = nested;
-                    }
+                    arr.iter_mut().for_each(|nested| {
+                        Self::apply_equivalence_mapping_to_record(nested, mapper)
+                    });
                 }
                 _ => {}
             }
