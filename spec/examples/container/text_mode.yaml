@@ -2,4 +2,6 @@ mode: text
 version: 1
 flags: 1
 metadata_length: 0
+payload:
+  text_fixture: spec/examples/text/simple_record.canonical.lnmp
 description: "LNMP/Text payload with checksum flag; no metadata section"

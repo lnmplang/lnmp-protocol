@@ -1,2 +1,2 @@
-# LNMP container header: text mode (mode=0x01) with checksum flag set
-4C 4E 4D 50  01  01  00 01  00 00 00 00
+# LNMP container header: text mode (mode=0x01) with checksum flag set + canonical payload
+4C 4E 4D 50  01  01  00 01  00 00 00 00  46 37 3D 31  0A 46 31 32 3D 31 34 35 33 32  0A 46 32 33 3D 5B 61 64 6D 69 6E 2C 64 65 76 5D 0A

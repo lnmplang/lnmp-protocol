@@ -3,4 +3,7 @@ version: 1
 flags: 0
 metadata_length: 16
 metadata_hex: "00010002000300040005000600070008"
+payload:
+  text_fixture: spec/examples/text/simple_record.canonical.lnmp
+  binary_hex_fixture: spec/examples/binary/simple_record.hex
 description: "LNMP/Binary payload with 16 bytes of vendor metadata"
