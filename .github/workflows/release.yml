@@ -54,7 +54,6 @@ jobs:
           set -euo pipefail
 
           cargo workspaces version "$BUMP" \
-            --allow-branch main \
             --no-git-commit \
             --no-git-tag \
             --no-individual-tags \
