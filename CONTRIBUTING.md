@@ -410,29 +410,26 @@ Update these files when making changes:
 
 ## 🚀 Release Process
 
-### For Maintainers
+### Rust Workspace (lnmp-*)
 
-**Rust Crates:**
-1. Update versions in `Cargo.toml`
-2. Update `CHANGELOG.md`
-3. Run `cargo build --workspace` to update `Cargo.lock`
-4. Run the LNMP compatibility suite (see `docs/compat-reporting-guide.md`) and write the results to `docs/lnmp-compat-matrix.md`.
-5. Record the latest codec benchmark summary in `crates/lnmp-codec/OPTIMIZATIONS.md` (even if it’s “unchanged”).
-6. Commit: `chore: bump version to 0.5.x`
-7. Tag: `git tag v0.5.x`
-8. Push: `git push && git push --tags`
-9. GitHub Release triggers automatic publish
+Releases flow through the `Release` GitHub Actions workflow and are split into two explicit phases:
 
-> These steps verify that the frozen `.lnmp` container rules remain deterministic (fixture table) and that our published performance claims are backed by fresh benchmark data.
+1. **Prepare**  
+   - Trigger the workflow manually (`workflow_dispatch`) from the Actions tab and pick the semantic bump (`patch`, `minor`, `major`).  
+   - The job runs `cargo workspaces version` so every crate (including the meta crate) receives a synchronized version, refreshes `README.md`, inserts the new section in `CHANGELOG.md`, and opens a `release/vX.Y.Z` pull request.  
+   - Review that PR like any other change: verify the changelog text, ensure dependency bumps are expected, and run additional validation if needed. Merge it into `main` when approved.
+2. **Publish**  
+   - Create and push the tag `vX.Y.Z` from the updated `main`.  
+   - Tag pushes automatically execute the `checks` job (fmt, clippy, `cargo test --workspace --all-targets`, `cargo run -p lnmp-compliance-tests --bin lnmp-verify-examples`, and `cargo doc`).  
+   - When `checks` passes, the protected `publish` job becomes unblocked. It uses `cargo workspaces publish --publish-as-is --yes --allow-dirty`, ensuring crates are uploaded in dependency order. GitHub release notes are sourced from the matching `CHANGELOG.md` entry, so keep that file accurate during the prepare phase.
 
-For branch management expectations during release prep, see [`docs/branching-strategy.md`](docs/branching-strategy.md).
+Single-crate updates use the exact same pipeline—`cargo workspaces version` bumps only the crates with changes (plus the meta crate) and the publish step uploads just those versions. Because publishing is gated behind the `production` environment, a maintainer must approve the deployment after the full test matrix completes.
 
-**NPM Packages:**
-1. Run `./scripts/bump-version.sh 0.6.x`
-2. Update `CHANGELOG.md`
-3. Commit and push
-4. Create GitHub Release
-5. CI publishes to npm automatically
+For branch management and long-lived release branches, see [`docs/branching-strategy.md`](docs/branching-strategy.md). Compliance and benchmark expectations remain the same; consult `docs/compat-reporting-guide.md` and update `crates/lnmp-codec/OPTIMIZATIONS.md` when performance metrics change.
+
+### JavaScript / Python / Other SDKs
+
+SDKs and tools now live in their dedicated repositories. Follow the release instructions in each repo (`lnmp-sdk-js`, `lnmp-sdk-python`, etc.)—most of them expose a similar “prepare PR + publish tag” workflow, but the automation lives beside their source.
 
 ### Versioning Policy
 
