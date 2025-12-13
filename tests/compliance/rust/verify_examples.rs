@@ -7,10 +7,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let workspace_root = workspace_root();
-    let text_dir = workspace_root.join("spec/examples/text");
-    let binary_dir = workspace_root.join("spec/examples/binary");
-    let container_dir = workspace_root.join("spec/examples/container");
+    let repo_root = workspace_root();
+    let text_dir = repo_root.join("spec/examples/text");
+    let binary_dir = repo_root.join("spec/examples/binary");
+    let container_dir = repo_root.join("spec/examples/container");
 
     let mut failures = Vec::new();
     let mut text_count = 0usize;
@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 continue;
             }
             container_count += 1;
-            if let Err(err) = verify_container_fixture(&path, &container_dir) {
+            if let Err(err) = verify_container_fixture(&path, &container_dir, &repo_root) {
                 failures.push(format!("{}: {}", path.display(), err));
             }
         }
@@ -290,7 +290,11 @@ fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     Ok(bytes)
 }
 
-fn verify_container_fixture(path: &Path, manifest_dir: &Path) -> Result<(), Box<dyn Error>> {
+fn verify_container_fixture(
+    path: &Path,
+    manifest_dir: &Path,
+    repo_root: &Path,
+) -> Result<(), Box<dyn Error>> {
     let stem = path
         .file_stem()
         .and_then(|s| s.to_str())
@@ -304,7 +308,7 @@ fn verify_container_fixture(path: &Path, manifest_dir: &Path) -> Result<(), Box<
 
     let bytes = load_hex_bytes(path)?;
     match validate_container(&bytes, &manifest) {
-        Ok(_) => {
+        Ok(payload) => {
             if let Some(expected) = &manifest.expect_error {
                 Err(format!(
                     "expected container validation to fail ({}) but it succeeded",
@@ -312,7 +316,7 @@ fn verify_container_fixture(path: &Path, manifest_dir: &Path) -> Result<(), Box<
                 )
                 .into())
             } else {
-                Ok(())
+                verify_manifest_payload(payload, &manifest, repo_root)
             }
         }
         Err(err) => {
@@ -331,6 +335,70 @@ fn verify_container_fixture(path: &Path, manifest_dir: &Path) -> Result<(), Box<
             }
         }
     }
+}
+
+fn verify_manifest_payload(
+    payload: &[u8],
+    manifest: &ContainerManifest,
+    repo_root: &Path,
+) -> Result<(), Box<dyn Error>> {
+    let Some(payload_manifest) = &manifest.payload else {
+        return Ok(());
+    };
+
+    let expects_payload =
+        payload_manifest.text_fixture.is_some() || payload_manifest.binary_hex_fixture.is_some();
+    if payload.is_empty() && expects_payload {
+        return Err("payload expected but container has none".into());
+    }
+
+    if let Some(hex_fixture) = &payload_manifest.binary_hex_fixture {
+        let expected_path = repo_root.join(hex_fixture);
+        let expected_bytes = load_hex_bytes(&expected_path)?;
+        if payload != expected_bytes.as_slice() {
+            return Err(format!(
+                "Binary container payload bytes do not match {}",
+                expected_path.display()
+            )
+            .into());
+        }
+    }
+
+    if let Some(text_fixture) = &payload_manifest.text_fixture {
+        let expected_path = repo_root.join(text_fixture);
+        let expected_text = load_fixture_text(&expected_path)?;
+        match manifest.mode.to_ascii_lowercase().as_str() {
+            "binary" => {
+                let decoder = BinaryDecoder::new();
+                let decoded_text = decoder
+                    .decode_to_text(payload)
+                    .map_err(|err| format!("Failed to decode binary payload to text: {}", err))?;
+                assert_text_eq(
+                    &decoded_text,
+                    &expected_text,
+                    "Binary container payload mismatch",
+                )?;
+            }
+            "text" => {
+                let payload_text = String::from_utf8(payload.to_vec())
+                    .map_err(|_| "Text container payload is not valid UTF-8".to_string())?;
+                assert_text_eq(
+                    &payload_text,
+                    &expected_text,
+                    "Text container payload mismatch",
+                )?;
+            }
+            mode => {
+                return Err(format!(
+                    "Payload comparison not supported for container mode '{}'",
+                    mode
+                )
+                .into());
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn normalize_hex(input: &str) -> String {
@@ -361,6 +429,7 @@ struct ContainerManifest {
     stream: Option<StreamManifest>,
     delta: Option<DeltaManifest>,
     expect_error: Option<String>,
+    payload: Option<PayloadManifest>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -377,7 +446,16 @@ struct DeltaManifest {
     compression: u8,
 }
 
-fn validate_container(bytes: &[u8], manifest: &ContainerManifest) -> Result<(), String> {
+#[derive(Debug, Deserialize)]
+struct PayloadManifest {
+    text_fixture: Option<String>,
+    binary_hex_fixture: Option<String>,
+}
+
+fn validate_container<'a>(
+    bytes: &'a [u8],
+    manifest: &ContainerManifest,
+) -> Result<&'a [u8], String> {
     if bytes.len() < 12 {
         return Err("container shorter than 12-byte header".to_string());
     }
@@ -514,5 +592,10 @@ fn validate_container(bytes: &[u8], manifest: &ContainerManifest) -> Result<(), 
         }
     }
 
-    Ok(())
+    let payload_offset = 12usize + metadata_len as usize;
+    if bytes.len() < payload_offset {
+        return Err("container shorter than header + metadata".into());
+    }
+
+    Ok(&bytes[payload_offset..])
 }

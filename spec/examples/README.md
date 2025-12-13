@@ -35,6 +35,10 @@ Each pair captures:
 3. Optional binary hex dump (when canonical record uses only binary-supported types).
 4. REQ IDs referenced in the snippet (`spec/lnmp-*.md`).
 
+Container manifests also support an optional `payload` block:
+- `text_fixture`: path to a canonical `.lnmp` file whose contents MUST match the payload (text mode) or the decoded binary payload (binary mode).
+- `binary_hex_fixture`: path to a `.hex` file whose bytes MUST match the binary payload exactly.
+
 ## Planned CI Step
 
 Add a script under `scripts/verify_examples.sh` (or similar) that:
@@ -66,8 +70,8 @@ Current coverage (✅ = exercised by `lnmp-verify-examples`):
 | ✅ `checksummed_record` | Canonicalization §3.4 & security spec §3 | Demonstrates checksum ordering/validation (REQ-CAN-TXT-09). Binary round-trip intentionally skipped because annotations are stripped in binary decoding. |
 | ✅ `envelope_payload` | Envelope v1.0 §4 | Header comment + payload canonicalization. |
 | ✅ `binary/simple_record.hex` | Binary spec §3 | Canonical binary dump kept in sync via verifier. |
-| ✅ `container/text_mode.hex` | Container spec §Modes/Flags | Header + mode byte validation for LNMP/Text (checksum flag). |
-| ✅ `container/binary_mode.hex` | Container spec §Header Layout | LNMP/Binary header with 16-byte metadata (manifest enforces byte-for-byte match). |
+| ✅ `container/text_mode.hex` | Container spec §Modes/Flags | Header + checksum flag + canonical text payload validated against `text/simple_record`. |
+| ✅ `container/binary_mode.hex` | Container spec §Header Layout | Header + metadata + binary payload checked against both canonical text and `binary/simple_record.hex`. |
 | ✅ `container/stream_mode.hex` | Container spec §Stream Metadata | Chunk size / checksum type / flag bits parsed and validated. |
 | ✅ `container/delta_mode.hex` | Container spec §Delta Metadata | Base snapshot + algorithm/compression validated. |
 | ⚠️ `container/invalid_*.hex` | Container spec §Header Error Mapping | Negative fixtures exercise magic/version/mode/metadata error paths; `lnmp-verify-examples` expects the documented failure reason. |
