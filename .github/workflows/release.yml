@@ -55,8 +55,6 @@ jobs:
 
           cargo workspaces version "$BUMP" \
             --no-git-commit \
-            --no-git-tag \
-            --no-individual-tags \
             --yes
 
           NEW_VERSION=$(grep -A 5 '^\[workspace\.package\]' Cargo.toml | grep '^version =' | head -n1 | sed 's/.*"//;s/"//')
