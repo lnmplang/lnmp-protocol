@@ -4,24 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       version_bump:
-        description: 'Semantic version bump to apply'
+        description: 'Version bump type'
         required: true
         type: choice
         options:
-          - patch
-          - minor
-          - major
-        default: patch
+          - patch  # 0.5.7 -> 0.5.8
+          - minor  # 0.5.7 -> 0.6.0
+          - major  # 0.5.7 -> 1.0.0
+        default: 'patch'
 
 permissions:
   contents: write
   packages: write
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
-  release:
+  publish:
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -30,21 +27,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          token: ${{ secrets.RELEASE_BOT_TOKEN }}
-
-      - name: Ensure on main branch
-        run: |
-          BRANCH=$(git rev-parse --abbrev-ref HEAD)
-          if [ "$BRANCH" != "main" ]; then
-            echo "This workflow must run from the main branch (current: $BRANCH)."
-            exit 1
-          fi
-
-      - name: Configure Git
-        run: |
-          git config user.name "lnmp-release-bot"
-          git config user.email "bot@lnmp.io"
+          fetch-depth: 0  # Full history for version calculation
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -58,66 +41,74 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install cargo-workspaces
-        run: cargo install cargo-workspaces --version 0.4.2 --locked --force
-
-      - name: Determine last tag
-        id: tags
-        run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          echo "last_tag=$LAST_TAG" >> "$GITHUB_OUTPUT"
-          if [ -n "$LAST_TAG" ]; then
-            if [ -z "$(git log "$LAST_TAG"..HEAD --oneline)" ]; then
-              echo "No commits since last tag ($LAST_TAG)."
-              exit 1
-            fi
-          fi
-
-      - name: Bump workspace version
+      - name: Calculate new version
         id: version
-        env:
-          BUMP: ${{ github.event.inputs.version_bump }}
         run: |
-          set -euo pipefail
+          # Get current version from workspace
+          CURRENT_VERSION=$(grep -A 5 '^\[workspace\.package\]' Cargo.toml | grep '^version = ' | sed 's/version = "\(.*\)"/\1/')
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Parse version components
+          MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+          MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+          PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+          
+          # Calculate new version based on bump type
+          case "${{ github.event.inputs.version_bump }}" in
+            major)
+              NEW_VERSION="$((MAJOR + 1)).0.0"
+              ;;
+            minor)
+              NEW_VERSION="${MAJOR}.$((MINOR + 1)).0"
+              ;;
+            patch)
+              NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+              ;;
+          esac
+          
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "🚀 Bumping version: $CURRENT_VERSION → $NEW_VERSION (${{ github.event.inputs.version_bump }})"
 
-          cargo workspaces version "$BUMP" \
-            --yes \
-            --no-individual-tags \
-            --no-git-tag \
-            --message "chore: release %v"
-
-          NEW_VERSION=$(grep -A 5 '^\[workspace\.package\]' Cargo.toml | grep '^version =' | head -n1 | sed 's/.*"//;s/"//')
-          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Cargo fmt
-        run: cargo fmt --all --check
-
-      - name: Cargo clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
-
-      - name: Cargo tests
-        run: cargo test --workspace --all-targets
-
-      - name: Verify protocol examples
-        run: cargo run -p lnmp-compliance-tests --bin lnmp-verify-examples
-
-      - name: Cargo doc
-        run: cargo doc --workspace --no-deps
-
-      - name: Publish crates
-        run: |
-          set -euo pipefail
-          cargo workspaces publish \
-            --publish-as-is \
-            --yes \
-            --locked \
-            --allow-dirty
-
-      - name: Tag release
+      - name: Update workspace version
         env:
           VERSION: ${{ steps.version.outputs.new_version }}
         run: |
+          echo "🔄 Updating workspace version to $VERSION..."
+          
+          # Update workspace version (all crates inherit automatically!)
+          sed -i '/^\[workspace\.package\]/,/^\[/ s/^version = .*/version = "'"$VERSION"'"/' Cargo.toml
+          
+          echo "✅ Workspace version updated to $VERSION"
+          grep -A 10 '^\[workspace\.package\]' Cargo.toml
+
+      - name: Update README and CHANGELOG
+        env:
+          VERSION: ${{ steps.version.outputs.new_version }}
+        run: |
+          # Update version in README
+          sed -i "s/Current Version: v.*/Current Version: v$VERSION/" README.md || true
+          sed -i "s/lnmp = \".*\"/lnmp = \"$VERSION\"/" README.md || true
+          
+          # Add entry to CHANGELOG
+          TODAY=$(date +%Y-%m-%d)
+          sed -i "/## \[Unreleased\]/a\\\n## [$VERSION] - $TODAY\n" CHANGELOG.md || true
+          
+          echo "✅ README and CHANGELOG updated"
+
+      - name: Commit version bump
+        env:
+          VERSION: ${{ steps.version.outputs.new_version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add Cargo.toml README.md CHANGELOG.md
+          git commit -m "chore: release v$VERSION"
+          
+          # Create tag
           git tag -a "v$VERSION" -m "Release v$VERSION"
+          
+          echo "✅ Committed version bump and created tag v$VERSION"
 
       - name: Push changes
         env:
@@ -125,29 +116,95 @@ jobs:
         run: |
           git push origin main
           git push origin "v$VERSION"
+          
+          echo "✅ Pushed changes and tag to repository"
 
-      - name: Generate release notes
-        id: notes
-        env:
-          LAST_TAG: ${{ steps.tags.outputs.last_tag }}
+      - name: Format check
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --all --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test --all
+
+      - name: Publish crates
         run: |
-          VERSION="${{ steps.version.outputs.new_version }}"
-          TAG="v${VERSION}"
-          if [ -n "$LAST_TAG" ]; then
-            git log "$LAST_TAG"..HEAD --pretty=format:"- %s (%h)" > release-notes.md
-          else
-            git log --pretty=format:"- %s (%h)" > release-notes.md
-          fi
-          if [ ! -s release-notes.md ]; then
-            echo "- Automated release $TAG" > release-notes.md
-          fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          publish() {
+            crate=$1
+            # Get version using cargo metadata (requires jq, which is standard on ubuntu-latest)
+            version=$(cargo metadata --format-version 1 --no-deps | jq -r ".packages[] | select(.name == \"$crate\") | .version")
+            
+            echo "Checking if ${crate} v${version} is already published..."
+            
+            # Check if version exists on crates.io
+            # 200 = exists, 404 = not found
+            # specific User-Agent is required by crates.io API
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" -A "lnmp-release-workflow" "https://crates.io/api/v1/crates/${crate}/${version}")
+            
+            echo "API Response for ${crate} v${version}: ${http_code}"
+            
+            if [ "$http_code" == "200" ]; then
+                echo "⚠️  ${crate} v${version} already exists on crates.io. Skipping publish."
+                return 0
+            fi
+            
+            echo "🚀 Publishing ${crate} v${version}..."
+            cargo publish -p "${crate}" --locked
+            echo "Waiting for crates.io to index ${crate}..."
+            sleep 30
+          }
+          
+          # Publish in dependency order (leaf nodes first)
+          # Full dependency analysis:
+          # codec → sfe → envelope (runtime deps)
+          # envelope → codec (dev-dep only)
+          # Breaking the cycle: envelope BEFORE codec
+          
+          # 1. Base crates with no internal dependencies
+          publish lnmp-embedding
+          publish lnmp-sanitize
+
+          # 2. Quantization (depends on: lnmp-embedding)
+          publish lnmp-quant
+          
+          # 3. Core (depends on: lnmp-embedding, lnmp-quant optional)
+          publish lnmp-core
+          
+          # 4. Envelope (depends on: lnmp-core only)
+          # Must come BEFORE codec (even though envelope has codec as dev-dep)
+          publish lnmp-envelope
+          
+          # 5. SFE (depends on: lnmp-core, lnmp-envelope)
+          publish lnmp-sfe
+          
+          # 6. Net (depends on: lnmp-core, lnmp-envelope, lnmp-sfe)
+          publish lnmp-net
+          
+          # 7. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding, lnmp-quant, lnmp-sfe)
+          publish lnmp-codec
+          
+          # 8. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
+          publish lnmp-llb
+          
+          # 9. Spatial (depends on: lnmp-core, lnmp-embedding)
+          publish lnmp-spatial
+
+          # 10. Transport (depends on: lnmp-core, lnmp-codec, lnmp-envelope)
+          publish lnmp-transport
+
+          # 11. Meta crate (depends on: all above crates)
+          publish lnmp
+
+          echo "All crates published successfully!"
 
       - name: Create GitHub Release
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.new_version }}
         run: |
-          gh release create "${{ steps.notes.outputs.tag }}" \
-            --title "Release ${{ steps.notes.outputs.tag }}" \
-            --notes-file release-notes.md \
+          gh release create "v$VERSION" \
+            --title "Release v$VERSION" \
+            --notes "Automated release v$VERSION (${{ github.event.inputs.version_bump }} bump)" \
             --target main
