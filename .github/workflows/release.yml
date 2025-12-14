@@ -93,12 +93,14 @@ jobs:
         run: git status -sb && git diff
 
       - name: Manual follow-up instructions
+        env:
+          VERSION: ${{ steps.version.outputs.new_version }}
         run: |
           echo "::notice title=Release prep complete::"
-          echo "1. Create a branch (e.g. release/v${{ steps.version.outputs.new_version }}) from this commit."
+          echo "1. Create a branch (e.g. release/v$VERSION) from this commit."
           echo "2. Commit the staged changes (Cargo.toml, README.md, CHANGELOG.md, etc.)."
           echo "3. Open a pull request targeting main and include the changelog diff for review."
-          echo "4. Once merged, tag the commit with v${{ steps.version.outputs.new_version }} to trigger the publish workflow."
+          echo "4. Once merged, tag the commit with v$VERSION to trigger the publish workflow."
 
   checks:
     if: startsWith(github.ref, 'refs/tags/')
