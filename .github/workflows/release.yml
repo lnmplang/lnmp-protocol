@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version_bump:
-        description: 'Version bump type for release preparation'
+        description: 'Semantic version bump to apply'
         required: true
         type: choice
         options:
@@ -12,24 +12,39 @@ on:
           - minor
           - major
         default: patch
-  push:
-    tags:
-      - 'v*'
 
 permissions:
   contents: write
   packages: write
-  pull-requests: write
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
-  prepare:
-    if: github.event_name == 'workflow_dispatch'
+  release:
     runs-on: ubuntu-latest
+    environment: production
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRIES_CRATES_IO_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_BOT_TOKEN }}
+
+      - name: Ensure on main branch
+        run: |
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          if [ "$BRANCH" != "main" ]; then
+            echo "This workflow must run from the main branch (current: $BRANCH)."
+            exit 1
+          fi
+
+      - name: Configure Git
+        run: |
+          git config user.name "lnmp-release-bot"
+          git config user.email "bot@lnmp.io"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -46,6 +61,18 @@ jobs:
       - name: Install cargo-workspaces
         run: cargo install cargo-workspaces --version 0.4.2 --locked --force
 
+      - name: Determine last tag
+        id: tags
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "last_tag=$LAST_TAG" >> "$GITHUB_OUTPUT"
+          if [ -n "$LAST_TAG" ]; then
+            if [ -z "$(git log "$LAST_TAG"..HEAD --oneline)" ]; then
+              echo "No commits since last tag ($LAST_TAG)."
+              exit 1
+            fi
+          fi
+
       - name: Bump workspace version
         id: version
         env:
@@ -54,74 +81,13 @@ jobs:
           set -euo pipefail
 
           cargo workspaces version "$BUMP" \
-            --no-git-commit \
-            --yes
+            --yes \
+            --no-individual-tags \
+            --no-git-tag \
+            --message "chore: release %v"
 
           NEW_VERSION=$(grep -A 5 '^\[workspace\.package\]' Cargo.toml | grep '^version =' | head -n1 | sed 's/.*"//;s/"//')
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "Next release version: $NEW_VERSION"
-
-      - name: Update README and CHANGELOG
-        env:
-          VERSION: ${{ steps.version.outputs.new_version }}
-        run: |
-          set -euo pipefail
-
-          if [ -f README.md ]; then
-            sed -i "s/Current Version: v.*/Current Version: v$VERSION/" README.md || true
-            sed -i "s/lnmp = \".*\"/lnmp = \"$VERSION\"/" README.md || true
-          fi
-
-          if [ -f CHANGELOG.md ]; then
-            TODAY=$(date +%Y-%m-%d)
-            awk -v version="$VERSION" -v today="$TODAY" '
-              BEGIN { inserted = 0 }
-              {
-                print $0
-                if (!inserted && $0 ~ /^## \[Unreleased\]/) {
-                  print ""
-                  print "## [" version "] - " today
-                  print ""
-                  inserted = 1
-                }
-              }
-            ' CHANGELOG.md > CHANGELOG.md.tmp
-            mv CHANGELOG.md.tmp CHANGELOG.md
-          fi
-
-      - name: Show release diff
-        run: git status -sb && git diff
-
-      - name: Manual follow-up instructions
-        env:
-          VERSION: ${{ steps.version.outputs.new_version }}
-        run: |
-          echo "::notice title=Release prep complete::"
-          echo "1. Create a branch (e.g. release/v$VERSION) from this commit."
-          echo "2. Commit the staged changes (Cargo.toml, README.md, CHANGELOG.md, etc.)."
-          echo "3. Open a pull request targeting main and include the changelog diff for review."
-          echo "4. Once merged, tag the commit with v$VERSION to trigger the publish workflow."
-
-  checks:
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cargo fmt
         run: cargo fmt --all --check
@@ -138,72 +104,50 @@ jobs:
       - name: Cargo doc
         run: cargo doc --workspace --no-deps
 
-  publish:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: checks
-    runs-on: ubuntu-latest
-    environment: production
-    env:
-      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRIES_CRATES_IO_TOKEN }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install cargo-workspaces
-        run: cargo install cargo-workspaces --version 0.4.2 --locked --force
-
       - name: Publish crates
         run: |
           set -euo pipefail
-
           cargo workspaces publish \
             --publish-as-is \
-            --allow-dirty \
-            --yes
+            --yes \
+            --locked \
+            --allow-dirty
+
+      - name: Tag release
+        env:
+          VERSION: ${{ steps.version.outputs.new_version }}
+        run: |
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+
+      - name: Push changes
+        env:
+          VERSION: ${{ steps.version.outputs.new_version }}
+        run: |
+          git push origin main
+          git push origin "v$VERSION"
 
       - name: Generate release notes
         id: notes
+        env:
+          LAST_TAG: ${{ steps.tags.outputs.last_tag }}
         run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
-          VERSION="${TAG#v}"
-
-          awk -v version="$VERSION" '
-            BEGIN { capture = 0 }
-            /^## \[/ {
-              if (capture) { exit }
-              if ($0 ~ "\\[" version "\\]") { capture = 1; next }
-            }
-            capture { print }
-          ' CHANGELOG.md > release-notes.md
-
-          if [ ! -s release-notes.md ]; then
-            echo "Release notes for ${TAG}" > release-notes.md
-            echo "" >> release-notes.md
-            echo "Changelog entry for ${TAG} was not found automatically. Please update CHANGELOG.md." >> release-notes.md
+          VERSION="${{ steps.version.outputs.new_version }}"
+          TAG="v${VERSION}"
+          if [ -n "$LAST_TAG" ]; then
+            git log "$LAST_TAG"..HEAD --pretty=format:"- %s (%h)" > release-notes.md
+          else
+            git log --pretty=format:"- %s (%h)" > release-notes.md
           fi
-
-          echo "version=${TAG}" >> "$GITHUB_OUTPUT"
+          if [ ! -s release-notes.md ]; then
+            echo "- Automated release $TAG" > release-notes.md
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            --title "Release ${GITHUB_REF_NAME}" \
+          gh release create "${{ steps.notes.outputs.tag }}" \
+            --title "Release ${{ steps.notes.outputs.tag }}" \
             --notes-file release-notes.md \
-            --target "${GITHUB_SHA}"
+            --target main
