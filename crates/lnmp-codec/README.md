@@ -2,6 +2,8 @@
 
 Parser and encoder implementations for LNMP (LLM Native Minimal Protocol) v0.3 text format and v0.4 binary format.
 
+> Maintainers note: when shipping codec changes, remember to run the workspace Release workflow (see `CONTRIBUTING.md`) so the meta crate picks up the new version.
+
 ## Features
 
 ### Text Format (v0.3)
