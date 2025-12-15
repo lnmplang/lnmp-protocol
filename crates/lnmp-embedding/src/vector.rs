@@ -129,8 +129,7 @@ impl Vector {
                     Ok(dot)
                 }
                 SimilarityMetric::Euclidean => {
-                    let sum_sq =
-                        Self::euclidean_distance_sq_f32(&self.data, &other.data);
+                    let sum_sq = Self::euclidean_distance_sq_f32(&self.data, &other.data);
                     Ok(sum_sq.sqrt())
                 }
             }

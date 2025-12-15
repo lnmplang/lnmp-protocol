@@ -26,9 +26,11 @@ fn main() {
     }
 
     // Verify normalized length is 1.0
-    let norm = vec_c_normalized.similarity(&vec_c_normalized, SimilarityMetric::DotProduct).unwrap().sqrt();
+    let norm = vec_c_normalized
+        .similarity(&vec_c_normalized, SimilarityMetric::DotProduct)
+        .unwrap()
+        .sqrt();
     println!("Norm of Normalized C: {:.4}", norm);
-
 
     // 3. Batch processing (e.g., finding closest vector)
     let query = Vector::from_f32(vec![0.9, 0.1, 0.9, 0.1]);
