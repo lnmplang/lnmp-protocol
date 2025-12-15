@@ -19,9 +19,18 @@ fn main() {
     println!("Cosine(A, C): {:.4}", sim_ac);
 
     // 2. Normalization (if supported by Vector struct, otherwise skip or implement manually)
-    // Assuming Vector has normalize method or similar. If not, we'll skip for now to fix the error.
-    // Let's check if normalize exists. Based on README, it's not explicitly mentioned.
-    // We'll stick to similarity for now which is confirmed.
+    let vec_c_normalized = vec_c.normalize().unwrap();
+    println!("Normalized Vector C:");
+    if let Ok(data) = vec_c_normalized.as_f32() {
+        println!("{:?}", data);
+    }
+
+    // Verify normalized length is 1.0
+    let norm = vec_c_normalized
+        .similarity(&vec_c_normalized, SimilarityMetric::DotProduct)
+        .unwrap()
+        .sqrt();
+    println!("Norm of Normalized C: {:.4}", norm);
 
     // 3. Batch processing (e.g., finding closest vector)
     let query = Vector::from_f32(vec![0.9, 0.1, 0.9, 0.1]);
