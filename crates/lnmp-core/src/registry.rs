@@ -423,7 +423,7 @@ impl FidRange {
 
 impl ExpectedType {
     /// Parse type from string
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "int" | "integer" => Some(Self::Int),
             "float" | "double" => Some(Self::Float),
@@ -443,7 +443,7 @@ impl ExpectedType {
 
 impl FidStatus {
     /// Parse status from string
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse_str(s: &str) -> Option<Self> {
         match s.to_uppercase().as_str() {
             "PROPOSED" => Some(Self::Proposed),
             "ACTIVE" => Some(Self::Active),
@@ -497,8 +497,8 @@ impl FidEntryBuilder {
         let type_str = self.type_str.as_deref().unwrap_or("Any");
         let status_str = self.status_str.as_deref().unwrap_or("ACTIVE");
 
-        let expected_type = ExpectedType::from_str(type_str).unwrap_or(ExpectedType::Any);
-        let status = FidStatus::from_str(status_str).unwrap_or(FidStatus::Active);
+        let expected_type = ExpectedType::parse_str(type_str).unwrap_or(ExpectedType::Any);
+        let status = FidStatus::parse_str(status_str).unwrap_or(FidStatus::Active);
 
         let range = match section {
             "core" => FidRange::Core,
