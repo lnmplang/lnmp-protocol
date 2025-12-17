@@ -828,4 +828,112 @@ standard:
         assert_eq!(position.name, "position");
         assert_eq!(position.range, FidRange::Standard);
     }
+
+    // ==================== RegistrySync Tests (v0.5.14) ====================
+
+    #[test]
+    fn test_registry_sync_creation() {
+        let registry = FidRegistry::from_yaml_str(TEST_YAML).unwrap();
+        let sync = RegistrySync::new(registry);
+
+        assert_eq!(sync.local_version(), "1.0.0");
+        assert!(!sync.local().is_empty());
+    }
+
+    #[test]
+    fn test_registry_sync_with_embedded() {
+        let sync = RegistrySync::with_embedded();
+
+        assert!(!sync.local_version().is_empty());
+        assert!(!sync.local().is_empty());
+    }
+
+    #[test]
+    fn test_registry_sync_peer_registration() {
+        let registry = FidRegistry::from_yaml_str(TEST_YAML).unwrap();
+        let mut sync = RegistrySync::new(registry);
+
+        // Register peer
+        sync.register_peer("peer-1".to_string(), "0.9.0".to_string());
+        sync.register_peer("peer-2".to_string(), "1.0.0".to_string());
+        sync.register_peer("peer-3".to_string(), "1.1.0".to_string());
+
+        // Test is_ahead_of
+        assert!(sync.is_ahead_of("peer-1")); // 1.0.0 > 0.9.0
+        assert!(!sync.is_ahead_of("peer-2")); // 1.0.0 == 1.0.0
+        assert!(!sync.is_ahead_of("peer-3")); // 1.0.0 < 1.1.0
+
+        // Test is_behind
+        assert!(!sync.is_behind("peer-1")); // 1.0.0 > 0.9.0
+        assert!(!sync.is_behind("peer-2")); // 1.0.0 == 1.0.0
+        assert!(sync.is_behind("peer-3")); // 1.0.0 < 1.1.0
+    }
+
+    #[test]
+    fn test_registry_sync_unknown_peer() {
+        let registry = FidRegistry::from_yaml_str(TEST_YAML).unwrap();
+        let sync = RegistrySync::new(registry);
+
+        // Unknown peer should be treated as behind
+        assert!(sync.is_ahead_of("unknown-peer"));
+        assert!(!sync.is_behind("unknown-peer"));
+    }
+
+    #[test]
+    fn test_registry_sync_delta_fids() {
+        let registry = FidRegistry::from_yaml_str(TEST_YAML).unwrap();
+        let mut sync = RegistrySync::new(registry);
+
+        // Register old peer
+        sync.register_peer("old-peer".to_string(), "0.5.0".to_string());
+
+        // Should return all FIDs for old peer
+        let delta = sync.delta_fids_for("old-peer");
+        assert!(!delta.is_empty());
+        assert!(delta.contains(&1)); // entity_id
+        assert!(delta.contains(&12)); // user_id
+
+        // Register current peer
+        sync.register_peer("current-peer".to_string(), "1.0.0".to_string());
+
+        // Should return empty for current peer
+        let delta = sync.delta_fids_for("current-peer");
+        assert!(delta.is_empty());
+    }
+
+    #[test]
+    fn test_registry_sync_get_entries() {
+        let registry = FidRegistry::from_yaml_str(TEST_YAML).unwrap();
+        let sync = RegistrySync::new(registry);
+
+        let entries = sync.get_entries(&[1, 12, 999]);
+
+        // Should get 2 entries (1 and 12 exist, 999 doesn't)
+        assert_eq!(entries.len(), 2);
+
+        let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+        assert!(names.contains(&"entity_id"));
+        assert!(names.contains(&"user_id"));
+    }
+
+    #[test]
+    fn test_registry_sync_version_comparison() {
+        let registry = FidRegistry::from_yaml_str(TEST_YAML).unwrap();
+        let mut sync = RegistrySync::new(registry);
+
+        // Test various version comparisons
+        sync.register_peer("v1".to_string(), "1.0.0".to_string());
+        sync.register_peer("v2".to_string(), "1.0.1".to_string());
+        sync.register_peer("v3".to_string(), "1.1.0".to_string());
+        sync.register_peer("v4".to_string(), "2.0.0".to_string());
+        sync.register_peer("v5".to_string(), "0.9.9".to_string());
+
+        // All should be behind v4 (2.0.0)
+        assert!(!sync.is_ahead_of("v4"));
+        assert!(sync.is_behind("v4"));
+
+        // All should be ahead of v5 (0.9.9)
+        assert!(sync.is_ahead_of("v5"));
+        assert!(!sync.is_behind("v5"));
+    }
 }

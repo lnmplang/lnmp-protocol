@@ -1758,3 +1758,209 @@ fn test_full_negotiation_flow_client_initiated() {
         _ => panic!("Expected Complete response"),
     }
 }
+
+// ==================== Dynamic FID Discovery Tests (v0.5.14) ====================
+
+#[test]
+fn test_negotiator_request_registry() {
+    let negotiator = SchemaNegotiator::v0_5()
+        .with_registry_version("1.0.0".to_string());
+
+    // Request all FIDs
+    let msg = negotiator.request_registry(None);
+    match msg {
+        NegotiationMessage::RequestRegistry {
+            fid_range,
+            include_types,
+            local_version,
+        } => {
+            assert!(fid_range.is_none());
+            assert!(include_types);
+            assert_eq!(local_version, Some("1.0.0".to_string()));
+        }
+        _ => panic!("Expected RequestRegistry message"),
+    }
+
+    // Request specific range
+    let msg = negotiator.request_registry(Some((0, 255)));
+    match msg {
+        NegotiationMessage::RequestRegistry { fid_range, .. } => {
+            assert_eq!(fid_range, Some((0, 255)));
+        }
+        _ => panic!("Expected RequestRegistry message"),
+    }
+}
+
+#[test]
+fn test_negotiator_handle_registry_response() {
+    let mut negotiator = SchemaNegotiator::v0_5();
+
+    // Create test FID definitions
+    let fids = vec![
+        FidDefinition {
+            fid: 1,
+            name: "entity_id".to_string(),
+            type_tag: TypeTag::Int,
+            status: FidDefStatus::Active,
+            since: "0.1.0".to_string(),
+        },
+        FidDefinition {
+            fid: 7,
+            name: "is_active".to_string(),
+            type_tag: TypeTag::Bool,
+            status: FidDefStatus::Active,
+            since: "0.1.0".to_string(),
+        },
+        FidDefinition {
+            fid: 99,
+            name: "deprecated_field".to_string(),
+            type_tag: TypeTag::Int,
+            status: FidDefStatus::Deprecated,
+            since: "0.1.0".to_string(),
+        },
+    ];
+
+    negotiator.handle_registry_response("1.0.0".to_string(), fids);
+
+    // Check agreed FIDs (only Active ones)
+    assert!(negotiator.peer_supports_fid(1));
+    assert!(negotiator.peer_supports_fid(7));
+    assert!(!negotiator.peer_supports_fid(99)); // Deprecated not in agreed
+    assert!(!negotiator.peer_supports_fid(100)); // Unknown
+
+    // Check discovery complete
+    assert!(negotiator.is_discovery_complete());
+
+    // Check remote version stored
+    assert_eq!(negotiator.remote_registry_version(), Some("1.0.0"));
+}
+
+#[test]
+fn test_negotiator_handle_registry_delta() {
+    let mut negotiator = SchemaNegotiator::v0_5();
+
+    // First, add some initial FIDs
+    let initial = vec![
+        FidDefinition {
+            fid: 1,
+            name: "entity_id".to_string(),
+            type_tag: TypeTag::Int,
+            status: FidDefStatus::Active,
+            since: "0.1.0".to_string(),
+        },
+    ];
+    negotiator.handle_registry_response("0.9.0".to_string(), initial);
+
+    // Now apply delta
+    let delta_msg = NegotiationMessage::RegistryDelta {
+        base_version: "0.9.0".to_string(),
+        target_version: "1.0.0".to_string(),
+        added: vec![
+            FidDefinition {
+                fid: 12,
+                name: "user_id".to_string(),
+                type_tag: TypeTag::Int,
+                status: FidDefStatus::Active,
+                since: "1.0.0".to_string(),
+            },
+        ],
+        deprecated: vec![],
+        tombstoned: vec![1], // Tombstone entity_id
+    };
+
+    let result = negotiator.handle_message(delta_msg);
+    assert!(result.is_ok());
+
+    // Check new FID added
+    assert!(negotiator.peer_supports_fid(12));
+
+    // Check tombstoned FID removed
+    assert!(!negotiator.peer_supports_fid(1));
+
+    // Check version updated
+    assert_eq!(negotiator.remote_registry_version(), Some("1.0.0"));
+}
+
+#[test]
+fn test_negotiator_create_registry_response() {
+    let negotiator = SchemaNegotiator::v0_5()
+        .with_registry_version("1.0.0".to_string());
+
+    let fids = vec![
+        FidDefinition {
+            fid: 1,
+            name: "entity_id".to_string(),
+            type_tag: TypeTag::Int,
+            status: FidDefStatus::Active,
+            since: "0.1.0".to_string(),
+        },
+    ];
+
+    let response = negotiator.create_registry_response(fids.clone());
+
+    match response {
+        NegotiationMessage::RegistryResponse {
+            version,
+            protocol_version,
+            fids: resp_fids,
+        } => {
+            assert_eq!(version, "1.0.0");
+            assert!(protocol_version.starts_with("0."));
+            assert_eq!(resp_fids.len(), 1);
+            assert_eq!(resp_fids[0].fid, 1);
+        }
+        _ => panic!("Expected RegistryResponse message"),
+    }
+}
+
+#[test]
+fn test_negotiator_agreed_fids() {
+    let mut negotiator = SchemaNegotiator::v0_5();
+
+    // Add some FIDs
+    let fids = vec![
+        FidDefinition {
+            fid: 1,
+            name: "entity_id".to_string(),
+            type_tag: TypeTag::Int,
+            status: FidDefStatus::Active,
+            since: "0.1.0".to_string(),
+        },
+        FidDefinition {
+            fid: 7,
+            name: "is_active".to_string(),
+            type_tag: TypeTag::Bool,
+            status: FidDefStatus::Active,
+            since: "0.1.0".to_string(),
+        },
+        FidDefinition {
+            fid: 12,
+            name: "user_id".to_string(),
+            type_tag: TypeTag::Int,
+            status: FidDefStatus::Active,
+            since: "0.1.0".to_string(),
+        },
+    ];
+
+    negotiator.handle_registry_response("1.0.0".to_string(), fids);
+
+    let agreed = negotiator.agreed_fids();
+    assert_eq!(agreed.len(), 3);
+    assert!(agreed.contains(&1));
+    assert!(agreed.contains(&7));
+    assert!(agreed.contains(&12));
+}
+
+#[test]
+fn test_fid_def_status_conversion() {
+    assert_eq!(FidDefStatus::from_u8(0x00), Some(FidDefStatus::Proposed));
+    assert_eq!(FidDefStatus::from_u8(0x01), Some(FidDefStatus::Active));
+    assert_eq!(FidDefStatus::from_u8(0x02), Some(FidDefStatus::Deprecated));
+    assert_eq!(FidDefStatus::from_u8(0x03), Some(FidDefStatus::Tombstoned));
+    assert_eq!(FidDefStatus::from_u8(0xFF), None);
+
+    assert_eq!(FidDefStatus::Proposed as u8, 0x00);
+    assert_eq!(FidDefStatus::Active as u8, 0x01);
+    assert_eq!(FidDefStatus::Deprecated as u8, 0x02);
+    assert_eq!(FidDefStatus::Tombstoned as u8, 0x03);
+}
