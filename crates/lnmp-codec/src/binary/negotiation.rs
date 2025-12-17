@@ -1763,8 +1763,7 @@ fn test_full_negotiation_flow_client_initiated() {
 
 #[test]
 fn test_negotiator_request_registry() {
-    let negotiator = SchemaNegotiator::v0_5()
-        .with_registry_version("1.0.0".to_string());
+    let negotiator = SchemaNegotiator::v0_5().with_registry_version("1.0.0".to_string());
 
     // Request all FIDs
     let msg = negotiator.request_registry(None);
@@ -1840,30 +1839,26 @@ fn test_negotiator_handle_registry_delta() {
     let mut negotiator = SchemaNegotiator::v0_5();
 
     // First, add some initial FIDs
-    let initial = vec![
-        FidDefinition {
-            fid: 1,
-            name: "entity_id".to_string(),
-            type_tag: TypeTag::Int,
-            status: FidDefStatus::Active,
-            since: "0.1.0".to_string(),
-        },
-    ];
+    let initial = vec![FidDefinition {
+        fid: 1,
+        name: "entity_id".to_string(),
+        type_tag: TypeTag::Int,
+        status: FidDefStatus::Active,
+        since: "0.1.0".to_string(),
+    }];
     negotiator.handle_registry_response("0.9.0".to_string(), initial);
 
     // Now apply delta
     let delta_msg = NegotiationMessage::RegistryDelta {
         base_version: "0.9.0".to_string(),
         target_version: "1.0.0".to_string(),
-        added: vec![
-            FidDefinition {
-                fid: 12,
-                name: "user_id".to_string(),
-                type_tag: TypeTag::Int,
-                status: FidDefStatus::Active,
-                since: "1.0.0".to_string(),
-            },
-        ],
+        added: vec![FidDefinition {
+            fid: 12,
+            name: "user_id".to_string(),
+            type_tag: TypeTag::Int,
+            status: FidDefStatus::Active,
+            since: "1.0.0".to_string(),
+        }],
         deprecated: vec![],
         tombstoned: vec![1], // Tombstone entity_id
     };
@@ -1883,18 +1878,15 @@ fn test_negotiator_handle_registry_delta() {
 
 #[test]
 fn test_negotiator_create_registry_response() {
-    let negotiator = SchemaNegotiator::v0_5()
-        .with_registry_version("1.0.0".to_string());
+    let negotiator = SchemaNegotiator::v0_5().with_registry_version("1.0.0".to_string());
 
-    let fids = vec![
-        FidDefinition {
-            fid: 1,
-            name: "entity_id".to_string(),
-            type_tag: TypeTag::Int,
-            status: FidDefStatus::Active,
-            since: "0.1.0".to_string(),
-        },
-    ];
+    let fids = vec![FidDefinition {
+        fid: 1,
+        name: "entity_id".to_string(),
+        type_tag: TypeTag::Int,
+        status: FidDefStatus::Active,
+        since: "0.1.0".to_string(),
+    }];
 
     let response = negotiator.create_registry_response(fids.clone());
 
