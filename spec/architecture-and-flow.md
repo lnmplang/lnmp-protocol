@@ -8,61 +8,58 @@ Every single module plays a vital role in the physiology of the digital organism
 
 ```mermaid
 graph TD
-    %% ZONE 1: THE MIND (Cognitive Interface)
-    subgraph "The Cortex (Cognition & Interface)"
-        App[Application Logic]
-        SFE[lnmp-sfe: Semantic Field Engine]
-        LLB[lnmp-llb: LLM Bridge / Language Center]
-        
-        App -->|Intent| SFE
-        SFE -->|Semantic FIDs| LLB
-        LLB -->|Optimized Tokens| LLM[LLM Model]
+    %% ZONE 1: THE MIND
+    subgraph Mind ["🧠 The Cortex (Cognition)"]
+        direction TB
+        App[Application] --> |Intent| SFE[lnmp-sfe]
+        SFE --> |FIDs| LLB[lnmp-llb]
+        LLB --> |Tokens| LLM((LLM))
     end
 
-    %% ZONE 2: THE CORE (Genetic Material)
-    subgraph "The Nucleus (DNA & Structure)"
-        Core[lnmp-core: Types & Registry]
-        Codec[lnmp-codec: Encoding & Rules]
+    %% ZONE 2: THE CORE
+    subgraph Core ["🧬 The Nucleus (Genetics)"]
+        LnmpCore[lnmp-core]
+        Codec[lnmp-codec]
     end
 
-    %% ZONE 3: PROTECTION (Immune System)
-    subgraph "Immune System (Protection & Hygiene)"
-        Env[lnmp-envelope: Cell Wall / Identity]
-        San[lnmp-sanitize: Filter / Input Hygiene]
+    %% ZONE 3: CAPABILITIES
+    subgraph Body ["💪 Physiology (Capabilities)"]
+        Spatial[lnmp-spatial]
+        Emb[lnmp-embedding]
+        Quant[lnmp-quant]
     end
 
-    %% ZONE 4: PHYSIOLOGY (Capabilities)
-    subgraph "Physiology (Senses & Metabolism)"
-        Spatial[lnmp-spatial: Proprioception / Space]
-        Emb[lnmp-embedding: Vector Memory]
-        Quant[lnmp-quant: Metabolism / Compression]
+    %% ZONE 4: PROTECTION
+    subgraph Defense ["🛡️ Immune System"]
+        San[lnmp-sanitize]
+        Env[lnmp-envelope]
     end
 
-    %% ZONE 5: CIRCULATION (Network & Flow)
-    subgraph "Nervous & Circulatory System"
-        Net[lnmp-net: Autonomic System / Routing]
-        Trans[lnmp-transport: Vascular System / Bindings]
-        Ext[External Network]
+    %% ZONE 5: TRANSPORT
+    subgraph Circ ["❤️ Circulatory System"]
+        Net[lnmp-net]
+        Trans[lnmp-transport]
     end
 
-    %% Interconnections
-    SFE -->|Maps Meaning| Core
-    Core -->|Defines| Codec
+    %% DATA FLOW (The Spine)
+    Mind --> San
+    San --> LnmpCore
+    LnmpCore --> Codec
+    Codec --> Env
+    Env --> Net
+    Net --> Trans
     
-    %% Input Flow
-    App --> San
-    San -->|Clean Input| Codec
-    
-    %% Capability extensions
-    Spatial -->|Extends| Core
-    Emb -->|Extends| Core
-    Quant -->|Optimizes| Emb
+    %% Capability Connections
+    LnmpCore --- Spatial
+    LnmpCore --- Emb
+    Emb --- Quant
 
-    %% Output Flow
-    Codec -->|Payload| Env
-    Env -->|Packet| Net
-    Net -->|QoS & Priority| Trans
-    Trans -->|HTTP/gRPC/Kafka| Ext
+    %% Styling
+    style Mind fill:#e1f5fe,stroke:#01579b
+    style Core fill:#fff9c4,stroke:#fbc02d
+    style Body fill:#e8f5e9,stroke:#2e7d32
+    style Defense fill:#ffebee,stroke:#c62828
+    style Circ fill:#f3e5f5,stroke:#7b1fa2
 ```
 
 ### 🫀 Organ Systems Defined
@@ -96,29 +93,30 @@ The complete journey of a message within the organism.
 
 ```mermaid
 sequenceDiagram
-    participant LLM as � LLM/App
-    participant LLB as �️ LLB (Bridge)
-    participant San as � Sanitize
-    participant SFE as � SFE (Intent)
-    participant Core as 🧬 Core/Codec
-    participant Net as ⚡ Net/Trans
+    participant Mind as 🧠 Mind/LLM
+    participant SFE as 🔮 SFE
+    participant Core as 🧬 Core
+    participant Env as 🛡️ Env
+    participant Net as 📡 Net
 
-    Note over LLM, Net: 1. OUTBOUND (Expression)
-    LLM->>SFE: Intent: "High Priority Alert"
-    SFE->>Core: Map to FIDs (Alert=1024, TTL=500ms)
-    Core->>Core: Validation
-    Core->>Net: Binary Payload
-    Net->>Net: Assign QoS=255 (Critical)
-    Net->>Net: Route -> "Direct Peer" (Bypass Cloud)
-    Net->>Ext: Dispatch via UDP/QUIC
+    %% OUTBOUND
+    rect rgb(240, 248, 255)
+    Note over Mind, Net: 1. OUTBOUND (Expression)
+    Mind->>SFE: Intent: "Alert"
+    SFE->>Core: Map FIDs
+    Core->>Env: Binary Payload
+    Env->>Net: Encapsulate
+    Net->>Net: Route (QoS)
+    end
 
-    Note over LLM, Net: 2. INBOUND (Perception)
-    Ext->>San: Raw Input Stream
-    San->>San: Clean/Normalize
-    San->>Core: Strict Parse
-    Core->>Env: Verify Identity/Sig
-    Core->>LLB: Decode for Consumption
-    LLB->>LLM: ShortForm: "1024=Alert 768=Fire"
+    %% INBOUND
+    rect rgb(255, 248, 240)
+    Note over Mind, Net: 2. INBOUND (Perception)
+    Net->>Env: Receive
+    Env->>Core: Verify & Unwrap
+    Core->>SFE: Decode
+    SFE->>Mind: Semantic Concept
+    end
 ```
 
 ## 3. Why Every Module Matters
