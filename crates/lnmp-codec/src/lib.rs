@@ -162,7 +162,7 @@ pub mod normalizer;
 pub mod parser;
 
 pub use binary::delta::DeltaApplyContext;
-pub use config::{EncoderConfig, ParsingMode, TextInputMode};
+pub use config::{EncoderConfig, ParserConfig, ParsingMode, TextInputMode};
 pub use container::{
     delta_apply_context_from_metadata, parse_delta_metadata, parse_stream_metadata, ContainerBody,
     ContainerBuilder, ContainerDecodeError, ContainerEncodeError, ContainerFrame,

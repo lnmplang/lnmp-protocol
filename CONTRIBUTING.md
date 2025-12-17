@@ -229,6 +229,57 @@ How was this tested?
 
 ---
 
+## 🔢 Field ID (FID) Guidelines
+
+Field IDs are the core of LNMP's semantic data model. All official FIDs are registered in [`registry/fids.yaml`](registry/fids.yaml).
+
+> **Full Specification:** [`spec/fid-governance.md`](spec/fid-governance.md)
+
+### FID Range Policy
+
+| Range | Name | Stability | Who Can Add |
+|-------|------|-----------|-------------|
+| 0-255 | Core | LOCKED | Maintainers only |
+| 256-16383 | Standard | STABLE | Contributors (PR) |
+| 16384-32767 | Extended | EVOLVING | Contributors (PR) |
+| 32768-65535 | Private | UNSTABLE | Anyone (no registry) |
+
+### Adding a New FID
+
+1. **Check registry** - Is the concept already covered?
+   ```bash
+   grep -i "your_concept" registry/fids.yaml
+   ```
+
+2. **Add to registry/fids.yaml:**
+   ```yaml
+   - fid: 300
+     name: your_field_name
+     type: Int
+     unit: null
+     status: PROPOSED
+     since: "X.Y.Z"
+     description: "Clear description"
+   ```
+
+3. **Open PR** with title: `fid: Add F300 for <concept>`
+
+4. **CI validates** automatically (schema, uniqueness, range)
+
+### Breaking Change Rules
+
+| Change Type | Action Required |
+|-------------|-----------------|
+| Type change (Int → String) | **New FID required** |
+| Unit change (m/s → km/h) | **New FID required** |
+| Semantic change | **New FID required** |
+| Adding new field | ✅ Safe |
+| Deprecating field | ✅ Safe |
+
+For detailed guidelines, see [`docs/field-id-guidelines.md`](docs/field-id-guidelines.md).
+
+---
+
 ## 💻 Coding Standards
 
 ### Rust

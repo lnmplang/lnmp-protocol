@@ -180,6 +180,89 @@ pub enum NegotiationMessage {
         /// Error message
         message: String,
     },
+
+    // =========================================================================
+    // Phase 3: Dynamic FID Discovery Protocol (v0.5.14)
+    // =========================================================================
+    /// Request FID registry from peer
+    RequestRegistry {
+        /// Request FIDs in specific range (None = all)
+        fid_range: Option<(u16, u16)>,
+        /// Include type information?
+        include_types: bool,
+        /// Local registry version for delta calculation
+        local_version: Option<String>,
+    },
+
+    /// Response with FID definitions
+    RegistryResponse {
+        /// Registry version string
+        version: String,
+        /// Protocol version
+        protocol_version: String,
+        /// FID definitions
+        fids: Vec<FidDefinition>,
+    },
+
+    /// Incremental registry delta
+    RegistryDelta {
+        /// Base version this delta applies to
+        base_version: String,
+        /// Target version after applying delta
+        target_version: String,
+        /// Added or modified FIDs
+        added: Vec<FidDefinition>,
+        /// Deprecated FIDs (still valid but warned)
+        deprecated: Vec<u16>,
+        /// Tombstoned FIDs (must not be used)
+        tombstoned: Vec<u16>,
+    },
+}
+
+/// Minimal FID definition for wire transfer (v0.5.14)
+#[derive(Debug, Clone, PartialEq)]
+pub struct FidDefinition {
+    /// Field ID
+    pub fid: u16,
+    /// Human-readable name
+    pub name: String,
+    /// Expected type tag
+    pub type_tag: TypeTag,
+    /// FID status
+    pub status: FidDefStatus,
+    /// Version when introduced
+    pub since: String,
+}
+
+/// FID status for wire transfer (v0.5.14)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FidDefStatus {
+    /// Field is proposed but not yet active
+    Proposed = 0x00,
+    /// Field is active and in use
+    Active = 0x01,
+    /// Field is deprecated and should not be used
+    Deprecated = 0x02,
+    /// Field is tombstoned and must never be reused
+    Tombstoned = 0x03,
+}
+
+impl FidDefStatus {
+    /// Convert from u8
+    pub fn from_u8(value: u8) -> Option<Self> {
+        match value {
+            0x00 => Some(Self::Proposed),
+            0x01 => Some(Self::Active),
+            0x02 => Some(Self::Deprecated),
+            0x03 => Some(Self::Tombstoned),
+            _ => None,
+        }
+    }
+
+    /// Convert to u8
+    pub fn to_u8(self) -> u8 {
+        self as u8
+    }
 }
 
 /// Error codes for negotiation failures
@@ -283,6 +366,19 @@ pub struct SchemaNegotiator {
     next_session_id: u64,
     /// FID mappings
     fid_mappings: HashMap<u16, String>,
+    /// Type mappings for FIDs
+    type_mappings: HashMap<u16, TypeTag>,
+    // =========================================================================
+    // Phase 2: Registry-aware fields (v0.5.14)
+    // =========================================================================
+    /// Local registry version
+    local_registry_version: Option<String>,
+    /// Remote registry version (after discovery)
+    remote_registry_version: Option<String>,
+    /// Agreed FIDs after negotiation
+    agreed_fids: std::collections::HashSet<u16>,
+    /// Discovery completed flag
+    discovery_complete: bool,
 }
 
 /// Response from handling a negotiation message
@@ -393,6 +489,11 @@ impl SchemaNegotiator {
             state: NegotiationState::Initial,
             next_session_id: 1,
             fid_mappings: HashMap::new(),
+            type_mappings: HashMap::new(),
+            local_registry_version: None,
+            remote_registry_version: None,
+            agreed_fids: std::collections::HashSet::new(),
+            discovery_complete: false,
         }
     }
 
@@ -410,6 +511,79 @@ impl SchemaNegotiator {
     pub fn with_fid_mappings(mut self, mappings: HashMap<u16, String>) -> Self {
         self.fid_mappings = mappings;
         self
+    }
+
+    /// Sets type mappings for the negotiator (v0.5.14)
+    pub fn with_type_mappings(mut self, mappings: HashMap<u16, TypeTag>) -> Self {
+        self.type_mappings = mappings;
+        self
+    }
+
+    /// Sets local registry version (v0.5.14)
+    pub fn with_registry_version(mut self, version: String) -> Self {
+        self.local_registry_version = Some(version);
+        self
+    }
+
+    // =========================================================================
+    // Phase 2: Registry-aware methods (v0.5.14)
+    // =========================================================================
+
+    /// Get the agreed FIDs after negotiation
+    pub fn agreed_fids(&self) -> &std::collections::HashSet<u16> {
+        &self.agreed_fids
+    }
+
+    /// Check if peer supports a specific FID
+    pub fn peer_supports_fid(&self, fid: u16) -> bool {
+        self.agreed_fids.contains(&fid)
+    }
+
+    /// Get remote registry version (after discovery)
+    pub fn remote_registry_version(&self) -> Option<&str> {
+        self.remote_registry_version.as_deref()
+    }
+
+    /// Check if discovery is complete
+    pub fn is_discovery_complete(&self) -> bool {
+        self.discovery_complete
+    }
+
+    /// Create a registry request message (v0.5.14)
+    pub fn request_registry(&self, fid_range: Option<(u16, u16)>) -> NegotiationMessage {
+        NegotiationMessage::RequestRegistry {
+            fid_range,
+            include_types: true,
+            local_version: self.local_registry_version.clone(),
+        }
+    }
+
+    /// Handle registry response and update agreed FIDs (v0.5.14)
+    pub fn handle_registry_response(&mut self, version: String, fids: Vec<FidDefinition>) {
+        self.remote_registry_version = Some(version);
+        for fid_def in fids {
+            // Add to agreed FIDs if status is Active
+            if fid_def.status == FidDefStatus::Active {
+                self.agreed_fids.insert(fid_def.fid);
+            }
+            // Update type mappings
+            self.type_mappings.insert(fid_def.fid, fid_def.type_tag);
+            // Update name mappings
+            self.fid_mappings.insert(fid_def.fid, fid_def.name);
+        }
+        self.discovery_complete = true;
+    }
+
+    /// Create registry response from local FID definitions (v0.5.14)
+    pub fn create_registry_response(&self, fids: Vec<FidDefinition>) -> NegotiationMessage {
+        NegotiationMessage::RegistryResponse {
+            version: self
+                .local_registry_version
+                .clone()
+                .unwrap_or_else(|| "1.0.0".to_string()),
+            protocol_version: format!("0.{}", self.local_capabilities.version),
+            fids,
+        }
     }
 
     /// Initiates negotiation by sending capabilities message
@@ -456,6 +630,56 @@ impl SchemaNegotiator {
             NegotiationMessage::Error { code: _, message } => {
                 self.state = NegotiationState::Failed(message.clone());
                 Ok(NegotiationResponse::Failed(message))
+            }
+
+            // Phase 3: Discovery protocol handlers (v0.5.14)
+            NegotiationMessage::RequestRegistry {
+                fid_range: _,
+                include_types: _,
+                local_version,
+            } => {
+                // Store remote registry version for delta calculation
+                if let Some(ver) = local_version {
+                    self.remote_registry_version = Some(ver);
+                }
+                // Response should be created by caller with local FID definitions
+                Ok(NegotiationResponse::None)
+            }
+
+            NegotiationMessage::RegistryResponse {
+                version,
+                protocol_version: _,
+                fids,
+            } => {
+                self.handle_registry_response(version, fids);
+                Ok(NegotiationResponse::None)
+            }
+
+            NegotiationMessage::RegistryDelta {
+                base_version: _,
+                target_version,
+                added,
+                deprecated,
+                tombstoned,
+            } => {
+                self.remote_registry_version = Some(target_version);
+                // Add new FIDs
+                for fid_def in added {
+                    if fid_def.status == FidDefStatus::Active {
+                        self.agreed_fids.insert(fid_def.fid);
+                    }
+                    self.type_mappings.insert(fid_def.fid, fid_def.type_tag);
+                    self.fid_mappings.insert(fid_def.fid, fid_def.name);
+                }
+                // Remove deprecated and tombstoned from agreed
+                for _fid in deprecated {
+                    // Keep but mark as deprecated - don't remove from agreed
+                }
+                for fid in tombstoned {
+                    self.agreed_fids.remove(&fid);
+                }
+                self.discovery_complete = true;
+                Ok(NegotiationResponse::None)
             }
         }
     }

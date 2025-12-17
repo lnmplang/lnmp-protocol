@@ -1,0 +1,405 @@
+# LNMP Official Field ID Registry
+# Version: 1.0.0
+# Protocol Version: 0.5.14
+# Last Updated: 2025-12-17
+#
+# This is the single source of truth for all LNMP Field IDs.
+# See spec/fid-governance.md for governance rules.
+
+metadata:
+  version: "1.0.0"
+  protocol_version: "0.5.14"
+  last_updated: "2025-12-17"
+
+# =============================================================================
+# CORE FIELDS (0-255)
+# =============================================================================
+# LOCKED: These FIDs are stable forever. SDKs may hardcode them.
+# Do NOT modify type/unit/semantics of existing entries.
+
+core:
+  # --- Identity & Metadata ---
+  - fid: 1
+    name: entity_id
+    type: Int
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Unique entity identifier within a context"
+
+  - fid: 2
+    name: timestamp
+    type: Int
+    unit: "ms"
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Unix timestamp in milliseconds (UTC)"
+
+  - fid: 3
+    name: version
+    type: Int
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Schema or data version number"
+
+  - fid: 4
+    name: sequence
+    type: Int
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Monotonic sequence number for ordering"
+
+  - fid: 5
+    name: source
+    type: String
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Origin identifier (service, device, node)"
+
+  # --- Common Flags ---
+  - fid: 7
+    name: is_active
+    type: Bool
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Active/inactive boolean flag"
+
+  - fid: 8
+    name: is_valid
+    type: Bool
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Validity boolean flag"
+
+  # --- User/Auth ---
+  - fid: 12
+    name: user_id
+    type: Int
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "User identifier"
+
+  - fid: 13
+    name: session_id
+    type: String
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Session identifier"
+
+  # --- Text Data ---
+  - fid: 20
+    name: name
+    type: String
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Human-readable name"
+
+  - fid: 21
+    name: label
+    type: String
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Short label or tag"
+
+  - fid: 22
+    name: description
+    type: String
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Long-form description text"
+
+  - fid: 23
+    name: roles
+    type: StringArray
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "List of role identifiers"
+
+  - fid: 24
+    name: tags
+    type: StringArray
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "List of tags for categorization"
+
+  # --- Numeric Values ---
+  - fid: 30
+    name: count
+    type: Int
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Generic count value"
+
+  - fid: 31
+    name: index
+    type: Int
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Zero-based index"
+
+  - fid: 32
+    name: priority
+    type: Int
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Priority level (0 = lowest)"
+
+  - fid: 40
+    name: value
+    type: Float
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Generic floating-point value"
+
+  - fid: 41
+    name: score
+    type: Float
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Score or rating (typically 0.0-1.0)"
+
+  - fid: 42
+    name: confidence
+    type: Float
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Confidence level (0.0-1.0)"
+
+  # --- Status & State ---
+  - fid: 50
+    name: status
+    type: String
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Status string (pending, active, completed, etc.)"
+
+  - fid: 51
+    name: error_code
+    type: Int
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Error code (0 = no error)"
+
+  - fid: 52
+    name: error_message
+    type: String
+    unit: null
+    status: ACTIVE
+    since: "0.1.0"
+    description: "Human-readable error message"
+
+  # --- Typed Arrays ---
+  - fid: 60
+    name: int_values
+    type: IntArray
+    unit: null
+    status: ACTIVE
+    since: "0.5.13"
+    description: "Generic integer array for numeric data"
+
+  - fid: 61
+    name: float_values
+    type: FloatArray
+    unit: null
+    status: ACTIVE
+    since: "0.5.13"
+    description: "Generic float array for measurement data"
+
+  - fid: 62
+    name: bool_flags
+    type: BoolArray
+    unit: null
+    status: ACTIVE
+    since: "0.5.13"
+    description: "Generic boolean array for flag sets"
+
+  # --- Nested Structures ---
+  - fid: 70
+    name: nested_data
+    type: Record
+    unit: null
+    status: ACTIVE
+    since: "0.5.13"
+    description: "Generic nested record container"
+
+  - fid: 71
+    name: record_list
+    type: RecordArray
+    unit: null
+    status: ACTIVE
+    since: "0.5.13"
+    description: "Array of nested records"
+
+# =============================================================================
+# STANDARD FIELDS (256-16383)
+# =============================================================================
+# STABLE: These may be deprecated but follow proper lifecycle.
+# Common patterns used across multiple domains.
+
+standard:
+  # --- Spatial (256-511) ---
+  - fid: 256
+    name: position
+    type: FloatArray
+    unit: "m"
+    status: ACTIVE
+    since: "0.5.0"
+    description: "[x, y, z] position coordinates in meters"
+
+  - fid: 257
+    name: rotation
+    type: FloatArray
+    unit: "rad"
+    status: ACTIVE
+    since: "0.5.0"
+    description: "[roll, pitch, yaw] Euler angles in radians"
+
+  - fid: 258
+    name: velocity
+    type: FloatArray
+    unit: "m/s"
+    status: ACTIVE
+    since: "0.5.2"
+    description: "[vx, vy, vz] linear velocity"
+
+  - fid: 259
+    name: acceleration
+    type: FloatArray
+    unit: "m/s²"
+    status: ACTIVE
+    since: "0.5.2"
+    description: "[ax, ay, az] linear acceleration"
+
+  - fid: 260
+    name: quaternion
+    type: FloatArray
+    unit: null
+    status: ACTIVE
+    since: "0.5.2"
+    description: "[w, x, y, z] rotation quaternion"
+
+  - fid: 261
+    name: bounding_box
+    type: FloatArray
+    unit: "m"
+    status: ACTIVE
+    since: "0.5.2"
+    description: "[min_x, min_y, min_z, max_x, max_y, max_z]"
+
+  # --- Embeddings (512-767) ---
+  - fid: 512
+    name: embedding
+    type: FloatArray
+    unit: null
+    status: ACTIVE
+    since: "0.5.0"
+    description: "Vector embedding (variable dimension)"
+
+  - fid: 513
+    name: embedding_model
+    type: String
+    unit: null
+    status: ACTIVE
+    since: "0.5.0"
+    description: "Embedding model identifier"
+
+  - fid: 514
+    name: embedding_dim
+    type: Int
+    unit: null
+    status: ACTIVE
+    since: "0.5.0"
+    description: "Embedding dimension size"
+
+  # --- Sensor Data (768-1023) ---
+  - fid: 768
+    name: temperature
+    type: Float
+    unit: "°C"
+    status: ACTIVE
+    since: "0.5.0"
+    description: "Temperature in Celsius"
+
+  - fid: 769
+    name: humidity
+    type: Float
+    unit: "%"
+    status: ACTIVE
+    since: "0.5.0"
+    description: "Relative humidity percentage"
+
+  - fid: 770
+    name: pressure
+    type: Float
+    unit: "Pa"
+    status: ACTIVE
+    since: "0.5.0"
+    description: "Pressure in Pascals"
+
+  - fid: 771
+    name: battery_level
+    type: Float
+    unit: "%"
+    status: ACTIVE
+    since: "0.5.0"
+    description: "Battery charge percentage"
+
+  # --- Message Classification (1024-1279) ---
+  - fid: 1024
+    name: message_kind
+    type: String
+    unit: null
+    status: ACTIVE
+    since: "0.5.7"
+    description: "Message classification (Event, State, Command, Query, Alert)"
+
+  - fid: 1025
+    name: ttl
+    type: Int
+    unit: "ms"
+    status: ACTIVE
+    since: "0.5.7"
+    description: "Time-to-live in milliseconds"
+
+  - fid: 1026
+    name: qos_priority
+    type: Int
+    unit: null
+    status: ACTIVE
+    since: "0.5.7"
+    description: "QoS priority level (0-255)"
+
+# =============================================================================
+# EXTENDED FIELDS (16384-32767)
+# =============================================================================
+# EVOLVING: Domain-specific fields. May change more frequently.
+# Reserved for future domain-specific use cases (robotics, IoT, finance, etc.)
+
+extended: []
+
+# =============================================================================
+# TOMBSTONED FIELDS
+# =============================================================================
+# NEVER reuse these FIDs. Historical record only.
+
+tombstoned: []

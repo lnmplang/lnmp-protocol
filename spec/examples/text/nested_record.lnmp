@@ -1,2 +1,3 @@
 # Non-canonical nested record (tests REQ-CAN-TXT-06/07)
-F50={F12=1;F7=1;F23=["admin","dev"]};F1=job
+# Uses F20 (name), F70 (nested_data), inner: F7 (is_active), F12 (user_id), F23 (roles)
+F70={F12=1;F7=1;F23=["admin","dev"]};F20=job

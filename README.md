@@ -10,6 +10,8 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 
 **Current Version: v0.5.13**
 
+> **📋 FID Registry:** All Field IDs have official definitions in [`registry/fids.yaml`](registry/fids.yaml). See [`spec/fid-governance.md`](spec/fid-governance.md) for governance rules.
+
 ## Features
 
 - 🚀 **Minimal syntax** - Token reduction compared to JSON
@@ -227,13 +229,13 @@ assert_eq!(text, decoded_text);
 use lnmp_codec::binary::{BinaryNestedEncoder, BinaryNestedDecoder, NestedEncoderConfig};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 
-// Create nested record
+// Create nested record (F70=nested_data, F12=user_id from registry)
 let mut inner = LnmpRecord::new();
-inner.add_field(LnmpField { fid: 1, value: LnmpValue::Int(42) });
+inner.add_field(LnmpField { fid: 12, value: LnmpValue::Int(42) });
 
 let mut outer = LnmpRecord::new();
 outer.add_field(LnmpField {
-    fid: 10,
+    fid: 70,  // F70=nested_data
     value: LnmpValue::NestedRecord(Box::new(inner)),
 });
 
@@ -299,23 +301,24 @@ F12:i=14532#36AAE667
 F7:b=1#A3F2B1C4
 
 # Nested structures (v0.3)
-F50={F12=1;F7=1}
-F60=[{F1=alice},{F1=bob}]
+# F70=nested_data, F71=record_list, F20=name from registry
+F70={F12=1;F7=1}
+F71=[{F20=alice},{F20=bob}]
 ```
 
 ### Supported Types
 
 **Primitive Types:**
 - **Integers**: `F1=42`, `F2=-123`
-- **Floats**: `F3=3.14`, `F4=-2.5`
-- **Booleans**: `F5=1` (true), `F6=0` (false)
-- **Strings**: `F7="hello world"`, `F8=simple_string`
-- **Arrays**: `F9=["a","b","c"]` (StringArray default in text format)
+- **Floats**: `F40=3.14`, `F41=-2.5`
+- **Booleans**: `F7=1` (true), `F8=0` (false)
+- **Strings**: `F20="hello world"`, `F21=simple_string`
+- **Arrays**: `F23=["admin","dev"]` (StringArray)
 - *> Typed numeric arrays (IntArray, FloatArray, BoolArray) now parse from text when the corresponding `:ia/:fa/:ba` hints are supplied, matching the codec and binary representations.*
 
 **Nested Types (v0.3):**
-- **Nested Records**: `F50={F12=1;F7=1}` - Records within records
-- **Nested Arrays**: `F60=[{F1=alice},{F1=bob}]` - Arrays of records
+- **Nested Records**: `F70={F12=1;F7=1}` - Records within records (F70=nested_data)
+- **Record Arrays**: `F71=[{F20=alice},{F20=bob}]` - Arrays of records (F71=record_list)
 
 ### Escape Sequences
 
@@ -354,14 +357,14 @@ let output = encoder.encode(&record);
 Model hierarchical data with nested structures:
 
 ```rust
-// Nested record
-let input = "F50={F12=1;F7=1}";
+// Nested record (F70=nested_data from registry)
+let input = "F70={F12=1;F7=1}";
 
-// Nested array
-let input = "F60=[{F1=alice},{F1=bob}]";
+// Record array (F71=record_list, F20=name from registry)
+let input = "F71=[{F20=alice},{F20=bob}]";
 
 // Deep nesting
-let input = "F100={F1=user;F2={F10=nested;F11=data}}";
+let input = "F70={F20=user;F70={F30=nested;F31=data}}";
 ```
 
 **Features:**
@@ -483,6 +486,38 @@ let msg = negotiator.initiate().unwrap();
 - Type mismatch detection
 - Protocol version negotiation
 - Graceful degradation
+
+### Dynamic FID Discovery (v0.5.14)
+
+Query and synchronize FID registries between peers:
+
+```rust
+use lnmp_codec::binary::{SchemaNegotiator, FidDefinition, FidDefStatus, TypeTag};
+use lnmp_core::registry::RegistrySync;
+
+// Request peer's FID registry
+let mut negotiator = SchemaNegotiator::v0_5()
+    .with_registry_version("1.0.0".into());
+let request = negotiator.request_registry(None);
+
+// Check FID support after discovery
+if negotiator.peer_supports_fid(12) {
+    println!("Peer supports user_id field");
+}
+
+// Multi-peer registry sync
+let mut sync = RegistrySync::with_embedded();
+sync.register_peer("peer-1".into(), "0.9.0".into());
+if sync.is_ahead_of("peer-1") {
+    let delta_fids = sync.delta_fids_for("peer-1");
+}
+```
+
+**Features:**
+- RequestRegistry/RegistryResponse protocol
+- Incremental RegistryDelta sync
+- Peer FID support queries
+- Version-aware registry sync
 
 ### Delta Encoding & Partial Update Layer (DPL)
 

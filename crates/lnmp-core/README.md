@@ -2,6 +2,8 @@
 
 Core type definitions for LNMP (LLM Native Minimal Protocol) v0.5.13.
 
+> **FID Registry:** All examples use official Field IDs from [`registry/fids.yaml`](../../registry/fids.yaml).
+
 ## Overview
 
 This crate provides the fundamental data structures for representing LNMP data:
@@ -118,29 +120,29 @@ pub enum LnmpValue {
 ```rust
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 
-// Create a nested record
+// Create a nested record (F70=nested_data from registry)
 let mut inner_record = LnmpRecord::new();
 inner_record.add_field(LnmpField {
-    fid: 10,
+    fid: 20,  // F20=name
     value: LnmpValue::String("nested".to_string()),
 });
 
 let mut outer_record = LnmpRecord::new();
 outer_record.add_field(LnmpField {
-    fid: 50,
+    fid: 70,  // F70=nested_data
     value: LnmpValue::NestedRecord(Box::new(inner_record)),
 });
 
-// Create a nested array
+// Create a record array (F71=record_list from registry)
 let mut record1 = LnmpRecord::new();
-record1.add_field(LnmpField { fid: 1, value: LnmpValue::Int(1) });
+record1.add_field(LnmpField { fid: 12, value: LnmpValue::Int(1) });  // F12=user_id
 
 let mut record2 = LnmpRecord::new();
-record2.add_field(LnmpField { fid: 1, value: LnmpValue::Int(2) });
+record2.add_field(LnmpField { fid: 12, value: LnmpValue::Int(2) });  // F12=user_id
 
 let mut parent = LnmpRecord::new();
 parent.add_field(LnmpField {
-    fid: 60,
+    fid: 71,  // F71=record_list
     value: LnmpValue::NestedArray(vec![record1, record2]),
 });
 ```
@@ -189,8 +191,8 @@ assert_eq!(record.fields()[0].fid, 7);
 
 // Alternative: construct from unsorted fields
 let fields = vec![
-    LnmpField { fid: 100, value: LnmpValue::Int(1) },
-    LnmpField { fid: 50, value: LnmpValue::Int(2) },
+    LnmpField { fid: 30, value: LnmpValue::Int(1) },  // F30=count
+    LnmpField { fid: 12, value: LnmpValue::Int(2) },  // F12=user_id
 ];
 let record = RecordBuilder::from_fields(fields);
 ```
@@ -246,8 +248,8 @@ let hex = SemanticChecksum::format(checksum);  // "36AAE667"
 
 Support for hierarchical data modeling:
 
-- **Nested Records**: `F50={F12=1;F7=1}` - Records within records
-- **Nested Arrays**: `F60=[{F1=1},{F1=2}]` - Arrays of records
+- **Nested Records**: `F70={F12=1;F7=1}` - Records within records (F70=nested_data)
+- **Record Arrays**: `F71=[{F12=1},{F12=2}]` - Arrays of records (F71=record_list)
 - **Arbitrary Depth**: Limited only by available memory
 - **Structural Validation**: `value.validate_structure()` ensures integrity
 
@@ -322,8 +324,8 @@ rec2.add_field(LnmpField { fid: 12, value: LnmpValue::Int(100) });
 let val1 = LnmpValue::NestedRecord(Box::new(rec1));
 let val2 = LnmpValue::NestedRecord(Box::new(rec2));
 
-let cs1 = SemanticChecksum::compute(50, Some(TypeHint::Record), &val1);
-let cs2 = SemanticChecksum::compute(50, Some(TypeHint::Record), &val2);
+let cs1 = SemanticChecksum::compute(70, Some(TypeHint::Record), &val1);  // F70=nested_data
+let cs2 = SemanticChecksum::compute(70, Some(TypeHint::Record), &val2);
 
 assert_eq!(cs1, cs2); // ✅ Same checksum despite different insertion order!
 ```
@@ -438,6 +440,56 @@ let decoder = BinaryDecoder::new();
 let decoded_record = decoder.decode(&binary).unwrap();
 ```
 
+## v0.5.14 Features
+
+### FID Registry Runtime Validation
+
+Validate fields against the official FID registry at runtime:
+
+```rust
+use lnmp_core::registry::{embedded_registry, FidRegistry, ValidationResult};
+
+// Load embedded registry
+let registry = embedded_registry();
+
+// Validate a field
+let result = registry.validate_field(&field);
+match result {
+    ValidationResult::Valid => println!("OK"),
+    ValidationResult::TypeMismatch { fid, expected, found } => {
+        println!("F{}: expected {:?}, found {:?}", fid, expected, found);
+    }
+    ValidationResult::UnknownFid { fid, range } => {
+        println!("F{} not in registry ({:?} range)", fid, range);
+    }
+    _ => {}
+}
+```
+
+### Registry Sync
+
+Manage FID registry versions across multiple peers:
+
+```rust
+use lnmp_core::registry::RegistrySync;
+
+let mut sync = RegistrySync::with_embedded();
+
+// Track peer registry versions
+sync.register_peer("peer-1".into(), "0.9.0".into());
+sync.register_peer("peer-2".into(), "1.1.0".into());
+
+// Check version comparison
+if sync.is_ahead_of("peer-1") {
+    let fids_to_send = sync.delta_fids_for("peer-1");
+    println!("Need to sync {} FIDs to peer-1", fids_to_send.len());
+}
+
+if sync.is_behind("peer-2") {
+    println!("Request registry update from peer-2");
+}
+```
+
 ## Migration from v0.2
 
 v0.3 is backward compatible with v0.2. New features:
@@ -448,6 +500,11 @@ v0.3 is backward compatible with v0.2. New features:
 - `depth()` and `validate_structure()` methods on `LnmpValue`
 
 v0.4 adds binary protocol support (via lnmp-codec) with no changes to core types.
+
+v0.5.14 adds:
+- `FidRegistry` with runtime validation
+- `RegistrySync` for multi-peer version tracking
+- `embedded_registry()` for compile-time embedded FIDs
 
 Existing v0.2 code continues to work without changes.
 

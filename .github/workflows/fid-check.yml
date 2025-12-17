@@ -1,0 +1,77 @@
+name: FID Registry Check
+
+on:
+  pull_request:
+    paths:
+      - 'registry/**'
+      - 'scripts/validate-fids.py'
+  push:
+    branches: [main]
+    paths:
+      - 'registry/**'
+
+jobs:
+  validate:
+    name: Validate FID Registry
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for breaking change detection
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: pip install pyyaml jsonschema
+        
+      - name: Validate registry schema
+        run: python scripts/validate-fids.py
+        
+      - name: Check for breaking changes
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Checking for breaking changes in FID registry..."
+          python scripts/check-fid-breaking.py origin/${{ github.base_ref }}
+
+  uniqueness:
+    name: Check FID Uniqueness
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: pip install pyyaml
+        
+      - name: Check FID uniqueness
+        run: |
+          python -c "
+          import yaml
+          from collections import Counter
+          
+          with open('registry/fids.yaml') as f:
+              data = yaml.safe_load(f)
+          
+          all_fids = []
+          for section in ['core', 'standard', 'extended', 'tombstoned']:
+              if section in data and data[section]:
+                  all_fids.extend([f['fid'] for f in data[section]])
+          
+          duplicates = [fid for fid, count in Counter(all_fids).items() if count > 1]
+          
+          if duplicates:
+              print(f'ERROR: Duplicate FIDs found: {duplicates}')
+              exit(1)
+          else:
+              print(f'OK: All {len(all_fids)} FIDs are unique')
+          "

@@ -1,2 +1,3 @@
 # Typed numeric arrays from grammar §4 (REQ-TXT-11)
-F14:ba=[1 ,0 ,true ,False ];F13:fa=[1.10, 2.20 ,3.30];F12:ia=[1, 2 ,3 ,-4]
+# Uses F60 (int_values), F61 (float_values), F62 (bool_flags) from registry
+F62:ba=[1 ,0 ,true ,False ];F61:fa=[1.10, 2.20 ,3.30];F60:ia=[1, 2 ,3 ,-4]

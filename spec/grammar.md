@@ -244,8 +244,8 @@ PEG uses **ordered choice**, meaning the first matching alternative is selected.
 **Examples**:
 ```
 F50={F12=1;F7=1}
-F100={F1=user;F2={F10=nested;F11=data}}
-F200={F1=alice;F2={F10=admin;F11={F20=superuser}}}
+F70={F20=user;F21={F30=nested;F31=data}}
+F70={F20=alice;F21={F30=admin;F31={F50=superuser}}}
 ```
 
 ### Nested Arrays
@@ -261,9 +261,9 @@ F200={F1=alice;F2={F10=admin;F11={F20=superuser}}}
 
 **Examples**:
 ```
-F60=[{F12=1},{F12=2},{F12=3}]
-F200=[{F1=alice;F2=admin},{F1=bob;F2=user}]
-F300=[]
+F71=[{F12=1},{F12=2},{F12=3}]
+F71=[{F20=alice;F23=[admin]},{F20=bob;F23=[user]}]
+F71=[]
 ```
 
 ### Mixed Nesting
@@ -271,8 +271,8 @@ F300=[]
 Nested records can contain nested arrays and vice versa:
 
 ```
-F100={F1=users;F2=[{F10=alice},{F10=bob}]}
-F200=[{F1=dept;F2={F10=eng;F11=dev}}]
+F70={F20=users;F71=[{F12=1},{F12=2}]}
+F71=[{F20=dept;F70={F21=eng;F22=dev}}]
 ```
 
 ## Checksum Syntax
@@ -505,10 +505,10 @@ The grammar is designed to accommodate these extensions without breaking existin
 
 Implementations should validate against these test cases:
 
-1. **Basic Fields**: `F12=14532`, `F7:b=1`, `F1:s=hello`
-2. **Generic Arrays**: `F10:ia=[1,2,3]`, `F11:fa=[1.1,2.2]`, `F12:ba=[1,0,1]`
-3. **Nested Records**: `F50={F12=1;F7=1}`, `F100={F1=a;F2={F10=b}}`
-4. **Nested Arrays**: `F60=[{F12=1},{F12=2}]`, `F200=[]`
+1. **Basic Fields**: `F12=14532`, `F7:b=1`, `F20:s=hello`
+2. **Generic Arrays**: `F60:ia=[1,2,3]`, `F61:fa=[1.1,2.2]`, `F62:ba=[1,0,1]`
+3. **Nested Records**: `F50={F12=1;F7=1}`, `F70={F20=a;F21={F30=b}}`
+4. **Nested Arrays**: `F71=[{F12=1},{F12=2}]`, `F71=[]`
 5. **Checksums**: `F12:i=14532#36AAE667`
 6. **Escape Sequences**: `F1="hello\nworld"`, `F2="path\\file"`
 7. **Comments**: `F12=1 # comment`, `F7=1#A3F2B1C4`

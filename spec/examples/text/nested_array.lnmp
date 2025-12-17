@@ -1,2 +1,3 @@
 # Nested array example from grammar spec
-F60=[{F12=1},{F12=2}]
+# Uses F71 (record_list), inner: F12 (user_id)
+F71=[{F12=1},{F12=2}]

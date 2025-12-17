@@ -72,6 +72,7 @@ pub mod container;
 pub mod limits;
 pub mod profile;
 pub mod record;
+pub mod registry;
 pub mod types;
 
 pub use builder::RecordBuilder;

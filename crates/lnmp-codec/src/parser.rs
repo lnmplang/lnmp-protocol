@@ -7,6 +7,7 @@ use crate::error::LnmpError;
 use crate::lexer::{Lexer, Token};
 use crate::normalizer::ValueNormalizer;
 use lnmp_core::checksum::SemanticChecksum;
+use lnmp_core::registry::{ValidationMode, ValidationResult};
 use lnmp_core::{FieldId, LnmpField, LnmpRecord, LnmpValue, TypeHint};
 use lnmp_sanitize::{sanitize_lnmp_text, SanitizationConfig};
 
@@ -789,10 +790,99 @@ impl<'a> Parser<'a> {
             value
         };
 
-        Ok(LnmpField {
+        let field = LnmpField {
             fid,
             value: normalized_value,
-        })
+        };
+
+        // FID Registry validation (v0.5.14)
+        if let Some(registry) = &self.config.fid_registry {
+            let result = registry.validate_field(&field);
+            match result {
+                ValidationResult::Valid => {}
+                ValidationResult::TypeMismatch {
+                    expected, found, ..
+                } => {
+                    let (line, column) = self.lexer.position_original();
+                    match self.config.fid_validation_mode {
+                        ValidationMode::Error => {
+                            return Err(LnmpError::FidValidation {
+                                fid,
+                                reason: format!(
+                                    "type mismatch: expected {:?}, found {:?}",
+                                    expected, found
+                                ),
+                                line,
+                                column,
+                            });
+                        }
+                        ValidationMode::Warn => {
+                            // Log warning (when log feature is enabled)
+                            #[cfg(feature = "log")]
+                            log::warn!(
+                                "FID validation warning at line {}, column {}: F{} type mismatch - expected {:?}, found {:?}",
+                                line, column, fid, expected, found
+                            );
+                        }
+                        ValidationMode::None => {}
+                    }
+                }
+                ValidationResult::UnknownFid { range, .. } => {
+                    let (line, column) = self.lexer.position_original();
+                    match self.config.fid_validation_mode {
+                        ValidationMode::Error => {
+                            return Err(LnmpError::FidValidation {
+                                fid,
+                                reason: format!("unknown FID in {:?} range", range),
+                                line,
+                                column,
+                            });
+                        }
+                        ValidationMode::Warn => {
+                            #[cfg(feature = "log")]
+                            log::warn!(
+                                "FID validation warning at line {}, column {}: F{} is unknown in {:?} range",
+                                line, column, fid, range
+                            );
+                        }
+                        ValidationMode::None => {}
+                    }
+                }
+                ValidationResult::DeprecatedFid { name, .. } => {
+                    let (line, column) = self.lexer.position_original();
+                    match self.config.fid_validation_mode {
+                        ValidationMode::Error => {
+                            return Err(LnmpError::FidValidation {
+                                fid,
+                                reason: format!("deprecated FID: {}", name),
+                                line,
+                                column,
+                            });
+                        }
+                        ValidationMode::Warn => {
+                            #[cfg(feature = "log")]
+                            log::warn!(
+                                "FID validation warning at line {}, column {}: F{} ({}) is deprecated",
+                                line, column, fid, name
+                            );
+                        }
+                        ValidationMode::None => {}
+                    }
+                }
+                ValidationResult::TombstonedFid { name, .. } => {
+                    let (line, column) = self.lexer.position_original();
+                    // Tombstoned FIDs always error, regardless of mode
+                    return Err(LnmpError::FidValidation {
+                        fid,
+                        reason: format!("tombstoned FID: {} (must never be used)", name),
+                        line,
+                        column,
+                    });
+                }
+            }
+        }
+
+        Ok(field)
     }
 
     /// Parses and validates a checksum

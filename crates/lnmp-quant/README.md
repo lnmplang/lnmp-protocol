@@ -2,6 +2,8 @@
 
 > Quantization and compression for LNMP embedding vectors with minimal accuracy loss
 
+> **FID Registry:** All examples use official Field IDs from [`registry/fids.yaml`](../../registry/fids.yaml).
+
 [![Crates.io](https://img.shields.io/crates/v/lnmp-quant)](https://crates.io/crates/lnmp-quant)
 [![Documentation](https://docs.rs/lnmp-quant/badge.svg)](https://docs.rs/lnmp-quant)
 
@@ -67,10 +69,10 @@ use lnmp_quant::quantize_embedding;
 // Quantize an embedding
 let quantized = quantize_embedding(&embedding, QuantScheme::QInt8)?;
 
-// Add to LNMP record
+// Add to LNMP record (F512=embedding from registry)
 let mut record = LnmpRecord::new();
 record.add_field(LnmpField {
-    fid: 1,
+    fid: 512,  // F512=embedding
     value: LnmpValue::QuantizedEmbedding(quantized),
 });
 

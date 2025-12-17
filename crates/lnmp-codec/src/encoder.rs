@@ -1,7 +1,9 @@
 //! Encoder for converting structured records into LNMP text format.
 
 use crate::config::EncoderConfig;
+use crate::error::LnmpError;
 use lnmp_core::checksum::SemanticChecksum;
+use lnmp_core::registry::{ValidationMode, ValidationResult};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue, TypeHint};
 
 /// Encodes a quantized embedding into compact text format
@@ -103,6 +105,109 @@ impl Encoder {
         } else {
             fields.join("\n")
         }
+    }
+
+    /// Encodes a complete record with FID validation (v0.5.14)
+    ///
+    /// Returns an error if any field fails FID validation.
+    /// Use this method when you want strict validation before encoding.
+    pub fn encode_validated(&self, record: &LnmpRecord) -> Result<String, LnmpError> {
+        // Validate all fields first
+        self.validate_record(record)?;
+
+        // Then encode normally
+        Ok(self.encode(record))
+    }
+
+    /// Validates all fields in a record against the FID registry (v0.5.14)
+    ///
+    /// Returns Ok(()) if all fields are valid, or the first validation error.
+    pub fn validate_record(&self, record: &LnmpRecord) -> Result<(), LnmpError> {
+        if let Some(registry) = &self.config.fid_registry {
+            for field in record.fields() {
+                let result = registry.validate_field(field);
+                match result {
+                    ValidationResult::Valid => {}
+                    ValidationResult::TypeMismatch {
+                        fid,
+                        expected,
+                        found,
+                    } => match self.config.fid_validation_mode {
+                        ValidationMode::Error => {
+                            return Err(LnmpError::FidValidation {
+                                fid,
+                                reason: format!(
+                                    "type mismatch: expected {:?}, found {:?}",
+                                    expected, found
+                                ),
+                                line: 0,
+                                column: 0,
+                            });
+                        }
+                        ValidationMode::Warn => {
+                            #[cfg(feature = "log")]
+                            log::warn!(
+                                    "FID validation warning: F{} type mismatch - expected {:?}, found {:?}",
+                                    fid, expected, found
+                                );
+                        }
+                        ValidationMode::None => {}
+                    },
+                    ValidationResult::UnknownFid { fid, range } => {
+                        match self.config.fid_validation_mode {
+                            ValidationMode::Error => {
+                                return Err(LnmpError::FidValidation {
+                                    fid,
+                                    reason: format!("unknown FID in {:?} range", range),
+                                    line: 0,
+                                    column: 0,
+                                });
+                            }
+                            ValidationMode::Warn => {
+                                #[cfg(feature = "log")]
+                                log::warn!(
+                                    "FID validation warning: F{} is unknown in {:?} range",
+                                    fid,
+                                    range
+                                );
+                            }
+                            ValidationMode::None => {}
+                        }
+                    }
+                    ValidationResult::DeprecatedFid { fid, name } => {
+                        match self.config.fid_validation_mode {
+                            ValidationMode::Error => {
+                                return Err(LnmpError::FidValidation {
+                                    fid,
+                                    reason: format!("deprecated FID: {}", name),
+                                    line: 0,
+                                    column: 0,
+                                });
+                            }
+                            ValidationMode::Warn => {
+                                #[cfg(feature = "log")]
+                                log::warn!(
+                                    "FID validation warning: F{} ({}) is deprecated",
+                                    fid,
+                                    name
+                                );
+                            }
+                            ValidationMode::None => {}
+                        }
+                    }
+                    ValidationResult::TombstonedFid { fid, name } => {
+                        // Tombstoned FIDs always error, regardless of mode
+                        return Err(LnmpError::FidValidation {
+                            fid,
+                            reason: format!("tombstoned FID: {} (must never be used)", name),
+                            line: 0,
+                            column: 0,
+                        });
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Encodes a single field (F<fid>=<value> or F<fid>:<type>=<value> or with checksum)

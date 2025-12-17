@@ -2,6 +2,8 @@
 
 LNMP-LLM Bridge Layer - Optimization and conversion utilities for LLM-friendly data formats.
 
+> **FID Registry:** All examples use official Field IDs from [`registry/fids.yaml`](../../registry/fids.yaml).
+
 ## Overview
 
 The LNMP-LLM Bridge Layer (LLB) provides tools for optimizing LNMP data for LLM consumption:
@@ -147,33 +149,33 @@ Optimized handling for numeric arrays:
 use lnmp_core::{LnmpField, LnmpValue, RecordBuilder};
 use lnmp_llb::LlbConverter;
 
-// IntArray
+// IntArray (F60=int_values from registry)
 let record = RecordBuilder::new()
     .add_field(LnmpField {
-        fid: 10,
+        fid: 60,  // F60=int_values
         value: LnmpValue::IntArray(vec![1, 2, 3, 4, 5])
     })
     .build();
 
-// FloatArray
+// FloatArray (F61=float_values from registry)
 let record = RecordBuilder::new()
     .add_field(LnmpField {
-        fid: 11,
+        fid: 61,  // F61=float_values
         value: LnmpValue::FloatArray(vec![1.1, 2.2, 3.3])
     })
     .build();
 
-// BoolArray
+// BoolArray (F62=bool_flags from registry)
 let record = RecordBuilder::new()
     .add_field(LnmpField {
-        fid: 12,
+        fid: 62,  // F62=bool_flags
         value: LnmpValue::BoolArray(vec![true, false, true])
     })
     .build();
 
 let converter = LlbConverter::new(LlbConfig::default());
 let shortform = converter.record_to_shortform(&record)?;
-// Output: 10=[1,2,3,4,5] 11=[1.1,2.2,3.3] 12=[1,0,1]
+// Output: 60=[1,2,3,4,5] 61=[1.1,2.2,3.3] 62=[1,0,1]
 ```
 
 ## Performance

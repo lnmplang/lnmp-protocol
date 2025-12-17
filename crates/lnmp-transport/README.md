@@ -2,6 +2,8 @@
 
 Transport bindings for the LNMP protocol, providing standard mappings between LNMP records with Envelope metadata and various transport protocols (HTTP, Kafka, gRPC).
 
+> **FID Registry:** All examples use official Field IDs from [`registry/fids.yaml`](../../registry/fids.yaml).
+
 ## Purpose
 
 `lnmp-transport` bridges LNMP's in-memory data model to real-world transport layers by:
