@@ -31,6 +31,9 @@ jobs:
         
       - name: Validate registry schema
         run: python scripts/validate-fids.py
+
+      - name: Compile binary registry
+        run: python scripts/compile-registry.py
         
       - name: Check for breaking changes
         if: github.event_name == 'pull_request'

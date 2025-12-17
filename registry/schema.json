@@ -1,15 +1,21 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://lnmplang.org/schemas/fid-registry.json",
+  "$id": "https://raw.githubusercontent.com/lnmplang/lnmp-protocol/main/registry/schema.json",
   "title": "LNMP FID Registry",
   "description": "Schema for validating LNMP Field ID registry files",
   "type": "object",
-  "required": ["metadata", "core"],
+  "required": [
+    "metadata",
+    "core"
+  ],
   "additionalProperties": false,
   "properties": {
     "metadata": {
       "type": "object",
-      "required": ["version", "protocol_version"],
+      "required": [
+        "version",
+        "protocol_version"
+      ],
       "additionalProperties": false,
       "properties": {
         "version": {
@@ -32,11 +38,16 @@
     "core": {
       "description": "Core fields (FID 0-255) - LOCKED stability",
       "allOf": [
-        { "$ref": "#/definitions/fieldList" },
+        {
+          "$ref": "#/definitions/fieldList"
+        },
         {
           "items": {
             "properties": {
-              "fid": { "minimum": 0, "maximum": 255 }
+              "fid": {
+                "minimum": 0,
+                "maximum": 255
+              }
             }
           }
         }
@@ -45,11 +56,16 @@
     "standard": {
       "description": "Standard fields (FID 256-16383) - STABLE",
       "allOf": [
-        { "$ref": "#/definitions/fieldList" },
+        {
+          "$ref": "#/definitions/fieldList"
+        },
         {
           "items": {
             "properties": {
-              "fid": { "minimum": 256, "maximum": 16383 }
+              "fid": {
+                "minimum": 256,
+                "maximum": 16383
+              }
             }
           }
         }
@@ -58,11 +74,16 @@
     "extended": {
       "description": "Extended fields (FID 16384-32767) - EVOLVING",
       "allOf": [
-        { "$ref": "#/definitions/fieldList" },
+        {
+          "$ref": "#/definitions/fieldList"
+        },
         {
           "items": {
             "properties": {
-              "fid": { "minimum": 16384, "maximum": 32767 }
+              "fid": {
+                "minimum": 16384,
+                "maximum": 32767
+              }
             }
           }
         }
@@ -76,11 +97,19 @@
   "definitions": {
     "fieldList": {
       "type": "array",
-      "items": { "$ref": "#/definitions/field" }
+      "items": {
+        "$ref": "#/definitions/field"
+      }
     },
     "field": {
       "type": "object",
-      "required": ["fid", "name", "type", "status", "since"],
+      "required": [
+        "fid",
+        "name",
+        "type",
+        "status",
+        "since"
+      ],
       "additionalProperties": false,
       "properties": {
         "fid": {
@@ -113,13 +142,21 @@
           "description": "LNMP value type"
         },
         "unit": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "maxLength": 32,
           "description": "SI unit or null"
         },
         "status": {
           "type": "string",
-          "enum": ["PROPOSED", "ACTIVE", "DEPRECATED", "TOMBSTONED"],
+          "enum": [
+            "PROPOSED",
+            "ACTIVE",
+            "DEPRECATED",
+            "TOMBSTONED"
+          ],
           "description": "Lifecycle status"
         },
         "since": {
