@@ -1,150 +1,136 @@
 # LNMP Architecture & Flow: The Digital Organism
 
-This document illustrates the LNMP protocol as a living biological system. It visualizes how the **12-module ecosystem** functions together to create intelligent, evolving agent communication.
+This document illustrates the LNMP protocol (v0.5.14) as a highly structured biological system. It combines a clean, layered anatomical view with a detailed physiological flow.
 
-## 1. The Anatomy of LNMP (Module Map)
+## 1. The Anatomy (Layered Architecture)
 
-Each crate in the ecosystem serves a critical physiological function.
+The protocol is organized into distinct functional layers, ensuring separation of concerns and modular efficiency.
 
 ```mermaid
 graph TD
-    %% ZONE 1: CORTEX (Cognition)
-    subgraph "The Cortex (Cognition)"
+    %% LAYER 1: COGNITION (The Brain)
+    subgraph Layer1 ["🧠 1. COGNITIVE LAYER (Cortex)"]
+        direction TB
         App[Application]
         SFE[lnmp-sfe: Semantic Engine]
-        LLB[lnmp-llb: Language Center]
+        LLB[lnmp-llb: Language Bridge]
+        LLM((LLM Model))
         
-        App -->|Intent| SFE
-        SFE -->|FIDs| LLB
-        LLB -->|Tokens| LLM((LLM))
+        App <--> SFE
+        SFE <--> LLB
+        LLB <--> LLM
     end
 
-    %% ZONE 2: NUCLEUS (Genetics)
-    subgraph "The Nucleus (DNA)"
-        Core[lnmp-core: Registry & Types]
+    %% LAYER 2: CORE (The DNA)
+    subgraph Layer2 ["🧬 2. CORE LAYER (Nucleus)"]
+        direction TB
+        LnmpCore[lnmp-core: Registry]
         Codec[lnmp-codec: Transcription]
     end
 
-    %% ZONE 3: IMMUNE SYSTEM (Defense)
-    subgraph "Immune System"
+    %% LAYER 3: CAPABILITIES (Physiology)
+    subgraph Layer3 ["💪 3. CAPABILITY LAYER (Body)"]
+        direction LR
+        Spatial[lnmp-spatial]
+        Emb[lnmp-embedding]
+        Quant[lnmp-quant]
+        
+        Spatial --- Emb
+        Emb --- Quant
+    end
+
+    %% LAYER 4: DEFENSE (Immune System)
+    subgraph Layer4 ["🛡️ 4. DEFENSE LAYER (Immunity)"]
+        direction TB
         San[lnmp-sanitize: Hygiene]
-        Env[lnmp-envelope: Identity/Wall]
+        Env[lnmp-envelope: Identity]
     end
 
-    %% ZONE 4: PHYSIOLOGY (Senses)
-    subgraph "Physiology (Body)"
-        Spatial[lnmp-spatial: Proprioception]
-        Emb[lnmp-embedding: Memory]
-        Quant[lnmp-quant: Metabolism]
+    %% LAYER 5: TRANSPORT (Circulation)
+    subgraph Layer5 ["📡 5. TRANSPORT LAYER (Vascular)"]
+        direction TB
+        Net[lnmp-net: Routing/QoS]
+        Trans[lnmp-transport: Bindings]
     end
 
-    %% ZONE 5: CIRCULATION (Transport)
-    subgraph "Circulatory System"
-        Net[lnmp-net: Autonomic NS]
-        Trans[lnmp-transport: Vascular]
-        Ext[External World]
-    end
+    %% MAIN SPINE (Vertical Integration)
+    Layer1 ==> Layer2
+    Layer2 ==> Layer3
+    Layer3 ==> Layer4
+    Layer4 ==> Layer5
 
-    %% Data Flow Spine
-    SFE ==>|Maps| Core
-    Core ==>|Defines| Codec
-    Codec ==>|Packets| Env
-    Env ==>|Sealed| Net
-    Net ==>|Routed| Trans
-    Trans ==>|Flow| Ext
+    %% EXPLICIT FLOW
+    SFE --> LnmpCore
+    LnmpCore --> Codec
+    Codec --> Env
+    Env --> Net
+    Net --> Trans
 
-    %% Input Filter
-    Ext -.->|Raw| San
-    San -.->|Clean| Codec
-
-    %% Capability Extensions (Lateral Connections)
-    Spatial -.->|Extends| Core
-    Emb -.->|Extends| Core
-    Quant -.->|Optimizes| Emb
-
-    %% Style
-    linkStyle default stroke-width:2px,fill:none,stroke:#333;
+    %% STYLING
+    linkStyle default stroke-width:2px,fill:none,stroke:#555;
+    style Layer1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Layer2 fill:#fff8e1,stroke:#fbc02d,stroke-width:2px
+    style Layer3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Layer4 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Layer5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
 ```
 
-### 🫀 Organ Systems Defined
+### 🧬 Guide to Layers
 
-*   **The Cortex (`sfe`, `llb`):** The brain. Translates abstract Intent into Protocol genetics (FIDs) and optimizes language for the LLM.
-*   **The Nucleus (`core`, `codec`):** The DNA. Stores the immutable Registry and transcribes data into binary RNA.
-*   **Immune System (`envelope`, `sanitize`):** Protects the cell. Filters toxins (malformed input) and asserts Identity/Traceability.
-*   **Physiology (`spatial`, `embedding`, `quant`):** The body. Provides senses (Space), memory (Vectors), and metabolic efficiency (Quantization).
-*   **Circulation (`net`, `transport`):** The blood flow. Manages priorities (QoS) and physical movement (HTTP/Kafka).
+1.  **Cognitive Layer:** Where "meaning" happens. `lnmp-sfe` translates intent to FIDs; `lnmp-llb` compresses text for the LLM.
+2.  **Core Layer:** The source of truth. `lnmp-core` holds the Registry; `lnmp-codec` handles binary encoding.
+3.  **Capability Layer:** Extends the core with superpowers. `spatial` (Location), `embedding` (Memory), `quant` (Efficiency).
+4.  **Defense Layer:** Protects the organism. `lnmp-sanitize` cleans input; `lnmp-envelope` signs and wraps packets.
+5.  **Transport Layer:** Moves the data. `lnmp-net` prioritizes traffic; `lnmp-transport` binds to HTTP/Kafka.
 
 ---
 
-## 2. The Connectivity DNA Helix (E2E Flow)
+## 2. The Cycle of Life (DNA Helix Flow)
 
-This sequence diagram illustrates the "Double Helix" interaction between two agents. The strands are connected by protocol bonds.
+How a message comes alive and travels between agents.
 
 ```mermaid
 sequenceDiagram
     participant A as 🧬 Agent A
     participant B as 🧬 Agent B
     
-    Note over A,B: Phase 1: Recognition (Discovery)
+    Note over A,B: PHASE 1: RECOGNITION (Handshake)
     
     A->>B: 🟡 Hello (Protocol v0.5)
     B-->>A: 🟢 Welcome (Registry v1.2)
     
     rect rgb(20, 30, 40)
-        Note left of A: DNA Bonding: Schema Alignment
-        A->>A: Check Registry Sync
-        alt Registry Mismatch
-            A->>B: 🔴 RequestDelta(v1.0 -> v1.2)
-            B-->>A: 🔵 RegistryDelta (New FIDs)
-            A->>A: Apply Delta & Compile
+        Note left of A: DNA Bonding
+        A->>A: Registry Mismatch?
+        opt Sync Required
+            A->>B: 🔴 RequestDelta
+            B-->>A: 🔵 RegistryDelta
+            A->>A: Apply & Compile
         end
     end
     
-    A->>B: 🟡 Ready (Bond Established)
+    A->>B: 🟡 Bond Established
     
-    Note over A,B: Phase 2: Synthesis (Data Exchange)
+    Note over A,B: PHASE 2: SYNTHESIS (Data Exchange)
     
-    loop Stream / Bi-Directional
-        A->>B: 📦 [Env: TraceID] [Msg: Prompt] (FIDs: 10, 768)
+    loop Stream Interaction
+        A->>B: 📦 [Env: TraceID] [Msg: Action] (FIDs: 10, 100)
         
         rect rgb(40, 50, 60)
-            Note right of B: Semantic Processing
-            B->>B: Env.Verify() -> Codec.Decode() -> SFE.Understand()
+            Note right of B: Processing
+            B->>B: Verify -> Decode -> Understand -> Act
         end
         
-        B-->>A: 📦 [Msg: Response] [Meta: Complexity=0.9]
+        B-->>A: 📦 [Msg: Result] [Meta: Status=OK]
         
-        opt Spatial Context
-            A->>B: 🧊 [Spatial: Position] (F256)
-            B-->>A: 🧊 [Spatial: New Coordinates]
+        opt Spatial Reflex (Multimodal)
+            A->>B: 🧊 [Spatial: Vector] (F256)
+            B-->>A: 🧊 [Spatial: Update]
         end
     end
     
-    Note over A,B: Phase 3: Termination
+    Note over A,B: PHASE 3: TERMINATION
     
     A->>B: 🔴 Close Session
     B-->>A: 🔴 Ack
-```
-
-## 3. The "Centipede" Topology (Multi-Agent Harmony)
-
-LNMP allows multiple agents to connect like segments of a giant organism.
-
-```mermaid
-graph LR
-    subgraph "Agent Cluster"
-        A[Agent Node] <-->|Sync| B[Agent Node]
-        B <-->|Sync| C[Agent Node]
-        C <-->|Sync| A
-    end
-
-    subgraph "Shared Reality (Registry)"
-        Reg((Registry Source))
-    end
-
-    A -.->|Pull DNA| Reg
-    B -.->|Pull DNA| Reg
-    C -.->|Pull DNA| Reg
-
-    style Reg fill:#f96,stroke:#333,stroke-width:4px
 ```
