@@ -1,142 +1,136 @@
-# LNMP Architecture & Flow: The Digital Organism
+# LNMP Protocol Architecture (v0.5.14)
 
-This document illustrates the LNMP protocol (v0.5.14) as a highly structured biological system. It combines a clean, layered anatomical view with a detailed physiological flow.
+This document defines the structural architecture of the LNMP protocol, mapping the **12 ecosystem crates** into a unified layered model.
 
-## 1. The Anatomy (Layered Architecture)
+## 1. The Protocol Stack (The Centipede)
 
-The protocol is organized into distinct functional layers, ensuring separation of concerns and modular efficiency.
+The LNMP architecture is composed of 5 vertical layers. Each layer has a specific responsibility and communicates only with adjacent layers.
 
 ```mermaid
 graph TD
-    %% LAYER 1: COGNITION (The Brain)
-    subgraph Layer1 ["🧠 1. COGNITIVE LAYER (Cortex)"]
+    %% --- LAYER 1: APPLICATION & INTELLIGENCE ---
+    subgraph L1 ["1. Application Layer (Intelligence)"]
         direction TB
-        App[Application]
-        SFE[lnmp-sfe: Semantic Engine]
-        LLB[lnmp-llb: Language Bridge]
-        LLM((LLM Model))
+        App[User Application]
+        SFE[lnmp-sfe: Semantic Field Engine]
+        LLB[lnmp-llb: LLM Bridge]
         
-        App <--> SFE
-        SFE <--> LLB
-        LLB <--> LLM
+        App -->|"Intent"| SFE
+        SFE -->|"FIDs"| LLB
+        LLB -->|"Context"| LLM((AI Model))
     end
 
-    %% LAYER 2: CORE (The DNA)
-    subgraph Layer2 ["🧬 2. CORE LAYER (Nucleus)"]
+    %% --- LAYER 2: CORE & PRESENTATION ---
+    subgraph L2 ["2. Core Layer (Definition)"]
         direction TB
-        LnmpCore[lnmp-core: Registry]
-        Codec[lnmp-codec: Transcription]
+        Core[lnmp-core: Registry & Types]
+        Codec[lnmp-codec: Serialization]
+        San[lnmp-sanitize: Input Filter]
     end
 
-    %% LAYER 3: CAPABILITIES (Physiology)
-    subgraph Layer3 ["💪 3. CAPABILITY LAYER (Body)"]
+    %% --- LAYER 3: CAPABILITIES (EXTENSIONS) ---
+    subgraph L3 ["3. Capability Layer (Extensions)"]
         direction LR
-        Spatial[lnmp-spatial]
-        Emb[lnmp-embedding]
-        Quant[lnmp-quant]
+        Spatial[lnmp-spatial: 3D/Geo]
+        Emb[lnmp-embedding: Vectors]
+        Quant[lnmp-quant: Compression]
         
-        Spatial --- Emb
-        Emb --- Quant
+        Spatial -.-> Core
+        Emb -.-> Core
+        Quant -.-> Emb
     end
-
-    %% LAYER 4: DEFENSE (Immune System)
-    subgraph Layer4 ["🛡️ 4. DEFENSE LAYER (Immunity)"]
-        direction TB
-        San[lnmp-sanitize: Hygiene]
-        Env[lnmp-envelope: Identity]
-    end
-
-    %% LAYER 5: TRANSPORT (Circulation)
-    subgraph Layer5 ["📡 5. TRANSPORT LAYER (Vascular)"]
-        direction TB
-        Net[lnmp-net: Routing/QoS]
-        Trans[lnmp-transport: Bindings]
-    end
-
-    %% MAIN SPINE (Vertical Integration)
-    %% Node-to-Node connections drive the layout, no need for Layer-to-Layer links
-    SFE ==> LnmpCore
     
-    LnmpCore ==> Codec
+    %% --- LAYER 4: DEFENSE & IDENTITY ---
+    subgraph L4 ["4. Session Layer (Defense)"]
+        direction TB
+        Env[lnmp-envelope: Identity/Trace]
+    end
+
+    %% --- LAYER 5: TRANSPORT & ROUTING ---
+    subgraph L5 ["5. Network Layer (Transport)"]
+        direction TB
+        Net[lnmp-net: QoS/Routing]
+        Trans[lnmp-transport: Bindings]
+        Ext[External Network]
+    end
+
+    %% --- VERTICAL FLOW (THE SPINE) ---
+    SFE ==> Core
+    Core ==> Codec
     Codec ==> Env
     Env ==> Net
     Net ==> Trans
-
-    %% CONNECTION REFINEMENTS
-    App --> SFE
-    SFE --> LLB
-    LLB --> LLM
+    Trans ==> Ext
     
-    %% Capability Connections
-    LnmpCore -.-> Spatial
-    LnmpCore -.-> Emb
-    Emb -.-> Quant
-
-    %% Defense / Transport Connections
-    San -.-> LnmpCore
+    %% --- INPUT FLOW ---
     Ext -.-> San
-    Trans -.-> Ext
-
+    San -.-> Core
+    
     %% STYLING
-    %% STYLING
-    style Layer1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style Layer2 fill:#fff8e1,stroke:#fbc02d,stroke-width:2px
-    style Layer3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style Layer4 fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style Layer5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef layer fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    class L1,L2,L3,L4,L5 layer;
 ```
 
-### 🧬 Guide to Layers
+### Module Responsibilities
 
-1.  **Cognitive Layer:** Where "meaning" happens. `lnmp-sfe` translates intent to FIDs; `lnmp-llb` compresses text for the LLM.
-2.  **Core Layer:** The source of truth. `lnmp-core` holds the Registry; `lnmp-codec` handles binary encoding.
-3.  **Capability Layer:** Extends the core with superpowers. `spatial` (Location), `embedding` (Memory), `quant` (Efficiency).
-4.  **Defense Layer:** Protects the organism. `lnmp-sanitize` cleans input; `lnmp-envelope` signs and wraps packets.
-5.  **Transport Layer:** Moves the data. `lnmp-net` prioritizes traffic; `lnmp-transport` binds to HTTP/Kafka.
+| Layer | Module | Responsibility |
+| :--- | :--- | :--- |
+| **1. App** | `lnmp-sfe` | **Translator:** Converts human intent/concepts into Protocol FIDs. |
+| | `lnmp-llb` | **Optimizer:** Formats data for LLM context windows (ShortForm). |
+| **2. Core** | `lnmp-core` | **Authority:** Holds the FID Registry and Type Definitions. |
+| | `lnmp-codec` | **Encoder:** Handles Binary/Text serialization. |
+| | `lnmp-sanitize` | **Filter:** Cleans "dirty" input before strict parsing. |
+| **3. Cap** | `lnmp-spatial` | **Sense:** Provides coordinate systems and spatial math. |
+| | `lnmp-embedding` | **Memory:** Manages high-dimensional vector data. |
+| | `lnmp-quant` | **Efficiency:** Compresses vectors (up to 32x) for transport. |
+| **4. Def** | `lnmp-envelope` | **Identity:** Signs packets, adds Trace IDs and Timestamps. |
+| **5. Net** | `lnmp-net` | **Router:** Classifies messages (Alert/Log) and assigns QoS. |
+| | `lnmp-transport` | **Binding:** Maps LNMP concepts to HTTP/Kafka/gRPC. |
 
 ---
 
-## 2. The Cycle of Life (DNA Helix Flow)
+## 2. The Data Flow (The DNA Helix)
 
-How a message comes alive and travels between agents.
+This sequence illustrates the lifecycle of a message, showing how two agents sync ("Bonding") and exchange data ("Synthesis").
 
 ```mermaid
 sequenceDiagram
-    participant A as 🧬 Agent A
-    participant B as 🧬 Agent B
+    participant A as 👤 Agent A (Sender)
+    participant B as 🤖 Agent B (Receiver)
     
-    Note over A,B: PHASE 1: RECOGNITION (Handshake)
+    Note over A,B: PHASE 1: DNA BONDING (Sync)
     
     A->>B: 🟡 Hello (Protocol v0.5)
     B-->>A: 🟢 Welcome (Registry v1.2)
     
-    rect rgb(20, 30, 40)
-        Note left of A: DNA Bonding
-        A->>A: Registry Mismatch?
-        opt Sync Required
-            A->>B: 🔴 RequestDelta
-            B-->>A: 🔵 RegistryDelta
-            A->>A: Apply & Compile
-        end
+    rect rgb(240, 240, 240)
+    Note left of A: Compatibility Check
+    A->>A: Local v1.0 vs Remote v1.2
+    alt Registry Mismatch
+        A->>B: 🔴 RequestDelta
+        B-->>A: 🔵 RegistryDelta (New FIDs)
+        A->>A: Apply & Recompile
+    end
     end
     
-    A->>B: 🟡 Bond Established
+    A->>B: 🟡 Ready (Bonded)
     
-    Note over A,B: PHASE 2: SYNTHESIS (Data Exchange)
+    Note over A,B: PHASE 2: SYNTHESIS (Exchange)
     
-    loop Stream Interaction
-        A->>B: 📦 [Env: TraceID] [Msg: Action] (FIDs: 10, 100)
+    loop Real-time Interaction
+        A->>B: 📦 [Env: TraceID] [Msg: Intent] (FIDs: 10, 100)
         
-        rect rgb(40, 50, 60)
-            Note right of B: Processing
-            B->>B: Verify -> Decode -> Understand -> Act
+        rect rgb(230, 240, 255)
+            Note right of B: Internal Processing
+            B->>B: Net (QoS) -> Env (Verify) -> Codec (Decode)
+            B->>B: Core (Validate) -> SFE (Understand)
         end
         
-        B-->>A: 📦 [Msg: Result] [Meta: Status=OK]
+        B-->>A: 📦 [Msg: Response] [Meta: Confidence=0.99]
         
-        opt Spatial Reflex (Multimodal)
-            A->>B: 🧊 [Spatial: Vector] (F256)
-            B-->>A: 🧊 [Spatial: Update]
+        opt Spatial Reflex
+            A->>B: 🧊 [Spatial: Position Update] (F256)
+            B-->>A: 🧊 [Spatial: New Coordinates]
         end
     end
     
