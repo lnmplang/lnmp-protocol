@@ -13,7 +13,6 @@ A breaking change is:
 
 import subprocess
 import sys
-from pathlib import Path
 
 try:
     import yaml
