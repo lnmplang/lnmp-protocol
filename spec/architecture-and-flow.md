@@ -54,17 +54,28 @@ graph TD
     end
 
     %% MAIN SPINE (Vertical Integration)
-    Layer1 ==> Layer2
-    Layer2 ==> Layer3
-    Layer3 ==> Layer4
-    Layer4 ==> Layer5
+    %% Node-to-Node connections drive the layout, no need for Layer-to-Layer links
+    SFE ==> LnmpCore
+    
+    LnmpCore ==> Codec
+    Codec ==> Env
+    Env ==> Net
+    Net ==> Trans
 
-    %% EXPLICIT FLOW
-    SFE --> LnmpCore
-    LnmpCore --> Codec
-    Codec --> Env
-    Env --> Net
-    Net --> Trans
+    %% CONNECTION REFINEMENTS
+    App --> SFE
+    SFE --> LLB
+    LLB --> LLM
+    
+    %% Capability Connections
+    LnmpCore -.-> Spatial
+    LnmpCore -.-> Emb
+    Emb -.-> Quant
+
+    %% Defense / Transport Connections
+    San -.-> LnmpCore
+    Ext -.-> San
+    Trans -.-> Ext
 
     %% STYLING
     linkStyle default stroke-width:2px,fill:none,stroke:#555;
