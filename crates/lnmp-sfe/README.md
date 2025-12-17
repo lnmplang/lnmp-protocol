@@ -2,6 +2,8 @@
 
 Semantic Fidelity Engine for LNMP (LLM Native Minimal Protocol).
 
+> **FID Registry:** All examples use official Field IDs from [`registry/fids.yaml`](../../registry/fids.yaml).
+
 This crate provides the semantic dictionary system that maps field IDs to human-readable names and provides equivalence mappings for semantic normalization.
 
 ## Features

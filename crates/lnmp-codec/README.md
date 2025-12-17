@@ -1,6 +1,8 @@
 # lnmp-codec
 
-Parser and encoder implementations for LNMP (LLM Native Minimal Protocol) v0.3 text format and v0.4 binary format.
+Parser and encoder implementations for LNMP (LLM Native Minimal Protocol) v0.5 text format and binary format.
+
+> **FID Registry:** All examples in this documentation use official Field IDs from [`registry/fids.yaml`](../../registry/fids.yaml).
 
 > Maintainers note: when shipping codec changes, remember to run the workspace Release workflow (see `CONTRIBUTING.md`) so the meta crate picks up the new version.
 
@@ -103,13 +105,13 @@ assert_eq!(text, decoded_text);
 ```rust
 use lnmp_codec::{Parser, Encoder};
 
-// Parse nested record
-let input = "F50={F12=1;F7=1}";
+// Parse nested record (F70=nested_data from registry)
+let input = "F70={F12=1;F7=1}";
 let mut parser = Parser::new(input).unwrap();
 let record = parser.parse_record().unwrap();
 
-// Parse nested array
-let input = "F60=[{F1=alice},{F1=bob}]";
+// Parse record array (F71=record_list from registry)
+let input = "F71=[{F20=alice},{F20=bob}]";
 let mut parser = Parser::new(input).unwrap();
 let record = parser.parse_record().unwrap();
 
@@ -130,7 +132,7 @@ let output = encoder.encode(&record);
 use lnmp_codec::{Parser, TextInputMode, ParsingMode};
 use lnmp_codec::binary::BinaryEncoder;
 
-let messy = r#"F1=hello "world"; F2 = yes;F3=00042"#;
+let messy = r#"F20=hello "world"; F40 = 3.14;F30=00042"#;
 
 // Parser profile geared for LLM output
 let mut parser = Parser::with_config(
@@ -159,13 +161,15 @@ Fields are always sorted by FID, ensuring consistent output:
 
 ```rust
 let mut record = LnmpRecord::new();
-record.add_field(LnmpField { fid: 100, value: LnmpValue::Int(3) });
-record.add_field(LnmpField { fid: 5, value: LnmpValue::Int(1) });
-record.add_field(LnmpField { fid: 50, value: LnmpValue::Int(2) });
+record.add_field(LnmpField { fid: 30, value: LnmpValue::Int(3) });  // F30=count
+record.add_field(LnmpField { fid: 7, value: LnmpValue::Int(1) });   // F7=is_active
+record.add_field(LnmpField { fid: 12, value: LnmpValue::Int(2) });  // F12=user_id
 
 let encoder = Encoder::new();
 let output = encoder.encode(&record);
-// Output: F5=1\nF50=2\nF100=3  (sorted)
+// Output: F7=1\nF12=2\nF30=3  (sorted by FID)
+```
+
 - **Arrays**: `[...]`
   > **Note**: Text parsing now honors typed hints—`:ia`, `:fa`, and `:ba` force integer, float, and boolean arrays respectively. Without a hint, the parser treats the array as `StringArray`, mirroring the binary encoder/decoder semantics.
 
@@ -191,13 +195,13 @@ let output = encoder.encode(&record);
 use lnmp_codec::{Parser, ParsingMode};
 
 // Loose mode (default): accepts format variations
-let mut parser = Parser::new("F3=test;F1=42").unwrap();  // Unsorted, semicolons OK
+let mut parser = Parser::new("F20=test;F7=1").unwrap();  // Unsorted, semicolons OK
 
-// Strict mode: requires canonical format
-let mut parser = Parser::with_mode("F1=42\nF3=test", ParsingMode::Strict).unwrap();
+// Strict mode: requires canonical format  
+let mut parser = Parser::with_mode("F7=1\nF20=test", ParsingMode::Strict).unwrap();
 
 // Strict input mode (no sanitizer)
-let mut strict_input_parser = Parser::new_strict("F1=42\nF3=test").unwrap();
+let mut strict_input_parser = Parser::new_strict("F7=1\nF20=test").unwrap();
 ```
 
 ## v0.3 Features
@@ -209,18 +213,18 @@ Parse and encode hierarchical data:
 ```rust
 use lnmp_codec::{Parser, Encoder};
 
-// Nested record: F50={F12=1;F7=1}
-let input = "F50={F12=1;F7=1}";
+// Nested record: F70={F12=1;F7=1} (F70=nested_data)
+let input = "F70={F12=1;F7=1}";
 let mut parser = Parser::new(input).unwrap();
 let record = parser.parse_record().unwrap();
 
-// Nested array: F60=[{F1=alice},{F1=bob}]
-let input = "F60=[{F1=alice},{F1=bob}]";
+// Record array: F71=[{F20=alice},{F20=bob}] (F71=record_list, F20=name)
+let input = "F71=[{F20=alice},{F20=bob}]";
 let mut parser = Parser::new(input).unwrap();
 let record = parser.parse_record().unwrap();
 
-// Deep nesting
-let input = "F100={F1=user;F2={F10=nested;F11=data}}";
+// Deep nesting (F70=nested_data)
+let input = "F70={F20=user;F70={F30=nested;F31=data}}";
 let mut parser = Parser::new(input).unwrap();
 let record = parser.parse_record().unwrap();
 ```
@@ -463,6 +467,61 @@ let decoder = BinaryDecoder::with_config(decoder_config);
 - **Encoding Speed**: < 1μs per field for simple types
 - **Decoding Speed**: < 1μs per field for simple types
 - **Round-trip**: < 10μs for typical 10-field record
+
+## v0.5.14 Features
+
+### Dynamic FID Discovery Protocol
+
+Query and synchronize FID registries between peers at runtime:
+
+```rust
+use lnmp_codec::binary::{SchemaNegotiator, FidDefinition, FidDefStatus, TypeTag};
+
+// Create registry-aware negotiator
+let mut negotiator = SchemaNegotiator::v0_5()
+    .with_registry_version("1.0.0".into());
+
+// Request peer's FID registry
+let request = negotiator.request_registry(None);
+
+// Handle registry response
+let fids = vec![
+    FidDefinition {
+        fid: 12,
+        name: "user_id".into(),
+        type_tag: TypeTag::Int,
+        status: FidDefStatus::Active,
+        since: "0.1.0".into(),
+    },
+];
+negotiator.handle_registry_response("1.0.0".into(), fids);
+
+// Check FID support
+if negotiator.peer_supports_fid(12) {
+    println!("Peer understands user_id field");
+}
+```
+
+**New Message Types:**
+- `RequestRegistry` - Query peer FID definitions
+- `RegistryResponse` - Full registry response
+- `RegistryDelta` - Incremental sync
+
+### Encoder FID Validation
+
+Validate fields before encoding:
+
+```rust
+use lnmp_codec::{Encoder, EncoderConfig};
+use lnmp_core::registry::{embedded_registry, ValidationMode};
+
+let config = EncoderConfig::new()
+    .with_fid_registry(embedded_registry())
+    .with_fid_validation_mode(ValidationMode::Error);
+
+let encoder = Encoder::with_config(config);
+let result = encoder.encode_validated(&record);  // Returns error on invalid FID
+```
 
 ## Examples
 

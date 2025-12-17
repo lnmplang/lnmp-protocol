@@ -1,4 +1,4 @@
-# user_id field
+# user_id field (F12=user_id from registry)
 F12=14532
-# is_active flag
+# is_active flag (F7=is_active from registry)
 F7=1

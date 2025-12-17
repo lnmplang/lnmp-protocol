@@ -10,12 +10,17 @@ repository = "https://github.com/lnmplang/lnmp-protocol"
 keywords = ["lnmp", "protocol", "parser", "encoder", "codec"]
 categories = ["encoding", "parser-implementations"]
 
+[features]
+default = []
+log = ["dep:log"]
+
 [dependencies]
 lnmp-core = { workspace = true }
 lnmp-embedding = { workspace = true }
 lnmp-quant = { workspace = true }
 lnmp-sanitize = { workspace = true }
 lnmp-sfe = { workspace = true }
+log = { version = "0.4", optional = true }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

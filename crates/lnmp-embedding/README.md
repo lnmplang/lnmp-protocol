@@ -2,6 +2,8 @@
 
 Native vector embedding support for the LNMP protocol.
 
+> **FID Registry:** Embedding FIDs are defined in the Standard range (512-767) in [`registry/fids.yaml`](../../registry/fids.yaml).
+
 This crate provides the core data structures and logic for handling vector embeddings within LNMP, enabling efficient storage, transport, and processing of high-dimensional vectors for AI and ML applications.
 
 ## Features

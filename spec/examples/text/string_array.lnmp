@@ -1,2 +1,3 @@
 # String array example from text format spec
+# Uses F7 (is_active), F12 (user_id), F23 (roles) from registry
 F23:sa=["admin","dev","ops"];F12=14532;F7=1

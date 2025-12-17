@@ -191,10 +191,10 @@ This 3-field message uses ~15 tokens compared to ~30 tokens for equivalent JSON.
 LLM prompts can include structured context efficiently:
 
 ```
-F10=user_query;F11="What is the weather?";F20=location;F21="San Francisco";F30=units;F31=celsius
+F20=user_query;F22="What is the weather?";F21=location;F5="San Francisco";F50=units;F52=celsius
 ```
 
-The semantic IDs (F10, F11, F20, etc.) help the LLM understand field relationships.
+The semantic IDs (F5, F20, F21, etc.) help the LLM understand field relationships.
 
 **Semantic Caching**
 
@@ -214,7 +214,7 @@ The canonical form produces consistent checksums for cache keys, even when input
 LLMs can generate function calls in LNMP format with 60-70% fewer tokens:
 
 ```
-F1=create_user;F10=alice;F11=alice@example.com;F12=["admin","dev"]
+F20=create_user;F21=alice;F5=alice@example.com;F23=["admin","dev"]
 ```
 
 Compared to JSON function calling, this reduces token costs and improves response latency.

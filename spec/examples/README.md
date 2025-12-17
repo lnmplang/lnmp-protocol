@@ -5,6 +5,8 @@ This directory stores canonical text (`*.lnmp`) and binary/container fixtures re
 - Compliance runner (`tests/compliance/rust/runner.rs`)
 - CI round-trip workflow (`.github/workflows/spec-fixtures.yml`)
 
+> **✅ FID Registry Compliance:** All FIDs in these examples follow the official [`registry/fids.yaml`](../../registry/fids.yaml). Each file includes comments referencing the semantic meaning of FIDs used.
+
 ## Structure
 
 ```

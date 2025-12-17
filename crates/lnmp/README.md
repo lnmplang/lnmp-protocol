@@ -6,6 +6,8 @@
 
 **LNMP** is a meta crate that provides unified access to all modules of the LLM Native Minimal Protocol ecosystem. Instead of managing multiple dependencies, simply add `lnmp` to your project and get everything you need.
 
+> **📋 FID Registry:** All Field IDs have official definitions in [`registry/fids.yaml`](../registry/fids.yaml). See [`spec/fid-governance.md`](../spec/fid-governance.md) for governance rules.
+
 ## Quick Start
 
 Add this to your `Cargo.toml`:

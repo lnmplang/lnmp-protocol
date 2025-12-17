@@ -5,6 +5,8 @@
 
 Operational metadata envelope for LNMP records, aligned with CloudEvents, Kafka Headers, and W3C Trace Context standards.
 
+> **FID Registry:** All examples use official Field IDs from [`registry/fids.yaml`](../../registry/fids.yaml).
+
 ## Overview
 
 LNMP Envelope adds operational context (timestamp, source, trace ID, sequence) to LNMP records without affecting deterministic properties or semantic checksums.

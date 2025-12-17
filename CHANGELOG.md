@@ -100,6 +100,39 @@ lnmp-envelope = "0.5.6"
 
 ## [Unreleased]
 
+## [0.5.14] - 2025-12-17
+
+### Added
+
+- **Schema Negotiation v2**: Enhanced SchemaNegotiator with registry awareness
+  - `with_registry_version()` - Set local registry version
+  - `request_registry()` - Create registry request message
+  - `handle_registry_response()` - Process registry response
+  - `peer_supports_fid()` - Check peer FID support
+  - `agreed_fids()` - Get negotiated FID set
+
+- **Dynamic FID Discovery Protocol**: Runtime FID registry exchange
+  - `RequestRegistry` message with range filtering
+  - `RegistryResponse` message with FID definitions
+  - `RegistryDelta` message for incremental sync
+  - `FidDefinition` and `FidDefStatus` wire types
+
+- **Registry Sync**: Multi-peer registry synchronization
+  - `RegistrySync` struct for version tracking
+  - `is_ahead_of()` and `is_behind()` version comparison
+  - `delta_fids_for()` compute sync delta
+  - Semantic version comparison (major.minor.patch)
+
+- **FID Runtime Validation**: Parser and Encoder validation
+  - `ValidationMode::Warn` with log integration
+  - `encode_validated()` method for pre-encoding check
+  - `log` feature for warning output
+
+### Changed
+
+- All documentation examples updated to use registry-defined FIDs
+- spec/grammar.md examples corrected for FID consistency
+
 ## [0.5.13] - 2025-12-01
 
 

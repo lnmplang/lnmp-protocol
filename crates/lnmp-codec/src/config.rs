@@ -4,7 +4,9 @@ use crate::equivalence::EquivalenceMapper;
 use crate::normalizer::NormalizationConfig;
 
 use lnmp_core::profile::{LnmpProfile, StrictDeterministicConfig};
+use lnmp_core::registry::{FidRegistry, ValidationMode};
 use lnmp_core::StructuralLimits;
+use std::sync::Arc;
 
 /// Parsing mode configuration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -58,6 +60,10 @@ pub struct ParserConfig {
     pub semantic_dictionary: Option<lnmp_sfe::SemanticDictionary>,
     /// Profile configuration from lnmp-core (v0.5.4)
     pub profile_config: Option<StrictDeterministicConfig>,
+    /// Optional FID registry for validation (v0.5.14)
+    pub fid_registry: Option<Arc<FidRegistry>>,
+    /// Validation mode when registry is present (v0.5.14)
+    pub fid_validation_mode: ValidationMode,
 }
 
 impl Default for ParserConfig {
@@ -72,6 +78,8 @@ impl Default for ParserConfig {
             structural_limits: None,
             semantic_dictionary: None,
             profile_config: None, // None means use standard defaults
+            fid_registry: None,
+            fid_validation_mode: ValidationMode::None,
         }
     }
 }
@@ -90,6 +98,8 @@ impl ParserConfig {
             structural_limits: None,
             semantic_dictionary: None,
             profile_config: Some(config),
+            fid_registry: None,
+            fid_validation_mode: ValidationMode::None,
         }
     }
 
@@ -112,6 +122,18 @@ impl ParserConfig {
     /// Attaches a semantic dictionary for equivalence normalization.
     pub fn with_semantic_dictionary(mut self, dict: lnmp_sfe::SemanticDictionary) -> Self {
         self.semantic_dictionary = Some(dict);
+        self
+    }
+
+    /// Sets the FID registry for validation (v0.5.14)
+    pub fn with_fid_registry(mut self, registry: Arc<FidRegistry>) -> Self {
+        self.fid_registry = Some(registry);
+        self
+    }
+
+    /// Sets the FID validation mode (v0.5.14)
+    pub fn with_fid_validation_mode(mut self, mode: ValidationMode) -> Self {
+        self.fid_validation_mode = mode;
         self
     }
 }
@@ -148,6 +170,10 @@ pub struct EncoderConfig {
     pub equivalence_mapper: Option<EquivalenceMapper>,
     /// Optional semantic dictionary for value normalization
     pub semantic_dictionary: Option<lnmp_sfe::SemanticDictionary>,
+    /// Optional FID registry for validation (v0.5.14)
+    pub fid_registry: Option<Arc<FidRegistry>>,
+    /// Validation mode when registry is present (v0.5.14)
+    pub fid_validation_mode: ValidationMode,
 }
 
 impl Default for EncoderConfig {
@@ -161,6 +187,8 @@ impl Default for EncoderConfig {
             normalization_config: NormalizationConfig::default(),
             equivalence_mapper: None,
             semantic_dictionary: None,
+            fid_registry: None,
+            fid_validation_mode: ValidationMode::None,
         }
     }
 }
@@ -216,6 +244,18 @@ impl EncoderConfig {
     /// Sets canonical format mode
     pub fn with_canonical(mut self, enable: bool) -> Self {
         self.canonical = enable;
+        self
+    }
+
+    /// Sets the FID registry for validation (v0.5.14)
+    pub fn with_fid_registry(mut self, registry: Arc<FidRegistry>) -> Self {
+        self.fid_registry = Some(registry);
+        self
+    }
+
+    /// Sets the FID validation mode (v0.5.14)
+    pub fn with_fid_validation_mode(mut self, mode: ValidationMode) -> Self {
+        self.fid_validation_mode = mode;
         self
     }
 }
@@ -365,6 +405,8 @@ mod tests {
             structural_limits: None,
             semantic_dictionary: None,
             profile_config: None,
+            fid_registry: None,
+            fid_validation_mode: ValidationMode::None,
         };
         assert_eq!(config.mode, ParsingMode::Strict);
         assert!(config.validate_checksums);
@@ -383,6 +425,8 @@ mod tests {
             structural_limits: None,
             semantic_dictionary: None,
             profile_config: None,
+            fid_registry: None,
+            fid_validation_mode: ValidationMode::None,
         };
         assert!(config.validate_checksums);
         assert!(config.require_checksums);

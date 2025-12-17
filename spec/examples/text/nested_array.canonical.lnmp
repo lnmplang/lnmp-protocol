@@ -1,2 +1,3 @@
 # Canonical nested array output
-F60=[{F12=1},{F12=2}]
+# F71=record_list
+F71=[{F12=1},{F12=2}]

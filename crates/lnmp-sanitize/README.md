@@ -1,5 +1,7 @@
 # lnmp-sanitize
 
+> **FID Registry:** See [`registry/fids.yaml`](../../registry/fids.yaml) for official Field IDs.
+
 Lenient sanitizer for LNMP text inputs. This crate performs lightweight whitespace cleanup,
 escape repair, and basic normalization so that downstream strict parsers can accept
 slightly malformed inputs from LLMs or user-written payloads.

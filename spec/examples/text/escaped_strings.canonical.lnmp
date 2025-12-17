@@ -1,4 +1,5 @@
 # Canonical escape output (REQ-TXT-10)
-F1="hello\nworld"
-F2="path\\to\\file"
-F3="say \"hello\""
+# F20=name, F21=label, F22=description
+F20="hello\nworld"
+F21="path\\to\\file"
+F22="say \"hello\""

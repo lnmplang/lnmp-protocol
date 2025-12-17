@@ -231,6 +231,8 @@ impl TestRunner {
             semantic_dictionary: None,
             structural_limits: None,
             profile_config: None,
+            fid_registry: None,
+            fid_validation_mode: lnmp_core::registry::ValidationMode::None,
         };
 
         let mut parser = match Parser::with_config(&test.input, parser_config) {
@@ -288,6 +290,8 @@ impl TestRunner {
             semantic_dictionary: None,
             structural_limits: None,
             profile_config: None,
+            fid_registry: None,
+            fid_validation_mode: lnmp_core::registry::ValidationMode::None,
         };
 
         let mut parser = match Parser::with_config(&test.input, parser_config) {
@@ -326,6 +330,8 @@ impl TestRunner {
             max_nesting_depth: test.config.max_nesting_depth,
             structural_limits: None,
             profile_config: None,
+            fid_registry: None,
+            fid_validation_mode: lnmp_core::registry::ValidationMode::None,
         };
         let mut parser = match Parser::with_config(&test.input, parser_config) {
             Ok(p) => p,

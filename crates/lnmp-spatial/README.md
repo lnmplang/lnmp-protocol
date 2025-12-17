@@ -2,6 +2,8 @@
 
 Spatial awareness types and hybrid protocol for the LNMP ecosystem, enabling deterministic physical-world interaction in LLM → Machine → Robot → Simulation chains.
 
+> **FID Registry:** Spatial FIDs are defined in the Standard range (256-511) in [`registry/fids.yaml`](../../registry/fids.yaml).
+
 ## Features
 
 - 🎯 **Core Spatial Types**: Position, Rotation, Velocity, Acceleration, Quaternion, BoundingBox

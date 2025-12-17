@@ -5,6 +5,8 @@ Network behavior standardization for LNMP agent networks.
 [![Crates.io](https://img.shields.io/crates/v/lnmp-net.svg)](https://crates.io/crates/lnmp-net)
 [![Documentation](https://docs.rs/lnmp-net/badge.svg)](https://docs.rs/lnmp-net)
 
+> **FID Registry:** All examples use official Field IDs from [`registry/fids.yaml`](../../registry/fids.yaml).
+
 ## Overview
 
 **LNMP-Net** provides semantic message classification, Quality of Service (QoS) primitives, and intelligent routing decisions for LLM and agent networks. It builds on top of the LNMP ecosystem without replacing existing serialization or transport layers.

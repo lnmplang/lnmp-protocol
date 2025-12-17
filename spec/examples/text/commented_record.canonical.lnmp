@@ -1,3 +1,4 @@
 # Canonical output after stripping comments
+# F7=is_active, F12=user_id
 F7=1
 F12=14532

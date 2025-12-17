@@ -1,0 +1,143 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lnmplang.org/schemas/fid-registry.json",
+  "title": "LNMP FID Registry",
+  "description": "Schema for validating LNMP Field ID registry files",
+  "type": "object",
+  "required": ["metadata", "core"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["version", "protocol_version"],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Registry schema version (semver)"
+        },
+        "protocol_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "LNMP protocol version"
+        },
+        "last_updated": {
+          "type": "string",
+          "format": "date",
+          "description": "ISO 8601 date of last update"
+        }
+      }
+    },
+    "core": {
+      "description": "Core fields (FID 0-255) - LOCKED stability",
+      "allOf": [
+        { "$ref": "#/definitions/fieldList" },
+        {
+          "items": {
+            "properties": {
+              "fid": { "minimum": 0, "maximum": 255 }
+            }
+          }
+        }
+      ]
+    },
+    "standard": {
+      "description": "Standard fields (FID 256-16383) - STABLE",
+      "allOf": [
+        { "$ref": "#/definitions/fieldList" },
+        {
+          "items": {
+            "properties": {
+              "fid": { "minimum": 256, "maximum": 16383 }
+            }
+          }
+        }
+      ]
+    },
+    "extended": {
+      "description": "Extended fields (FID 16384-32767) - EVOLVING",
+      "allOf": [
+        { "$ref": "#/definitions/fieldList" },
+        {
+          "items": {
+            "properties": {
+              "fid": { "minimum": 16384, "maximum": 32767 }
+            }
+          }
+        }
+      ]
+    },
+    "tombstoned": {
+      "description": "Tombstoned fields - NEVER reuse",
+      "$ref": "#/definitions/fieldList"
+    }
+  },
+  "definitions": {
+    "fieldList": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/field" }
+    },
+    "field": {
+      "type": "object",
+      "required": ["fid", "name", "type", "status", "since"],
+      "additionalProperties": false,
+      "properties": {
+        "fid": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535,
+          "description": "Unique Field ID"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Field name in snake_case"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Int",
+            "Float",
+            "Bool",
+            "String",
+            "StringArray",
+            "IntArray",
+            "FloatArray",
+            "BoolArray",
+            "Record",
+            "RecordArray"
+          ],
+          "description": "LNMP value type"
+        },
+        "unit": {
+          "type": ["string", "null"],
+          "maxLength": 32,
+          "description": "SI unit or null"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["PROPOSED", "ACTIVE", "DEPRECATED", "TOMBSTONED"],
+          "description": "Lifecycle status"
+        },
+        "since": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Version when field was introduced"
+        },
+        "deprecated_since": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Version when field was deprecated"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Human-readable description"
+        }
+      }
+    }
+  }
+}

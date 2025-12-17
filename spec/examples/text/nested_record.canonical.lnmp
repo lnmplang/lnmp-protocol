@@ -1,3 +1,4 @@
 # Canonical output for nested_record.lnmp (REQ-CAN-TXT-01/06/07)
-F1=job
-F50={F7=1;F12=1;F23=[admin,dev]}
+# F20=name, F70=nested_data
+F20=job
+F70={F7=1;F12=1;F23=[admin,dev]}

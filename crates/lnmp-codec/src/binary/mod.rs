@@ -289,8 +289,9 @@ pub use entry::BinaryEntry;
 pub use error::BinaryError;
 pub use frame::BinaryFrame;
 pub use negotiation::{
-    Capabilities, ErrorCode, FeatureFlags, NegotiationError, NegotiationMessage,
-    NegotiationResponse, NegotiationSession, NegotiationState, SchemaNegotiator,
+    Capabilities, ErrorCode, FeatureFlags, FidDefStatus, FidDefinition, NegotiationError,
+    NegotiationMessage, NegotiationResponse, NegotiationSession, NegotiationState,
+    SchemaNegotiator,
 };
 pub use nested_decoder::{BinaryNestedDecoder, NestedDecoderConfig};
 pub use nested_encoder::{BinaryNestedEncoder, NestedEncoderConfig};

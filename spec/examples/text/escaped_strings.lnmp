@@ -1,2 +1,3 @@
 # Escape sequence sample from spec/grammar.md §Escape Sequences
-F1="hello\nworld" ; F2="path\\to\\file" ; F3="say \"hello\""
+# Uses F20 (name), F21 (label), F22 (description) for string examples
+F20="hello\nworld" ; F21="path\\to\\file" ; F22="say \"hello\""

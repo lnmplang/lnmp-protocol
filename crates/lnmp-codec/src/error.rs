@@ -223,6 +223,17 @@ pub enum LnmpError {
     },
     /// Validation error (e.g. field ordering violation)
     ValidationError(String),
+    /// FID Registry validation error (v0.5.14)
+    FidValidation {
+        /// The field ID that failed validation
+        fid: u16,
+        /// Reason for validation failure
+        reason: String,
+        /// Line number where the error occurred
+        line: usize,
+        /// Column number where the error occurred
+        column: usize,
+    },
 }
 
 impl LnmpError {
@@ -284,6 +295,7 @@ impl LnmpError {
             LnmpError::DuplicateFieldId { line, column, .. } => (*line, *column),
             LnmpError::UnclosedNestedStructure { line, column, .. } => (*line, *column),
             LnmpError::ValidationError(_) => (0, 0), // Validation errors might not have specific line/col
+            LnmpError::FidValidation { line, column, .. } => (*line, *column),
         }
     }
 }
@@ -421,6 +433,11 @@ impl std::fmt::Display for LnmpError {
                 field_id, line, column
             ),
             LnmpError::ValidationError(msg) => write!(f, "Validation Error: {}", msg),
+            LnmpError::FidValidation { fid, reason, line, column } => write!(
+                f,
+                "FID validation error for F{} at line {}, column {}: {}",
+                fid, line, column, reason
+            ),
         }
     }
 }

@@ -1,2 +1,3 @@
 # Checksum example referencing REQ-CAN-TXT-09 / REQ-TXT-04
+# Uses F7 (is_active), F12 (user_id), F23 (roles)
 F23:sa=[admin,dev]#1CCB4860 ; F7:b=1#75914A43 ; F12:i=14532#36AAE667
