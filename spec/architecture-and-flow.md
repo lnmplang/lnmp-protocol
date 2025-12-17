@@ -78,7 +78,7 @@ graph TD
     Trans -.-> Ext
 
     %% STYLING
-    linkStyle default stroke-width:2px,fill:none,stroke:#555;
+    %% STYLING
     style Layer1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style Layer2 fill:#fff8e1,stroke:#fbc02d,stroke-width:2px
     style Layer3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
