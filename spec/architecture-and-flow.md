@@ -1,129 +1,150 @@
 # LNMP Architecture & Flow: The Digital Organism
 
-This document provides a comprehensive, end-to-end visualization of the LNMP protocol (v0.5.14). It maps the **complete 12-crate ecosystem** to biological systems, illustrating how the protocol functions as a living, breathing language for AI agents.
+This document illustrates the LNMP protocol as a living biological system. It visualizes how the **12-module ecosystem** functions together to create intelligent, evolving agent communication.
 
 ## 1. The Anatomy of LNMP (Module Map)
 
-Every single module plays a vital role in the physiology of the digital organism.
+Each crate in the ecosystem serves a critical physiological function.
 
 ```mermaid
 graph TD
-    %% ZONE 1: THE MIND
-    subgraph Mind ["🧠 The Cortex (Cognition)"]
-        direction TB
-        App[Application] --> |Intent| SFE[lnmp-sfe]
-        SFE --> |FIDs| LLB[lnmp-llb]
-        LLB --> |Tokens| LLM((LLM))
+    %% ZONE 1: CORTEX (Cognition)
+    subgraph "The Cortex (Cognition)"
+        App[Application]
+        SFE[lnmp-sfe: Semantic Engine]
+        LLB[lnmp-llb: Language Center]
+        
+        App -->|Intent| SFE
+        SFE -->|FIDs| LLB
+        LLB -->|Tokens| LLM((LLM))
     end
 
-    %% ZONE 2: THE CORE
-    subgraph Core ["🧬 The Nucleus (Genetics)"]
-        LnmpCore[lnmp-core]
-        Codec[lnmp-codec]
+    %% ZONE 2: NUCLEUS (Genetics)
+    subgraph "The Nucleus (DNA)"
+        Core[lnmp-core: Registry & Types]
+        Codec[lnmp-codec: Transcription]
     end
 
-    %% ZONE 3: CAPABILITIES
-    subgraph Body ["💪 Physiology (Capabilities)"]
-        Spatial[lnmp-spatial]
-        Emb[lnmp-embedding]
-        Quant[lnmp-quant]
+    %% ZONE 3: IMMUNE SYSTEM (Defense)
+    subgraph "Immune System"
+        San[lnmp-sanitize: Hygiene]
+        Env[lnmp-envelope: Identity/Wall]
     end
 
-    %% ZONE 4: PROTECTION
-    subgraph Defense ["🛡️ Immune System"]
-        San[lnmp-sanitize]
-        Env[lnmp-envelope]
+    %% ZONE 4: PHYSIOLOGY (Senses)
+    subgraph "Physiology (Body)"
+        Spatial[lnmp-spatial: Proprioception]
+        Emb[lnmp-embedding: Memory]
+        Quant[lnmp-quant: Metabolism]
     end
 
-    %% ZONE 5: TRANSPORT
-    subgraph Circ ["❤️ Circulatory System"]
-        Net[lnmp-net]
-        Trans[lnmp-transport]
+    %% ZONE 5: CIRCULATION (Transport)
+    subgraph "Circulatory System"
+        Net[lnmp-net: Autonomic NS]
+        Trans[lnmp-transport: Vascular]
+        Ext[External World]
     end
 
-    %% DATA FLOW (The Spine)
-    Mind --> San
-    San --> LnmpCore
-    LnmpCore --> Codec
-    Codec --> Env
-    Env --> Net
-    Net --> Trans
-    
-    %% Capability Connections
-    LnmpCore --- Spatial
-    LnmpCore --- Emb
-    Emb --- Quant
+    %% Data Flow Spine
+    SFE ==>|Maps| Core
+    Core ==>|Defines| Codec
+    Codec ==>|Packets| Env
+    Env ==>|Sealed| Net
+    Net ==>|Routed| Trans
+    Trans ==>|Flow| Ext
 
-    %% Styling
-    style Mind fill:#e1f5fe,stroke:#01579b
-    style Core fill:#fff9c4,stroke:#fbc02d
-    style Body fill:#e8f5e9,stroke:#2e7d32
-    style Defense fill:#ffebee,stroke:#c62828
-    style Circ fill:#f3e5f5,stroke:#7b1fa2
+    %% Input Filter
+    Ext -.->|Raw| San
+    San -.->|Clean| Codec
+
+    %% Capability Extensions (Lateral Connections)
+    Spatial -.->|Extends| Core
+    Emb -.->|Extends| Core
+    Quant -.->|Optimizes| Emb
+
+    %% Style
+    linkStyle default stroke-width:2px,fill:none,stroke:#333;
 ```
 
 ### 🫀 Organ Systems Defined
 
-1.  **The Cortex (Cognition):**
-    *   **`lnmp-sfe` (Semantic Field Engine):** "Broca's Area". Translates abstract thought (Intent) into protocol language (FIDs).
-    *   **`lnmp-llb` (LLM Bridge):** "Language Center". Optimizes data for the LLM brain (ShortForm/Explain Mode), saving cognitive energy (tokens).
-
-2.  **The Nucleus (Genetics):**
-    *   **`lnmp-core`:** "DNA". The immutable Registry and Base Types.
-    *   **`lnmp-codec`:** "RNA Polymerase". Transcribes DNA into transmissible binary strands.
-
-3.  **Physiology (Capabilities):**
-    *   **`lnmp-spatial`:** "Proprioception". Allows the agent to sense itself in 3D/Geo space.
-    *   **`lnmp-embedding`:** "Hippocampus". Long-term vector memory structure.
-    *   **`lnmp-quant`:** "Metabolism". Compresses heavy vector data (32x) for efficiency.
-
-4.  **Immune System (Defense):**
-    *   **`lnmp-envelope`:** "Cell Wall". Defines Identity, Traceability, and protects the payload.
-    *   **`lnmp-sanitize`:** "Liver/Kidneys". Filters and fixes toxic (malformed) input before it reaches the core.
-
-5.  **Circulation (Transport):**
-    *   **`lnmp-net`:** "Autonomic Nervous System". Decides *how* to route signals (QoS, Priority) based on meaning.
-    *   **`lnmp-transport`:** "Vascular System". The physical bindings (HTTP headers, Kafka metadata) that carry the blood.
+*   **The Cortex (`sfe`, `llb`):** The brain. Translates abstract Intent into Protocol genetics (FIDs) and optimizes language for the LLM.
+*   **The Nucleus (`core`, `codec`):** The DNA. Stores the immutable Registry and transcribes data into binary RNA.
+*   **Immune System (`envelope`, `sanitize`):** Protects the cell. Filters toxins (malformed input) and asserts Identity/Traceability.
+*   **Physiology (`spatial`, `embedding`, `quant`):** The body. Provides senses (Space), memory (Vectors), and metabolic efficiency (Quantization).
+*   **Circulation (`net`, `transport`):** The blood flow. Manages priorities (QoS) and physical movement (HTTP/Kafka).
 
 ---
 
-## 2. The Cycle of Life: E2E Data Flow
+## 2. The Connectivity DNA Helix (E2E Flow)
 
-The complete journey of a message within the organism.
+This sequence diagram illustrates the "Double Helix" interaction between two agents. The strands are connected by protocol bonds.
 
 ```mermaid
 sequenceDiagram
-    participant Mind as 🧠 Mind/LLM
-    participant SFE as 🔮 SFE
-    participant Core as 🧬 Core
-    participant Env as 🛡️ Env
-    participant Net as 📡 Net
-
-    %% OUTBOUND
-    rect rgb(240, 248, 255)
-    Note over Mind, Net: 1. OUTBOUND (Expression)
-    Mind->>SFE: Intent: "Alert"
-    SFE->>Core: Map FIDs
-    Core->>Env: Binary Payload
-    Env->>Net: Encapsulate
-    Net->>Net: Route (QoS)
+    participant A as 🧬 Agent A
+    participant B as 🧬 Agent B
+    
+    Note over A,B: Phase 1: Recognition (Discovery)
+    
+    A->>B: 🟡 Hello (Protocol v0.5)
+    B-->>A: 🟢 Welcome (Registry v1.2)
+    
+    rect rgb(20, 30, 40)
+        Note left of A: DNA Bonding: Schema Alignment
+        A->>A: Check Registry Sync
+        alt Registry Mismatch
+            A->>B: 🔴 RequestDelta(v1.0 -> v1.2)
+            B-->>A: 🔵 RegistryDelta (New FIDs)
+            A->>A: Apply Delta & Compile
+        end
     end
-
-    %% INBOUND
-    rect rgb(255, 248, 240)
-    Note over Mind, Net: 2. INBOUND (Perception)
-    Net->>Env: Receive
-    Env->>Core: Verify & Unwrap
-    Core->>SFE: Decode
-    SFE->>Mind: Semantic Concept
+    
+    A->>B: 🟡 Ready (Bond Established)
+    
+    Note over A,B: Phase 2: Synthesis (Data Exchange)
+    
+    loop Stream / Bi-Directional
+        A->>B: 📦 [Env: TraceID] [Msg: Prompt] (FIDs: 10, 768)
+        
+        rect rgb(40, 50, 60)
+            Note right of B: Semantic Processing
+            B->>B: Env.Verify() -> Codec.Decode() -> SFE.Understand()
+        end
+        
+        B-->>A: 📦 [Msg: Response] [Meta: Complexity=0.9]
+        
+        opt Spatial Context
+            A->>B: 🧊 [Spatial: Position] (F256)
+            B-->>A: 🧊 [Spatial: New Coordinates]
+        end
     end
+    
+    Note over A,B: Phase 3: Termination
+    
+    A->>B: 🔴 Close Session
+    B-->>A: 🔴 Ack
 ```
 
-## 3. Why Every Module Matters
+## 3. The "Centipede" Topology (Multi-Agent Harmony)
 
-*   **Without `lnmp-sanitize`**, the organism is vulnerable to "poison" (malformed data) crashing the Core.
-*   **Without `lnmp-llb`**, the "Brain" (LLM) overflows with verbose data (Context Window Exhaustion).
-*   **Without `lnmp-net`**, the system has "high blood pressure" (network congestion) because it treats all data as equal, blocking critical reflexes with mundane logs.
-*   **Without `lnmp-quant`**, the "Memory" (Vectors) becomes too heavy to move, paralyzing the agent.
+LNMP allows multiple agents to connect like segments of a giant organism.
 
-This architecture ensures **Safety, Efficiency, and Intelligence** at every layer.
+```mermaid
+graph LR
+    subgraph "Agent Cluster"
+        A[Agent Node] <-->|Sync| B[Agent Node]
+        B <-->|Sync| C[Agent Node]
+        C <-->|Sync| A
+    end
+
+    subgraph "Shared Reality (Registry)"
+        Reg((Registry Source))
+    end
+
+    A -.->|Pull DNA| Reg
+    B -.->|Pull DNA| Reg
+    C -.->|Pull DNA| Reg
+
+    style Reg fill:#f96,stroke:#333,stroke-width:4px
+```
