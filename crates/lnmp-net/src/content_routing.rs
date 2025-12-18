@@ -3,7 +3,7 @@
 //! This module extends the base routing policy with content-based decision making
 //! using zero-copy record views.
 
-use crate::{NetError, Result, RoutingDecision};
+use crate::{Result, RoutingDecision};
 use lnmp_core::{FieldId, LnmpRecordView, LnmpValueView};
 
 /// A content-based routing rule.

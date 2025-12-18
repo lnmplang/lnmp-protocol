@@ -40,22 +40,34 @@ pub enum LnmpValue {
     QuantizedEmbedding(lnmp_quant::QuantizedVector),
 }
 
-/// Zero-copy view of LNMP values (v0.6)
+/// Zero-copy view of LNMP values (v0.5)
+///
+/// This enum provides borrowed access to field values without memory allocation.
+/// Use this for high-throughput scenarios like routing,filtering, and logging.
 #[derive(Debug, Clone, PartialEq)]
 pub enum LnmpValueView<'a> {
+    /// Integer value (i64) - copied (8 bytes)
     Int(i64),
+    /// Floating-point value (f64) - copied (8 bytes)
     Float(f64),
+    /// Boolean value - copied (1 byte)
     Bool(bool),
+    /// String value - zero-copy reference to input buffer
     String(&'a str),
+    /// Array of strings - references allocated, strings borrowed
     StringArray(Vec<&'a str>),
-    IntArray(Vec<i64>),   // VarInt encoded in binary, must be parsed/copied
-    FloatArray(Vec<f64>), // Alignment not guaranteed, must be copied
-    BoolArray(Vec<bool>), // 1 byte per bool, easy to copy
+    /// Array of integers - VarInt encoded, must be parsed/copied
+    IntArray(Vec<i64>),
+    /// Array of floats - alignment not guaranteed, must be copied
+    FloatArray(Vec<f64>),
+    /// Array of booleans - 1 byte per bool, easy to copy
+    BoolArray(Vec<bool>),
+    /// Nested record - boxed view
     NestedRecord(Box<crate::LnmpRecordView<'a>>),
+    /// Array of nested records
     NestedArray(Vec<crate::LnmpRecordView<'a>>),
-    Embedding(&'a [u8]), // Zero-copy view into raw embedding bytes
-                         // Missing EmbeddingDelta/Quantized for now to keep simple, or add if needed:
-                         // EmbeddingDelta(...)
+    /// Embedding - zero-copy view into raw bytes (parse on demand)
+    Embedding(&'a [u8]),
 }
 
 impl<'a> LnmpValueView<'a> {
