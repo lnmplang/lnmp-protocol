@@ -236,27 +236,29 @@ impl BinaryEntry {
                 }
                 let flags = bytes[offset];
                 offset += 1;
-                
+
                 let dtype = crate::binary::types::NumericDType::from_flags(flags);
                 let sparse = (flags & 0x04) != 0;
-                
+
                 // Decode count/dimension
-                let (dim, consumed) = varint::decode(&bytes[offset..]).map_err(|_| BinaryError::InvalidValue {
-                    field_id: fid,
-                    type_tag: tag.to_u8(),
-                    reason: "Invalid VarInt for array dimension".to_string(),
-                })?;
+                let (dim, consumed) =
+                    varint::decode(&bytes[offset..]).map_err(|_| BinaryError::InvalidValue {
+                        field_id: fid,
+                        type_tag: tag.to_u8(),
+                        reason: "Invalid VarInt for array dimension".to_string(),
+                    })?;
                 offset += consumed;
                 let dim = dim as usize;
-                
+
                 if sparse {
                     return Err(BinaryError::InvalidValue {
                         field_id: fid,
                         type_tag: tag.to_u8(),
-                        reason: "Sparse HybridNumericArray decoding not yet implemented".to_string(),
+                        reason: "Sparse HybridNumericArray decoding not yet implemented"
+                            .to_string(),
                     });
                 }
-                
+
                 // Dense mode: read raw data
                 let byte_size = dim * dtype.byte_size();
                 if bytes.len() < offset + byte_size {
@@ -265,10 +267,10 @@ impl BinaryEntry {
                         found: bytes.len(),
                     });
                 }
-                
+
                 let data = bytes[offset..offset + byte_size].to_vec();
                 offset += byte_size;
-                
+
                 BinaryValue::HybridNumericArray(crate::binary::types::HybridArray {
                     dtype,
                     sparse,
@@ -285,7 +287,10 @@ impl BinaryEntry {
                 return Err(BinaryError::InvalidValue {
                     field_id: fid,
                     type_tag: tag.to_u8(),
-                    reason: format!("Type tag 0x{:02X} not yet implemented in entry decoder", tag.to_u8()),
+                    reason: format!(
+                        "Type tag 0x{:02X} not yet implemented in entry decoder",
+                        tag.to_u8()
+                    ),
                 });
             }
             TypeTag::Int => {

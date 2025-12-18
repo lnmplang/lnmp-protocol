@@ -157,7 +157,7 @@ impl NumericDType {
             NumericDType::I64 | NumericDType::F64 => 8,
         }
     }
-    
+
     /// Parse from flags byte (bits 0-1)
     pub fn from_flags(flags: u8) -> Self {
         match flags & 0x03 {
@@ -167,7 +167,7 @@ impl NumericDType {
             _ => NumericDType::F64,
         }
     }
-    
+
     /// Convert to flags bits
     pub fn to_flags(&self) -> u8 {
         *self as u8
@@ -188,7 +188,7 @@ impl HybridArray {
             data,
         }
     }
-    
+
     /// Create a new dense f64 array
     pub fn from_f64_dense(values: &[f64]) -> Self {
         let mut data = Vec::with_capacity(values.len() * 8);
@@ -202,7 +202,7 @@ impl HybridArray {
             data,
         }
     }
-    
+
     /// Create a new dense i32 array
     pub fn from_i32_dense(values: &[i32]) -> Self {
         let mut data = Vec::with_capacity(values.len() * 4);
@@ -216,7 +216,7 @@ impl HybridArray {
             data,
         }
     }
-    
+
     /// Create a new dense i64 array
     pub fn from_i64_dense(values: &[i64]) -> Self {
         let mut data = Vec::with_capacity(values.len() * 8);
@@ -230,7 +230,7 @@ impl HybridArray {
             data,
         }
     }
-    
+
     /// Get f32 values (dense mode only)
     pub fn as_f32_vec(&self) -> Option<Vec<f32>> {
         if self.dtype != NumericDType::F32 || self.sparse {
@@ -242,7 +242,7 @@ impl HybridArray {
         }
         Some(result)
     }
-    
+
     /// Get f64 values (dense mode only)
     pub fn as_f64_vec(&self) -> Option<Vec<f64>> {
         if self.dtype != NumericDType::F64 || self.sparse {
@@ -251,13 +251,12 @@ impl HybridArray {
         let mut result = Vec::with_capacity(self.dim);
         for chunk in self.data.chunks_exact(8) {
             result.push(f64::from_le_bytes([
-                chunk[0], chunk[1], chunk[2], chunk[3],
-                chunk[4], chunk[5], chunk[6], chunk[7],
+                chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],
             ]));
         }
         Some(result)
     }
-    
+
     /// Encode flags byte
     pub fn flags(&self) -> u8 {
         let mut flags = self.dtype.to_flags();
@@ -818,17 +817,17 @@ mod tests {
         let binary_neg_inf = BinaryValue::from_lnmp_value(&neg_inf_val).unwrap();
         assert_eq!(binary_neg_inf, BinaryValue::Float(f64::NEG_INFINITY));
     }
-    
+
     #[test]
     fn test_hybrid_array_f32_dense() {
         let values: Vec<f32> = vec![1.0, 2.5, -3.14, 0.0, 100.0];
         let arr = HybridArray::from_f32_dense(&values);
-        
+
         assert_eq!(arr.dtype, NumericDType::F32);
         assert!(!arr.sparse);
         assert_eq!(arr.dim, 5);
         assert_eq!(arr.data.len(), 20); // 5 * 4 bytes
-        
+
         // Verify we can get values back
         let recovered = arr.as_f32_vec().unwrap();
         assert_eq!(recovered.len(), 5);
@@ -836,19 +835,19 @@ mod tests {
         assert!((recovered[1] - 2.5).abs() < 0.0001);
         assert!((recovered[2] - (-3.14)).abs() < 0.0001);
     }
-    
+
     #[test]
     fn test_hybrid_array_flags() {
         let arr_i32 = HybridArray::from_i32_dense(&[1, 2, 3]);
         assert_eq!(arr_i32.flags(), 0x00); // I32, dense
-        
+
         let arr_f32 = HybridArray::from_f32_dense(&[1.0, 2.0]);
         assert_eq!(arr_f32.flags(), 0x02); // F32, dense
-        
+
         let arr_f64 = HybridArray::from_f64_dense(&[1.0, 2.0]);
         assert_eq!(arr_f64.flags(), 0x03); // F64, dense
     }
-    
+
     #[test]
     fn test_numeric_dtype_byte_size() {
         assert_eq!(NumericDType::I32.byte_size(), 4);
