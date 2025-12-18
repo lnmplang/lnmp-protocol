@@ -28,10 +28,10 @@ quant = ["dep:lnmp-quant"]
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
-lnmp-envelope = { workspace = true }
-lnmp-sfe = { workspace = true }
-lnmp-codec = { workspace = true }
-lnmp-llb = { workspace = true }
+lnmp-envelope = { path = "../lnmp-envelope" }
+lnmp-sfe = { path = "../lnmp-sfe" }
+lnmp-codec = { path = "../lnmp-codec" }
+lnmp-llb = { path = "../lnmp-llb" }
 
 [[bench]]
 name = "core_benchmarks"
