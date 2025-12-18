@@ -18,12 +18,12 @@ members = [
 ]
 
 [workspace.package]
-version = "0.5.15"
+version = "0.5.14"
 edition = "2021"
 rust-version = "1.91.0"
 authors = ["LNMP Team"]
 license = "MIT"
-repository = "https://github.com/lnmp-protocol/lnmp"
+repository = "https://github.com/lnmplang/lnmp-protocol"
 homepage = "https://lnmp.io"
 
 [workspace.dependencies]
