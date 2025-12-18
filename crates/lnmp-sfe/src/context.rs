@@ -334,13 +334,32 @@ impl ContextScorer {
     /// * `envelope` - The envelope to score
     /// * `now` - Current timestamp in milliseconds since Unix epoch
     pub fn score_envelope(&self, envelope: &LnmpEnvelope, now: u64) -> ContextProfile {
+        self.score_metadata(&envelope.metadata, now)
+    }
+
+    /// Score envelope metadata (zero-copy metadata-based scoring)
+    ///
+    /// Evaluates:
+    /// - Freshness from timestamp
+    /// - Confidence from source trustworthiness
+    /// - Risk from source patterns
+    ///
+    /// # Arguments
+    ///
+    /// * `metadata` - The envelope metadata to score
+    /// * `now` - Current timestamp in milliseconds since Unix epoch
+    pub fn score_metadata(
+        &self,
+        metadata: &lnmp_envelope::EnvelopeMetadata,
+        now: u64,
+    ) -> ContextProfile {
         let mut profile = ContextProfile::new();
 
         // Score freshness
-        profile.freshness_score = self.compute_freshness(envelope, now);
+        profile.freshness_score = self.compute_freshness(metadata, now);
 
         // Score confidence and risk based on source
-        if let Some(ref source) = envelope.metadata.source {
+        if let Some(ref source) = metadata.source {
             profile.confidence = self.compute_confidence(source);
             profile.risk_level = self.compute_risk(source);
         } else {
@@ -367,6 +386,26 @@ impl ContextScorer {
 
         // Compute importance from fields
         profile.importance = self.compute_importance(record);
+
+        // Add field count hint
+        profile.add_hint("field_count".to_string(), record.fields().len().to_string());
+
+        profile
+    }
+
+    /// Score a record view (zero-copy content-based scoring)
+    ///
+    /// Evaluates:
+    /// - Importance from field IDs (using dictionary if available)
+    ///
+    /// # Arguments
+    ///
+    /// * `record` - The record view to score
+    pub fn score_record_view(&self, record: &lnmp_core::LnmpRecordView) -> ContextProfile {
+        let mut profile = ContextProfile::new();
+
+        // Compute importance from fields
+        profile.importance = self.compute_importance_view(record);
 
         // Add field count hint
         profile.add_hint("field_count".to_string(), record.fields().len().to_string());
@@ -404,8 +443,8 @@ impl ContextScorer {
     }
 
     /// Compute freshness score using exponential decay
-    fn compute_freshness(&self, envelope: &LnmpEnvelope, now: u64) -> f64 {
-        if let Some(ts) = envelope.metadata.timestamp {
+    fn compute_freshness(&self, metadata: &lnmp_envelope::EnvelopeMetadata, now: u64) -> f64 {
+        if let Some(ts) = metadata.timestamp {
             let age_ms = now.saturating_sub(ts);
             let age_hours = age_ms as f64 / 3_600_000.0;
 
@@ -449,7 +488,7 @@ impl ContextScorer {
         self.config.default_risk
     }
 
-    /// Compute importance from record fields
+    /// Compute importance from record fields (owned)
     fn compute_importance(&self, record: &LnmpRecord) -> u8 {
         if let Some(ref dict) = self.dictionary {
             if self.config.use_dictionary_importance {
@@ -465,6 +504,22 @@ impl ContextScorer {
             }
         }
 
+        self.config.default_importance
+    }
+
+    /// Compute importance from record fields (view)
+    fn compute_importance_view(&self, record: &lnmp_core::LnmpRecordView) -> u8 {
+        if let Some(ref dict) = self.dictionary {
+            if self.config.use_dictionary_importance {
+                let max_importance = record
+                    .fields()
+                    .iter()
+                    .filter_map(|field| dict.get_importance(field.fid))
+                    .max()
+                    .unwrap_or(self.config.default_importance);
+                return max_importance;
+            }
+        }
         self.config.default_importance
     }
 }

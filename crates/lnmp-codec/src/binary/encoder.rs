@@ -280,7 +280,7 @@ impl BinaryEncoder {
                 LnmpValue::NestedRecord(_) => {
                     return Err(BinaryError::InvalidValue {
                         field_id: field.fid,
-                        type_tag: 0x06,
+                        type_tag: 0x04,
                         reason: "Nested records not supported in v0.4 binary format. Use v0.5 with enable_nested_binary=true or convert to flat structure.".to_string(),
                     });
                 }

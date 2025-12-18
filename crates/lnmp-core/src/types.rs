@@ -35,8 +35,66 @@ pub enum LnmpValue {
     /// Delta update for embedding vector
     EmbeddingDelta(lnmp_embedding::VectorDelta),
     /// Quantized embedding vector (v0.5.2)
+    /// Quantized embedding vector (v0.5.2)
     #[cfg(feature = "quant")]
     QuantizedEmbedding(lnmp_quant::QuantizedVector),
+}
+
+/// Zero-copy view of LNMP values (v0.6)
+#[derive(Debug, Clone, PartialEq)]
+pub enum LnmpValueView<'a> {
+    Int(i64),
+    Float(f64),
+    Bool(bool),
+    String(&'a str),
+    StringArray(Vec<&'a str>),
+    IntArray(Vec<i64>),   // VarInt encoded in binary, must be parsed/copied
+    FloatArray(Vec<f64>), // Alignment not guaranteed, must be copied
+    BoolArray(Vec<bool>), // 1 byte per bool, easy to copy
+    NestedRecord(Box<crate::LnmpRecordView<'a>>),
+    NestedArray(Vec<crate::LnmpRecordView<'a>>),
+    Embedding(&'a [u8]), // Zero-copy view into raw embedding bytes
+                         // Missing EmbeddingDelta/Quantized for now to keep simple, or add if needed:
+                         // EmbeddingDelta(...)
+}
+
+impl<'a> LnmpValueView<'a> {
+    /// Converts the view to an owned value
+    pub fn to_owned_value(&self) -> LnmpValue {
+        match self {
+            LnmpValueView::Int(i) => LnmpValue::Int(*i),
+            LnmpValueView::Float(f) => LnmpValue::Float(*f),
+            LnmpValueView::Bool(b) => LnmpValue::Bool(*b),
+            LnmpValueView::String(s) => LnmpValue::String(s.to_string()),
+            LnmpValueView::StringArray(arr) => {
+                LnmpValue::StringArray(arr.iter().map(|s| s.to_string()).collect())
+            }
+            LnmpValueView::IntArray(arr) => LnmpValue::IntArray(arr.clone()),
+            LnmpValueView::FloatArray(arr) => LnmpValue::FloatArray(arr.clone()),
+            LnmpValueView::BoolArray(arr) => LnmpValue::BoolArray(arr.clone()),
+            LnmpValueView::NestedRecord(rec) => {
+                LnmpValue::NestedRecord(Box::new(rec.to_lnmp_record()))
+            }
+            LnmpValueView::NestedArray(recs) => {
+                LnmpValue::NestedArray(recs.iter().map(|r| r.to_lnmp_record()).collect())
+            }
+            LnmpValueView::Embedding(bytes) => {
+                // Decode lazy bytes into Vector
+                // We need to handle potential decode errors, but to_owned is infallible in signature.
+                // For now, unwrap/expect because the view should have been validated during creation if possible,
+                // or we accept panics for corrupt data in this method.
+                // Ideally, to_owned should return Result, but that's a larger refactor.
+                // Given decode_view validated structure (mostly), we trust it.
+                use lnmp_embedding::Decoder;
+                let vector = Decoder::decode(bytes).unwrap_or_else(|_| {
+                    // Fallback for invalid bytes? Or just empty vector?
+                    // Vector::new(EmbeddingType::F32, 0, vec![])
+                    panic!("Failed to decode embedding from view bytes");
+                });
+                LnmpValue::Embedding(vector)
+            }
+        }
+    }
 }
 
 impl LnmpValue {

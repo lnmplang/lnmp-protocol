@@ -66,6 +66,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46c5e41b57b8bba42a04676d81cb89e9ee8e859a1a66f80a5a72e1cb76b34d43"
 
 [[package]]
+name = "bytemuck"
+version = "1.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fbdf580320f38b612e485521afda1ee26d10cc9884efaaa750d383e13e3c5f4"
+
+[[package]]
 name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -426,6 +432,7 @@ dependencies = [
 name = "lnmp-codec"
 version = "0.5.14"
 dependencies = [
+ "bytemuck",
  "criterion",
  "lnmp-core",
  "lnmp-embedding",
@@ -434,6 +441,7 @@ dependencies = [
  "lnmp-sfe",
  "log",
  "proptest",
+ "tokio",
 ]
 
 [[package]]
@@ -470,6 +478,7 @@ dependencies = [
 name = "lnmp-embedding"
 version = "0.5.14"
 dependencies = [
+ "bytemuck",
  "byteorder",
  "criterion",
  "lnmp-codec",
@@ -506,6 +515,7 @@ version = "0.5.14"
 dependencies = [
  "criterion",
  "http",
+ "lnmp-codec",
  "lnmp-core",
  "lnmp-envelope",
  "lnmp-sfe",

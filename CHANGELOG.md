@@ -100,8 +100,59 @@ lnmp-envelope = "0.5.6"
 
 ## [Unreleased]
 
-## [0.5.15] - 2025-12-17
+## [0.5.15] - 2025-12-19
 
+### Added
+
+- **NEW: `EmbeddingView` in `lnmp-embedding`** - Quasi-zero-copy embedding access
+  - `EmbeddingView::from_bytes()` - Parse embedding from raw bytes
+  - `EmbeddingView::as_f32_vec()` - Safe copy to Vec<f32> (recommended)
+  - `EmbeddingView::as_f32_slice()` - Experimental zero-copy (alignment-dependent)
+  - `cosine_similarity()`, `dot_product()`, `euclidean_distance()` - SIMD-optimized
+  - AVX2 optimization for x86_64 with scalar fallback
+  - Works seamlessly with `decode_view()` for high-performance embedding pipelines
+
+- **NEW: Content-Aware Routing in `lnmp-net`** - Zero-copy field inspection
+  - `ContentRouter` with rule-based routing decisions
+  - `RoutingRule` enum: HeaderContains, FieldEquals, HasField, EmbeddingDim
+  - `RoutingPriority` levels: Critical, High, Normal, Low, Background
+  - Zero-copy field access from `LnmpRecordView` for routing decisions
+
+- **Enhanced Examples**
+  - `zerocopy_similarity.rs` - Complete embedding similarity pipeline demo
+  - `content_routing.rs` - Content-based routing with benchmarks
+  - `zero_copy_routing.rs` - Routing performance comparison
+
+### Changed
+
+- **`bytemuck` dependency** added to `lnmp-embedding` (optional, via `zerocopy` feature)
+- All similarity methods now use safe `as_f32_vec()` internally for reliability
+
+### Technical Notes
+
+- **Memory Alignment**: True zero-copy f32 slice access requires aligned memory pointers.
+  Since arbitrary buffer slices may not be aligned, `as_f32_vec()` (safe copy) is recommended.
+  The experimental `as_f32_slice()` may panic on unaligned buffers.
+
+- **Performance**: For 256-dim embeddings, `as_f32_vec()` adds ~1.4μs overhead for allocation.
+  This is negligible for most use cases and guarantees reliability.
+
+### Examples
+
+```rust
+use lnmp_codec::binary::BinaryDecoder;
+use lnmp_embedding::EmbeddingView;
+
+let decoder = BinaryDecoder::new();
+let view = decoder.decode_view(&bytes)?;
+
+if let Some(field) = view.get_field(512) {
+    if let LnmpValueView::Embedding(emb_bytes) = &field.value {
+        let emb_view = EmbeddingView::from_bytes(emb_bytes)?;
+        let similarity = emb_view.cosine_similarity(&other_view)?;
+    }
+}
+```
 
 ## [0.5.14] - 2025-12-17
 

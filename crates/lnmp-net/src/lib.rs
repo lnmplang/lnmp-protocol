@@ -71,6 +71,7 @@
 //!
 //! - `serde`: Enable serde serialization support (optional)
 
+pub mod content_routing;
 pub mod error;
 pub mod kind;
 pub mod message;
@@ -79,6 +80,7 @@ pub mod routing;
 #[cfg(feature = "transport")]
 pub mod transport;
 
+pub use content_routing::{ContentAwarePolicy, ContentRule, FieldCondition};
 pub use error::{NetError, Result};
 pub use kind::MessageKind;
 pub use message::{NetMessage, NetMessageBuilder};

@@ -2,10 +2,10 @@
 # Generated automatically. DO NOT EDIT.
 {
   "meta": {
-    "version": "1.0.0",
-    "protocol_version": "0.5.14",
-    "last_updated": "2025-12-17",
-    "generated_at": 1765973738
+    "version": "1.2.0",
+    "protocol_version": "0.5.15",
+    "last_updated": "2025-12-18",
+    "generated_at": 1766087810
   },
   "fids": [
     {
@@ -261,6 +261,267 @@
       "description": "Array of nested records"
     },
     {
+      "fid": 80,
+      "name": "trace_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Distributed trace identifier (W3C Trace Context compatible)"
+    },
+    {
+      "fid": 81,
+      "name": "span_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Span identifier within a trace"
+    },
+    {
+      "fid": 82,
+      "name": "parent_span_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Parent span identifier for trace hierarchy"
+    },
+    {
+      "fid": 83,
+      "name": "trace_flags",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Trace flags (sampled, random, etc.)"
+    },
+    {
+      "fid": 84,
+      "name": "service_name",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Originating service name (OpenTelemetry convention)"
+    },
+    {
+      "fid": 85,
+      "name": "service_version",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Originating service version"
+    },
+    {
+      "fid": 100,
+      "name": "timestamp_ns",
+      "type": "Int",
+      "unit": "ns",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Unix timestamp in nanoseconds (high-precision)"
+    },
+    {
+      "fid": 101,
+      "name": "duration_ms",
+      "type": "Int",
+      "unit": "ms",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Duration/elapsed time in milliseconds"
+    },
+    {
+      "fid": 102,
+      "name": "duration_ns",
+      "type": "Int",
+      "unit": "ns",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Duration/elapsed time in nanoseconds"
+    },
+    {
+      "fid": 103,
+      "name": "start_time",
+      "type": "Int",
+      "unit": "ms",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Start timestamp in milliseconds"
+    },
+    {
+      "fid": 104,
+      "name": "end_time",
+      "type": "Int",
+      "unit": "ms",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "End timestamp in milliseconds"
+    },
+    {
+      "fid": 105,
+      "name": "created_at",
+      "type": "Int",
+      "unit": "ms",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Creation timestamp in milliseconds"
+    },
+    {
+      "fid": 106,
+      "name": "updated_at",
+      "type": "Int",
+      "unit": "ms",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Last update timestamp in milliseconds"
+    },
+    {
+      "fid": 120,
+      "name": "event_type",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Event type classification (CloudEvents type)"
+    },
+    {
+      "fid": 121,
+      "name": "event_source",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Event origin URI (CloudEvents source)"
+    },
+    {
+      "fid": 122,
+      "name": "correlation_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Request correlation identifier for distributed systems"
+    },
+    {
+      "fid": 123,
+      "name": "request_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Unique request identifier"
+    },
+    {
+      "fid": 124,
+      "name": "transaction_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Transaction identifier for business processes"
+    },
+    {
+      "fid": 125,
+      "name": "tenant_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Multi-tenancy identifier"
+    },
+    {
+      "fid": 126,
+      "name": "organization_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Organization/workspace identifier"
+    },
+    {
+      "fid": 127,
+      "name": "device_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Physical device identifier"
+    },
+    {
+      "fid": 128,
+      "name": "stream_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Data stream identifier"
+    },
+    {
+      "fid": 129,
+      "name": "channel_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Communication channel identifier"
+    },
+    {
+      "fid": 130,
+      "name": "auth_token",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Authentication token (JWT, OAuth, etc.)"
+    },
+    {
+      "fid": 131,
+      "name": "refresh_token",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Token refresh credential"
+    },
+    {
+      "fid": 132,
+      "name": "token_expiry",
+      "type": "Int",
+      "unit": "ms",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Token expiration timestamp in milliseconds"
+    },
+    {
+      "fid": 133,
+      "name": "scopes",
+      "type": "StringArray",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "OAuth2 scopes or permission scopes"
+    },
+    {
+      "fid": 134,
+      "name": "permissions",
+      "type": "StringArray",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Access permission identifiers"
+    },
+    {
+      "fid": 135,
+      "name": "api_key",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "API key for service authentication"
+    },
+    {
       "fid": 256,
       "name": "position",
       "type": "FloatArray",
@@ -315,6 +576,159 @@
       "description": "[min_x, min_y, min_z, max_x, max_y, max_z]"
     },
     {
+      "fid": 280,
+      "name": "latitude",
+      "type": "Float",
+      "unit": "deg",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "WGS84 latitude (-90 to 90 degrees)"
+    },
+    {
+      "fid": 281,
+      "name": "longitude",
+      "type": "Float",
+      "unit": "deg",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "WGS84 longitude (-180 to 180 degrees)"
+    },
+    {
+      "fid": 282,
+      "name": "altitude",
+      "type": "Float",
+      "unit": "m",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Altitude above sea level in meters"
+    },
+    {
+      "fid": 283,
+      "name": "heading",
+      "type": "Float",
+      "unit": "deg",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Compass heading (0-360 degrees, 0=North)"
+    },
+    {
+      "fid": 284,
+      "name": "ground_speed",
+      "type": "Float",
+      "unit": "m/s",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Ground speed in meters per second"
+    },
+    {
+      "fid": 285,
+      "name": "position_accuracy",
+      "type": "Float",
+      "unit": "m",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Position accuracy radius in meters"
+    },
+    {
+      "fid": 286,
+      "name": "geo_hash",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "GeoHash encoded location string"
+    },
+    {
+      "fid": 300,
+      "name": "url",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Full URL/URI"
+    },
+    {
+      "fid": 301,
+      "name": "hostname",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Host name or IP address"
+    },
+    {
+      "fid": 302,
+      "name": "port",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Network port number (0-65535)"
+    },
+    {
+      "fid": 303,
+      "name": "ip_address",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "IPv4 or IPv6 address"
+    },
+    {
+      "fid": 304,
+      "name": "http_method",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "HTTP method (GET, POST, PUT, DELETE, etc.)"
+    },
+    {
+      "fid": 305,
+      "name": "http_status_code",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "HTTP response status code (200, 404, 500, etc.)"
+    },
+    {
+      "fid": 306,
+      "name": "user_agent",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "HTTP User-Agent header value"
+    },
+    {
+      "fid": 307,
+      "name": "content_type",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "MIME content type (application/json, etc.)"
+    },
+    {
+      "fid": 308,
+      "name": "content_length",
+      "type": "Int",
+      "unit": "bytes",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Content size in bytes"
+    },
+    {
+      "fid": 309,
+      "name": "encoding",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Content encoding (utf-8, gzip, etc.)"
+    },
+    {
       "fid": 512,
       "name": "embedding",
       "type": "FloatArray",
@@ -340,6 +754,105 @@
       "status": "ACTIVE",
       "since": "0.5.0",
       "description": "Embedding dimension size"
+    },
+    {
+      "fid": 520,
+      "name": "angular_velocity",
+      "type": "FloatArray",
+      "unit": "rad/s",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "[wx, wy, wz] angular velocity"
+    },
+    {
+      "fid": 521,
+      "name": "linear_acceleration",
+      "type": "FloatArray",
+      "unit": "m/s^2",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "[ax, ay, az] IMU linear acceleration"
+    },
+    {
+      "fid": 522,
+      "name": "magnetic_field",
+      "type": "FloatArray",
+      "unit": "T",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "[mx, my, mz] magnetic field in Tesla"
+    },
+    {
+      "fid": 523,
+      "name": "orientation",
+      "type": "FloatArray",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "[w, x, y, z] orientation quaternion from IMU"
+    },
+    {
+      "fid": 524,
+      "name": "joint_positions",
+      "type": "FloatArray",
+      "unit": "rad",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Robot joint positions in radians"
+    },
+    {
+      "fid": 525,
+      "name": "joint_velocities",
+      "type": "FloatArray",
+      "unit": "rad/s",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Robot joint velocities"
+    },
+    {
+      "fid": 526,
+      "name": "joint_efforts",
+      "type": "FloatArray",
+      "unit": "N.m",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Robot joint torques/forces"
+    },
+    {
+      "fid": 527,
+      "name": "joint_names",
+      "type": "StringArray",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Robot joint names"
+    },
+    {
+      "fid": 528,
+      "name": "waypoints",
+      "type": "RecordArray",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Navigation waypoints as records"
+    },
+    {
+      "fid": 529,
+      "name": "point_cloud",
+      "type": "FloatArray",
+      "unit": "m",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Flattened 3D point cloud [x,y,z,x,y,z,...]"
+    },
+    {
+      "fid": 530,
+      "name": "twist",
+      "type": "FloatArray",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "[vx,vy,vz,wx,wy,wz] linear+angular velocity (ROS Twist)"
     },
     {
       "fid": 768,
@@ -378,6 +891,123 @@
       "description": "Battery charge percentage"
     },
     {
+      "fid": 772,
+      "name": "luminosity",
+      "type": "Float",
+      "unit": "lux",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Light level in lux"
+    },
+    {
+      "fid": 773,
+      "name": "noise_level",
+      "type": "Float",
+      "unit": "dB",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Sound level in decibels"
+    },
+    {
+      "fid": 774,
+      "name": "co2_level",
+      "type": "Float",
+      "unit": "ppm",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "CO2 concentration in parts per million"
+    },
+    {
+      "fid": 775,
+      "name": "pm25",
+      "type": "Float",
+      "unit": "ug/m3",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "PM2.5 particulate matter concentration"
+    },
+    {
+      "fid": 776,
+      "name": "pm10",
+      "type": "Float",
+      "unit": "ug/m3",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "PM10 particulate matter concentration"
+    },
+    {
+      "fid": 777,
+      "name": "voc",
+      "type": "Float",
+      "unit": "ppb",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Volatile organic compounds level"
+    },
+    {
+      "fid": 778,
+      "name": "uv_index",
+      "type": "Float",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "UV radiation index (0-11+)"
+    },
+    {
+      "fid": 779,
+      "name": "wind_speed",
+      "type": "Float",
+      "unit": "m/s",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Wind speed in meters per second"
+    },
+    {
+      "fid": 780,
+      "name": "wind_direction",
+      "type": "Float",
+      "unit": "deg",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Wind direction (0-360 degrees, 0=North)"
+    },
+    {
+      "fid": 781,
+      "name": "rainfall",
+      "type": "Float",
+      "unit": "mm",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Rainfall accumulation in millimeters"
+    },
+    {
+      "fid": 782,
+      "name": "soil_moisture",
+      "type": "Float",
+      "unit": "%",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Soil moisture percentage"
+    },
+    {
+      "fid": 783,
+      "name": "ph_level",
+      "type": "Float",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "pH level (0-14 scale)"
+    },
+    {
+      "fid": 784,
+      "name": "signal_strength",
+      "type": "Float",
+      "unit": "dBm",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Signal strength (RSSI) in dBm"
+    },
+    {
       "fid": 1024,
       "name": "message_kind",
       "type": "String",
@@ -403,6 +1033,636 @@
       "status": "ACTIVE",
       "since": "0.5.7",
       "description": "QoS priority level (0-255)"
+    },
+    {
+      "fid": 1027,
+      "name": "retry_count",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Number of delivery retries"
+    },
+    {
+      "fid": 1028,
+      "name": "delivery_status",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Message delivery status (pending, delivered, failed)"
+    },
+    {
+      "fid": 1029,
+      "name": "ack_required",
+      "type": "Bool",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Whether acknowledgment is required"
+    },
+    {
+      "fid": 1030,
+      "name": "payload_schema",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Schema identifier for payload (CloudEvents dataschema)"
+    },
+    {
+      "fid": 1031,
+      "name": "compression",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Compression algorithm (none, gzip, lz4, zstd)"
+    },
+    {
+      "fid": 1032,
+      "name": "encryption",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Encryption algorithm (none, aes256, chacha20)"
+    },
+    {
+      "fid": 1040,
+      "name": "topic",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Message queue topic name (Kafka, RabbitMQ, etc.)"
+    },
+    {
+      "fid": 1041,
+      "name": "partition_id",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Kafka partition identifier"
+    },
+    {
+      "fid": 1042,
+      "name": "offset",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Message offset within partition"
+    },
+    {
+      "fid": 1043,
+      "name": "consumer_group",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Consumer group identifier"
+    },
+    {
+      "fid": 1044,
+      "name": "message_key",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Message partitioning key"
+    },
+    {
+      "fid": 1045,
+      "name": "broker_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Message broker identifier"
+    },
+    {
+      "fid": 1100,
+      "name": "model_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "ML model identifier"
+    },
+    {
+      "fid": 1101,
+      "name": "model_version",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "ML model version"
+    },
+    {
+      "fid": 1102,
+      "name": "inference_time",
+      "type": "Int",
+      "unit": "ms",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Model inference time in milliseconds"
+    },
+    {
+      "fid": 1103,
+      "name": "predictions",
+      "type": "FloatArray",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Model prediction probabilities"
+    },
+    {
+      "fid": 1104,
+      "name": "predicted_class",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Predicted class index"
+    },
+    {
+      "fid": 1105,
+      "name": "class_labels",
+      "type": "StringArray",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Class label names"
+    },
+    {
+      "fid": 1106,
+      "name": "features",
+      "type": "FloatArray",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Input feature vector"
+    },
+    {
+      "fid": 1107,
+      "name": "attention_weights",
+      "type": "FloatArray",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Attention/importance weights"
+    },
+    {
+      "fid": 1108,
+      "name": "token_ids",
+      "type": "IntArray",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Tokenized input IDs"
+    },
+    {
+      "fid": 1109,
+      "name": "input_tokens",
+      "type": "StringArray",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Input tokens for NLP"
+    },
+    {
+      "fid": 1110,
+      "name": "output_tokens",
+      "type": "StringArray",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Output tokens for NLP"
+    },
+    {
+      "fid": 1111,
+      "name": "prompt",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "LLM prompt text"
+    },
+    {
+      "fid": 1112,
+      "name": "completion",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "LLM completion text"
+    },
+    {
+      "fid": 1113,
+      "name": "llm_temperature",
+      "type": "Float",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "LLM sampling temperature (0.0-2.0)"
+    },
+    {
+      "fid": 1114,
+      "name": "max_tokens",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Maximum output tokens for LLM"
+    },
+    {
+      "fid": 1200,
+      "name": "resolution_width",
+      "type": "Int",
+      "unit": "px",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Video/image width in pixels"
+    },
+    {
+      "fid": 1201,
+      "name": "resolution_height",
+      "type": "Int",
+      "unit": "px",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Video/image height in pixels"
+    },
+    {
+      "fid": 1202,
+      "name": "framerate",
+      "type": "Float",
+      "unit": "fps",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Video frame rate (frames per second)"
+    },
+    {
+      "fid": 1203,
+      "name": "bitrate",
+      "type": "Int",
+      "unit": "kbps",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Media bitrate in kilobits per second"
+    },
+    {
+      "fid": 1204,
+      "name": "codec",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Media codec (H.264, H.265, VP9, AV1, etc.)"
+    },
+    {
+      "fid": 1205,
+      "name": "media_duration",
+      "type": "Float",
+      "unit": "s",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Media duration in seconds"
+    },
+    {
+      "fid": 1206,
+      "name": "sample_rate",
+      "type": "Int",
+      "unit": "Hz",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Audio sample rate in Hertz"
+    },
+    {
+      "fid": 1207,
+      "name": "audio_channels",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Number of audio channels (1=mono, 2=stereo)"
+    },
+    {
+      "fid": 1208,
+      "name": "aspect_ratio",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Video aspect ratio (16:9, 4:3, etc.)"
+    },
+    {
+      "fid": 1300,
+      "name": "block_number",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Blockchain block number/height"
+    },
+    {
+      "fid": 1301,
+      "name": "block_hash",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Blockchain block hash"
+    },
+    {
+      "fid": 1302,
+      "name": "transaction_hash",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Blockchain transaction hash"
+    },
+    {
+      "fid": 1303,
+      "name": "from_address",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Sender wallet address"
+    },
+    {
+      "fid": 1304,
+      "name": "to_address",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Recipient wallet address"
+    },
+    {
+      "fid": 1305,
+      "name": "gas_limit",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Transaction gas limit"
+    },
+    {
+      "fid": 1306,
+      "name": "gas_price",
+      "type": "Int",
+      "unit": "wei",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Gas price in smallest unit (e.g., wei)"
+    },
+    {
+      "fid": 1307,
+      "name": "nonce",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Account nonce or transaction counter"
+    },
+    {
+      "fid": 1400,
+      "name": "currency",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "ISO 4217 currency code (usd, eur, jpy)"
+    },
+    {
+      "fid": 1401,
+      "name": "amount",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Monetary amount in smallest unit (cents, yen)"
+    },
+    {
+      "fid": 1402,
+      "name": "tax_amount",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Tax portion of the amount"
+    },
+    {
+      "fid": 1403,
+      "name": "discount_amount",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Discount portion of the amount"
+    },
+    {
+      "fid": 1404,
+      "name": "payment_method",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Payment method identifier (card, bank_transfer)"
+    },
+    {
+      "fid": 1405,
+      "name": "transaction_status",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Transaction status (succeeded, pending, failed)"
+    },
+    {
+      "fid": 1500,
+      "name": "file_size",
+      "type": "Int",
+      "unit": "bytes",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "File size in bytes"
+    },
+    {
+      "fid": 1501,
+      "name": "mime_type",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "IANA media type (same as content_type)"
+    },
+    {
+      "fid": 1502,
+      "name": "file_extension",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "File name extension (without dot)"
+    },
+    {
+      "fid": 1503,
+      "name": "checksum_md5",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "MD5 checksum hex string"
+    },
+    {
+      "fid": 1504,
+      "name": "checksum_sha256",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "SHA-256 checksum hex string"
+    },
+    {
+      "fid": 1505,
+      "name": "last_modified",
+      "type": "Int",
+      "unit": "ms",
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Last modification timestamp"
+    },
+    {
+      "fid": 1600,
+      "name": "performative",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Communicative act (request, inform, propose)"
+    },
+    {
+      "fid": 1601,
+      "name": "ontology",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Ontology name used in content"
+    },
+    {
+      "fid": 1602,
+      "name": "protocol",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Interaction protocol (contract-net, auction)"
+    },
+    {
+      "fid": 1603,
+      "name": "language",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Content language (fipa-sl, kilo, json)"
+    },
+    {
+      "fid": 1604,
+      "name": "reply_with",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Identifier for reply correlation"
+    },
+    {
+      "fid": 1605,
+      "name": "in_reply_to",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Reference to original message identifier"
+    },
+    {
+      "fid": 1621,
+      "name": "firmware_version",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Device firmware version string"
+    },
+    {
+      "fid": 1622,
+      "name": "serial_number",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Device serial number"
+    },
+    {
+      "fid": 1623,
+      "name": "device_model",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Device model identifier"
+    },
+    {
+      "fid": 1641,
+      "name": "node_id",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "OPC UA Node Identifier"
+    },
+    {
+      "fid": 1642,
+      "name": "browse_name",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Non-localized browse name"
+    },
+    {
+      "fid": 1643,
+      "name": "display_name",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Localized display name"
+    },
+    {
+      "fid": 1644,
+      "name": "node_class",
+      "type": "String",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Node class (Object, Variable, Method)"
+    },
+    {
+      "fid": 1645,
+      "name": "namespace_index",
+      "type": "Int",
+      "unit": null,
+      "status": "ACTIVE",
+      "since": "0.5.15",
+      "description": "Namespace index for node identifier"
     }
   ]
 }

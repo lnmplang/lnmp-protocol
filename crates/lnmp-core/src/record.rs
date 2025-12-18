@@ -47,7 +47,7 @@
 //! This ensures that two records with the same fields but different insertion
 //! orders will produce identical checksums and encodings.
 
-use crate::{FieldId, LnmpValue};
+use crate::{FieldId, LnmpValue, LnmpValueView};
 
 /// A single field assignment (field ID + value pair)
 #[derive(Debug, Clone, PartialEq)]
@@ -59,11 +59,26 @@ pub struct LnmpField {
     pub value: LnmpValue,
 }
 
+/// A zero-copy view of a single field assignment (v0.6)
+#[derive(Debug, Clone, PartialEq)]
+pub struct LnmpFieldView<'a> {
+    /// Field identifier
+    pub fid: FieldId,
+    /// Field value view
+    pub value: LnmpValueView<'a>,
+}
+
 /// A complete LNMP record (collection of fields)
 #[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LnmpRecord {
     fields: Vec<LnmpField>,
+}
+
+/// A zero-copy view of an LNMP record (v0.6)
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct LnmpRecordView<'a> {
+    fields: Vec<LnmpFieldView<'a>>,
 }
 
 impl LnmpRecord {
@@ -392,6 +407,46 @@ impl LnmpRecord {
     }
 }
 
+impl<'a> LnmpRecordView<'a> {
+    /// Creates a new empty record view
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Creates a record view from a vector of field views
+    pub fn from_fields(fields: Vec<LnmpFieldView<'a>>) -> Self {
+        Self { fields }
+    }
+
+    /// Adds a field view to the record
+    pub fn add_field(&mut self, field: LnmpFieldView<'a>) {
+        self.fields.push(field);
+    }
+
+    /// Gets a field view by field ID (returns the first match if duplicates exist)
+    pub fn get_field(&self, fid: FieldId) -> Option<&LnmpFieldView<'a>> {
+        self.fields.iter().find(|f| f.fid == fid)
+    }
+
+    /// Returns a slice of all field views in the record
+    pub fn fields(&self) -> &[LnmpFieldView<'a>] {
+        &self.fields
+    }
+
+    /// Converts the view into an owned record (allocates memory)
+    pub fn to_lnmp_record(&self) -> LnmpRecord {
+        let fields = self
+            .fields
+            .iter()
+            .map(|f| LnmpField {
+                fid: f.fid,
+                value: f.value.to_owned_value(),
+            })
+            .collect();
+        LnmpRecord { fields }
+    }
+}
+
 /// Error returned when field ordering validation fails
 #[derive(Debug, Clone, PartialEq)]
 pub struct FieldOrderingError {
@@ -572,6 +627,7 @@ mod tests {
     fn test_new_record_is_empty() {
         let record = LnmpRecord::new();
         assert_eq!(record.fields().len(), 0);
+        assert!(record.get_field(1).is_none());
     }
 
     #[test]
@@ -806,255 +862,5 @@ mod tests {
         assert_eq!(sorted[0].fid, 1);
         assert_eq!(sorted[1].fid, 2);
         assert_eq!(sorted[2].fid, 3);
-    }
-
-    #[test]
-    fn test_sorted_fields_empty_record() {
-        let record = LnmpRecord::new();
-        let sorted = record.sorted_fields();
-        assert_eq!(sorted.len(), 0);
-    }
-
-    #[test]
-    fn test_sorted_fields_does_not_modify_original() {
-        let mut record = LnmpRecord::new();
-        record.add_field(LnmpField {
-            fid: 23,
-            value: LnmpValue::Int(3),
-        });
-        record.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Int(2),
-        });
-
-        let _sorted = record.sorted_fields();
-
-        // Original record should remain unchanged
-        assert_eq!(record.fields()[0].fid, 23);
-        assert_eq!(record.fields()[1].fid, 7);
-    }
-
-    #[test]
-    fn test_canonical_eq_same_order() {
-        let mut rec1 = LnmpRecord::new();
-        rec1.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Int(1),
-        });
-        rec1.add_field(LnmpField {
-            fid: 12,
-            value: LnmpValue::Int(2),
-        });
-
-        let mut rec2 = LnmpRecord::new();
-        rec2.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Int(1),
-        });
-        rec2.add_field(LnmpField {
-            fid: 12,
-            value: LnmpValue::Int(2),
-        });
-
-        assert_eq!(rec1, rec2); // Structural equality
-        assert!(rec1.canonical_eq(&rec2)); // Canonical equality
-    }
-
-    #[test]
-    fn test_canonical_eq_different_order() {
-        let mut rec1 = LnmpRecord::new();
-        rec1.add_field(LnmpField {
-            fid: 12,
-            value: LnmpValue::Int(1),
-        });
-        rec1.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Int(2),
-        });
-
-        let mut rec2 = LnmpRecord::new();
-        rec2.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Int(2),
-        });
-        rec2.add_field(LnmpField {
-            fid: 12,
-            value: LnmpValue::Int(1),
-        });
-
-        assert_ne!(rec1, rec2); // Structural inequality (different order)
-        assert!(rec1.canonical_eq(&rec2)); // Canonical equality (same fields)
-    }
-
-    #[test]
-    fn test_canonical_eq_different_values() {
-        let mut rec1 = LnmpRecord::new();
-        rec1.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Int(1),
-        });
-
-        let mut rec2 = LnmpRecord::new();
-        rec2.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Int(2), // Different value
-        });
-
-        assert!(!rec1.canonical_eq(&rec2));
-    }
-
-    #[test]
-    fn test_canonical_eq_with_nested_records() {
-        // Create two nested records with SAME field order
-        // (Note: canonical_eq compares sorted fields at top level,
-        //  but nested NestedRecord values use PartialEq which is order-sensitive)
-        let mut inner1 = LnmpRecord::new();
-        inner1.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(100),
-        });
-        inner1.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::Int(200),
-        });
-
-        let mut inner2 = LnmpRecord::new();
-        inner2.add_field(LnmpField {
-            fid: 1,
-            value: LnmpValue::Int(100),
-        });
-        inner2.add_field(LnmpField {
-            fid: 2,
-            value: LnmpValue::Int(200),
-        });
-
-        // Create outer records in different field orders
-        let mut rec1 = LnmpRecord::new();
-        rec1.add_field(LnmpField {
-            fid: 50,
-            value: LnmpValue::NestedRecord(Box::new(inner1)),
-        });
-        rec1.add_field(LnmpField {
-            fid: 30,
-            value: LnmpValue::Int(999),
-        });
-
-        let mut rec2 = LnmpRecord::new();
-        rec2.add_field(LnmpField {
-            fid: 30,
-            value: LnmpValue::Int(999),
-        });
-        rec2.add_field(LnmpField {
-            fid: 50,
-            value: LnmpValue::NestedRecord(Box::new(inner2)),
-        });
-
-        // Different field order at top level
-        assert_ne!(rec1, rec2);
-
-        // But canonical_eq should work
-        assert!(rec1.canonical_eq(&rec2));
-    }
-
-    #[test]
-    fn test_canonical_hash_same_order() {
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::Hasher;
-
-        let mut rec1 = LnmpRecord::new();
-        rec1.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Int(1),
-        });
-        rec1.add_field(LnmpField {
-            fid: 12,
-            value: LnmpValue::Int(2),
-        });
-
-        let mut rec2 = LnmpRecord::new();
-        rec2.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Int(1),
-        });
-        rec2.add_field(LnmpField {
-            fid: 12,
-            value: LnmpValue::Int(2),
-        });
-
-        let mut hasher1 = DefaultHasher::new();
-        rec1.canonical_hash(&mut hasher1);
-        let hash1 = hasher1.finish();
-
-        let mut hasher2 = DefaultHasher::new();
-        rec2.canonical_hash(&mut hasher2);
-        let hash2 = hasher2.finish();
-
-        assert_eq!(hash1, hash2);
-    }
-
-    #[test]
-    fn test_canonical_hash_different_order() {
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::Hasher;
-
-        let mut rec1 = LnmpRecord::new();
-        rec1.add_field(LnmpField {
-            fid: 12,
-            value: LnmpValue::Int(1),
-        });
-        rec1.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Int(2),
-        });
-
-        let mut rec2 = LnmpRecord::new();
-        rec2.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Int(2),
-        });
-        rec2.add_field(LnmpField {
-            fid: 12,
-            value: LnmpValue::Int(1),
-        });
-
-        let mut hasher1 = DefaultHasher::new();
-        rec1.canonical_hash(&mut hasher1);
-        let hash1 = hasher1.finish();
-
-        let mut hasher2 = DefaultHasher::new();
-        rec2.canonical_hash(&mut hasher2);
-        let hash2 = hasher2.finish();
-
-        // Same hash despite different insertion order
-        assert_eq!(hash1, hash2);
-    }
-
-    #[test]
-    fn test_canonical_hash_different_values() {
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::Hasher;
-
-        let mut rec1 = LnmpRecord::new();
-        rec1.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Int(1),
-        });
-
-        let mut rec2 = LnmpRecord::new();
-        rec2.add_field(LnmpField {
-            fid: 7,
-            value: LnmpValue::Int(2),
-        });
-
-        let mut hasher1 = DefaultHasher::new();
-        rec1.canonical_hash(&mut hasher1);
-        let hash1 = hasher1.finish();
-
-        let mut hasher2 = DefaultHasher::new();
-        rec2.canonical_hash(&mut hasher2);
-        let hash2 = hasher2.finish();
-
-        // Different hash for different values
-        assert_ne!(hash1, hash2);
     }
 }

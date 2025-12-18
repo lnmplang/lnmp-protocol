@@ -1,8 +1,8 @@
 # LNMP Field ID Governance Specification
 
 **Status:** Official  
-**Version:** 1.0.0  
-**Date:** 2025-12-17  
+**Version:** 1.2.0  
+**Date:** 2025-12-18  
 **Scope:** Field ID allocation, lifecycle management, backward compatibility
 
 ---
@@ -48,23 +48,25 @@ LNMP uses 16-bit unsigned integers for FIDs (0-65535).
 
 | Range | Name | Owner | Stability | Usage |
 |-------|------|-------|-----------|-------|
-| 0-255 | **Core** | Protocol Maintainers | LOCKED | Protocol-level fields, SDK constants |
-| 256-16383 | **Standard** | Protocol Maintainers | STABLE | Common use cases, may deprecate |
+| 0-1023 | **Core** | Protocol Maintainers | LOCKED | Protocol-level fields, SDK constants |
+| 1024-16383 | **Standard** | Protocol Maintainers | STABLE | Common use cases, may deprecate |
 | 16384-32767 | **Extended** | Contributors | EVOLVING | Domain-specific, PR required |
 | 32768-65535 | **Private** | User-defined | UNSTABLE | Application-specific, no registry |
 
 ### 2.3 Range Details
 
-#### Core (0-255)
+#### Core (0-1023)
 - **LOCKED**: Once published, these FIDs NEVER change
 - SDKs MAY hardcode these as constants
 - Reserved for fundamental protocol concepts
-- Examples: `entity_id`, `timestamp`, `version`
+- 1024 slots provide room for future protocol-level fields
+- Examples: `entity_id`, `timestamp`, `version`, `message_kind`
 
-#### Standard (256-16383)  
+#### Standard (1024-16383)  
 - **STABLE**: Changes require deprecation period (2 minor versions)
 - Common patterns: position, rotation, velocity, sensor data
 - Must be registered in `registry/fids.yaml`
+- 15,360 slots for application-level common fields
 
 #### Extended (16384-32767)
 - **EVOLVING**: Can be deprecated without extended period
@@ -151,8 +153,8 @@ lnmp-protocol/
 
 ```yaml
 metadata:
-  version: "1.0.0"
-  protocol_version: "0.5.13"
+  version: "1.2.0"
+  protocol_version: "0.5.15"
 
 core:
   - fid: 1

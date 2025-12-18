@@ -27,8 +27,8 @@ SCHEMA_PATH = Path(__file__).parent.parent / "registry" / "schema.json"
 
 # FID range definitions
 RANGES = {
-    "core": (0, 255),
-    "standard": (256, 16383),
+    "core": (0, 1023),
+    "standard": (1024, 16383),
     "extended": (16384, 32767),
     "tombstoned": (0, 65535),  # Tombstoned can be from any range
 }

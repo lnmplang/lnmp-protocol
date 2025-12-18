@@ -218,6 +218,36 @@ impl BinaryDecoder {
     /// let decoder = BinaryDecoder::new();
     /// let decoded_text = decoder.decode_to_text(&binary).unwrap();
     /// ```
+    /// Decodes binary format to text format
+    ///
+    /// This method:
+    /// 1. Decodes the binary data to an LnmpRecord
+    /// 2. Encodes the record to canonical text format using the v0.3 encoder
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - Binary-encoded LNMP data
+    ///
+    /// # Returns
+    ///
+    /// A string containing the canonical text representation
+    ///
+    /// # Errors
+    ///
+    /// Returns `BinaryError` if decoding fails
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lnmp_codec::binary::{BinaryDecoder, BinaryEncoder};
+    ///
+    /// let text = "F7=1;F12=14532";
+    /// let encoder = BinaryEncoder::new();
+    /// let binary = encoder.encode_text(text).unwrap();
+    ///
+    /// let decoder = BinaryDecoder::new();
+    /// let decoded_text = decoder.decode_to_text(&binary).unwrap();
+    /// ```
     pub fn decode_to_text(&self, bytes: &[u8]) -> Result<String, BinaryError> {
         // Decode to LnmpRecord
         let record = self.decode(bytes)?;
@@ -225,6 +255,344 @@ impl BinaryDecoder {
         // Encode to canonical text format using v0.3 encoder
         let encoder = Encoder::new();
         Ok(encoder.encode(&record))
+    }
+
+    /// Decodes binary format to LnmpRecordView (Zero-Copy)
+    ///
+    /// This method performs zero-copy deserialization where possible (e.g., strings buffer).
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - Binary-encoded LNMP data
+    ///
+    /// # Returns
+    ///
+    /// An `LnmpRecordView` strictly borrowing from the input `bytes`.
+    pub fn decode_view<'a>(
+        &self,
+        bytes: &'a [u8],
+    ) -> Result<lnmp_core::LnmpRecordView<'a>, BinaryError> {
+        // We implement a specialized zero-copy parser here to avoid allocations
+        // Logic parallels BinaryFrame::decode but produces Views
+
+        let mut offset = 0;
+
+        // VERSION (1 byte)
+        if bytes.is_empty() {
+            return Err(BinaryError::UnexpectedEof {
+                expected: 1,
+                found: bytes.len(),
+            });
+        }
+        let version = bytes[offset];
+        offset += 1;
+
+        if version != 0x04 {
+            // VERSION_0_6
+            return Err(BinaryError::UnsupportedVersion {
+                found: version,
+                supported: vec![0x04],
+            });
+        }
+
+        // FLAGS (1 byte)
+        if bytes.len() < offset + 1 {
+            return Err(BinaryError::UnexpectedEof {
+                expected: offset + 1,
+                found: bytes.len(),
+            });
+        }
+        let _flags = bytes[offset]; // Ignored in v0.4
+        offset += 1;
+
+        // ENTRY_COUNT
+        let (entry_count, consumed) =
+            super::varint::decode(&bytes[offset..]).map_err(|_| BinaryError::InvalidVarInt {
+                reason: "Invalid entry count VarInt".to_string(),
+            })?;
+        offset += consumed;
+
+        if entry_count < 0 {
+            return Err(BinaryError::InvalidValue {
+                field_id: 0,
+                type_tag: 0,
+                reason: format!("Negative entry count: {}", entry_count),
+            });
+        }
+        let entry_count = entry_count as usize;
+
+        let mut fields = Vec::with_capacity(entry_count);
+
+        for _ in 0..entry_count {
+            let (field, consumed) = self.decode_view_entry(&bytes[offset..])?;
+            offset += consumed;
+            fields.push(field);
+        }
+
+        let view = lnmp_core::LnmpRecordView::from_fields(fields);
+
+        // Validation logic for ordering ...
+        if self.config.validate_ordering {
+            // In view, checking ordering requires accessing FIDs which are in the vector
+            // fields is Vec<LnmpFieldView>.
+            let fs = view.fields();
+            for i in 1..fs.len() {
+                if fs[i].fid < fs[i - 1].fid {
+                    return Err(BinaryError::CanonicalViolation {
+                        reason: format!(
+                            "Fields not in ascending FID order: F{} appears after F{}",
+                            fs[i].fid,
+                            fs[i - 1].fid
+                        ),
+                    });
+                }
+            }
+        }
+
+        // Check trailing data
+        if self.config.strict_parsing && offset < bytes.len() {
+            return Err(BinaryError::TrailingData {
+                bytes_remaining: bytes.len() - offset,
+            });
+        }
+
+        Ok(view)
+    }
+
+    fn decode_view_entry<'a>(
+        &self,
+        bytes: &'a [u8],
+    ) -> Result<(lnmp_core::LnmpFieldView<'a>, usize), BinaryError> {
+        use super::types::TypeTag;
+        use lnmp_core::{LnmpFieldView, LnmpValueView};
+        let mut offset = 0;
+
+        // FID
+        if bytes.len() < 2 {
+            return Err(BinaryError::UnexpectedEof {
+                expected: 2,
+                found: bytes.len(),
+            });
+        }
+        let fid = u16::from_le_bytes([bytes[0], bytes[1]]);
+        offset += 2;
+
+        // TAG
+        if bytes.len() < offset + 1 {
+            return Err(BinaryError::UnexpectedEof {
+                expected: offset + 1,
+                found: bytes.len(),
+            });
+        }
+        let tag = TypeTag::from_u8(bytes[offset])?;
+        offset += 1;
+
+        let value = match tag {
+            TypeTag::Int => {
+                let (i, c) = super::varint::decode(&bytes[offset..]).map_err(|_| {
+                    BinaryError::InvalidValue {
+                        field_id: fid,
+                        type_tag: tag.to_u8(),
+                        reason: "Invalid VarInt".into(),
+                    }
+                })?;
+                offset += c;
+                LnmpValueView::Int(i)
+            }
+            TypeTag::Float => {
+                if bytes.len() < offset + 8 {
+                    return Err(BinaryError::UnexpectedEof {
+                        expected: offset + 8,
+                        found: bytes.len(),
+                    });
+                }
+                let val = f64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap());
+                offset += 8;
+                LnmpValueView::Float(val)
+            }
+            TypeTag::Bool => {
+                if bytes.len() < offset + 1 {
+                    return Err(BinaryError::UnexpectedEof {
+                        expected: offset + 1,
+                        found: bytes.len(),
+                    });
+                }
+                let b = match bytes[offset] {
+                    0 => false,
+                    1 => true,
+                    _ => {
+                        return Err(BinaryError::InvalidValue {
+                            field_id: fid,
+                            type_tag: tag.to_u8(),
+                            reason: "Invalid bool".into(),
+                        })
+                    }
+                };
+                offset += 1;
+                LnmpValueView::Bool(b)
+            }
+            TypeTag::String => {
+                let (len, c) = super::varint::decode(&bytes[offset..]).map_err(|_| {
+                    BinaryError::InvalidValue {
+                        field_id: fid,
+                        type_tag: tag.to_u8(),
+                        reason: "Invalid string len".into(),
+                    }
+                })?;
+                offset += c;
+                let len = len as usize;
+                if bytes.len() < offset + len {
+                    return Err(BinaryError::UnexpectedEof {
+                        expected: offset + len,
+                        found: bytes.len(),
+                    });
+                }
+                let s_bytes = &bytes[offset..offset + len];
+                let s = std::str::from_utf8(s_bytes)
+                    .map_err(|_| BinaryError::InvalidUtf8 { field_id: fid })?;
+                offset += len;
+                LnmpValueView::String(s)
+            }
+            TypeTag::StringArray => {
+                let (count, c) = super::varint::decode(&bytes[offset..]).map_err(|_| {
+                    BinaryError::InvalidValue {
+                        field_id: fid,
+                        type_tag: tag.to_u8(),
+                        reason: "Invalid array len".into(),
+                    }
+                })?;
+                offset += c;
+                let count = count as usize;
+                let mut arr = Vec::with_capacity(count);
+                for _ in 0..count {
+                    let (len, c) = super::varint::decode(&bytes[offset..]).map_err(|_| {
+                        BinaryError::InvalidValue {
+                            field_id: fid,
+                            type_tag: tag.to_u8(),
+                            reason: "Invalid string len in array".into(),
+                        }
+                    })?;
+                    offset += c;
+                    let len = len as usize;
+                    if bytes.len() < offset + len {
+                        return Err(BinaryError::UnexpectedEof {
+                            expected: offset + len,
+                            found: bytes.len(),
+                        });
+                    }
+                    let s = std::str::from_utf8(&bytes[offset..offset + len])
+                        .map_err(|_| BinaryError::InvalidUtf8 { field_id: fid })?;
+                    arr.push(s);
+                    offset += len;
+                }
+                LnmpValueView::StringArray(arr)
+            }
+            TypeTag::IntArray => {
+                // Must allocate Vec<i64>
+                let (count, c) = super::varint::decode(&bytes[offset..]).map_err(|_| {
+                    BinaryError::InvalidValue {
+                        field_id: fid,
+                        type_tag: tag.to_u8(),
+                        reason: "Invalid array len".into(),
+                    }
+                })?;
+                offset += c;
+                let count = count as usize;
+                let mut arr = Vec::with_capacity(count);
+                for _ in 0..count {
+                    let (val, c) = super::varint::decode(&bytes[offset..]).map_err(|_| {
+                        BinaryError::InvalidValue {
+                            field_id: fid,
+                            type_tag: tag.to_u8(),
+                            reason: "Bad int in array".into(),
+                        }
+                    })?;
+                    offset += c;
+                    arr.push(val);
+                }
+                LnmpValueView::IntArray(arr)
+            }
+            TypeTag::FloatArray => {
+                // Must allocate Vec<f64>
+                let (count, c) = super::varint::decode(&bytes[offset..]).map_err(|_| {
+                    BinaryError::InvalidValue {
+                        field_id: fid,
+                        type_tag: tag.to_u8(),
+                        reason: "Invalid array len".into(),
+                    }
+                })?;
+                offset += c;
+                let count = count as usize;
+                let mut arr = Vec::with_capacity(count);
+                for _ in 0..count {
+                    if bytes.len() < offset + 8 {
+                        return Err(BinaryError::UnexpectedEof {
+                            expected: offset + 8,
+                            found: bytes.len(),
+                        });
+                    }
+                    let val = f64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap());
+                    offset += 8;
+                    arr.push(val);
+                }
+                LnmpValueView::FloatArray(arr)
+            }
+            TypeTag::BoolArray => {
+                // Must allocate Vec<bool>
+                let (count, c) = super::varint::decode(&bytes[offset..]).map_err(|_| {
+                    BinaryError::InvalidValue {
+                        field_id: fid,
+                        type_tag: tag.to_u8(),
+                        reason: "Invalid array len".into(),
+                    }
+                })?;
+                offset += c;
+                let count = count as usize;
+                if bytes.len() < offset + count {
+                    return Err(BinaryError::UnexpectedEof {
+                        expected: offset + count,
+                        found: bytes.len(),
+                    });
+                }
+                let mut arr = Vec::with_capacity(count);
+                for i in 0..count {
+                    arr.push(bytes[offset + i] != 0);
+                }
+                offset += count;
+                LnmpValueView::BoolArray(arr)
+            }
+            TypeTag::Embedding => {
+                // Capture raw bytes for lazy decoding
+                let (len, c) = super::varint::decode(&bytes[offset..]).map_err(|_| {
+                    BinaryError::InvalidValue {
+                        field_id: fid,
+                        type_tag: tag.to_u8(),
+                        reason: "Invalid embedding len".into(),
+                    }
+                })?;
+                offset += c;
+                let len = len as usize;
+                if bytes.len() < offset + len {
+                    return Err(BinaryError::UnexpectedEof {
+                        expected: offset + len,
+                        found: bytes.len(),
+                    });
+                }
+                let emb_bytes = &bytes[offset..offset + len];
+
+                // Zero-copy: just store the slice
+                LnmpValueView::Embedding(emb_bytes)
+            }
+            _ => {
+                return Err(BinaryError::InvalidValue {
+                    field_id: fid,
+                    type_tag: tag.to_u8(),
+                    reason: "Unsupported tag for view".into(),
+                })
+            }
+        };
+
+        Ok((LnmpFieldView { fid, value }, offset))
     }
 
     /// Validates that fields are in ascending FID order (canonical form)
@@ -320,7 +688,7 @@ impl BinaryDecoder {
     /// use lnmp_codec::binary::BinaryDecoder;
     ///
     /// let decoder = BinaryDecoder::new();
-    /// let v04_data = vec![0x04, 0x00, 0x00]; // v0.4 binary
+    /// let v04_data = vec![0x04, 0x00, 0x00]; // v0.6 binary
     /// let version = decoder.detect_version(&v04_data).unwrap();
     /// assert_eq!(version, 0x04);
     /// ```
@@ -337,7 +705,7 @@ impl BinaryDecoder {
     /// Checks if the binary data contains nested structures (v0.5+ feature)
     ///
     /// This method scans the binary data to determine if it uses v0.5+ type tags
-    /// (NestedRecord 0x06, NestedArray 0x07, or reserved types 0x08-0x0F).
+    /// (NestedRecord 0x04, NestedArray 0x07, or reserved types 0x08-0x0F).
     /// This is useful for determining compatibility with v0.4 decoders.
     ///
     /// # Arguments
@@ -359,7 +727,7 @@ impl BinaryDecoder {
     /// ```
     pub fn supports_nested(&self, bytes: &[u8]) -> bool {
         // Try to parse the frame and check for v0.5 type tags
-        // We need to scan through entries looking for type tags >= 0x06
+        // We need to scan through entries looking for type tags >= 0x04
 
         if bytes.len() < 3 {
             return false; // Too short to contain any entries
@@ -801,6 +1169,55 @@ mod tests {
         }
 
         assert_eq!(current, text);
+    }
+
+    #[test]
+    fn test_decode_view_zero_copy() {
+        let text = "F7=1;F12=14532;F23=[\"admin\",\"dev\"]";
+        let encoder = BinaryEncoder::new();
+        let binary = encoder.encode_text(text).unwrap();
+
+        let decoder = BinaryDecoder::new();
+        // Decode to view
+        let view = decoder.decode_view(&binary).unwrap();
+
+        // Verify fields
+        let fields = view.fields();
+        assert_eq!(fields.len(), 3);
+
+        // F7 = Bool(true)
+        assert_eq!(fields[0].fid, 7);
+        match &fields[0].value {
+            lnmp_core::LnmpValueView::Bool(b) => assert!(*b),
+            _ => panic!("Expected Bool"),
+        }
+
+        // F12 = Int(14532)
+        assert_eq!(fields[1].fid, 12);
+        match &fields[1].value {
+            lnmp_core::LnmpValueView::Int(i) => assert_eq!(*i, 14532),
+            _ => panic!("Expected Int"),
+        }
+
+        // F23 = StringArray([admin, dev])
+        assert_eq!(fields[2].fid, 23);
+        match &fields[2].value {
+            lnmp_core::LnmpValueView::StringArray(arr) => {
+                assert_eq!(arr.len(), 2);
+                assert_eq!(arr[0], "admin");
+                assert_eq!(arr[1], "dev");
+            }
+            _ => panic!("Expected StringArray"),
+        }
+
+        // Verify to_lnmp_record conversion
+        let owned = view.to_lnmp_record();
+        assert_eq!(owned.fields()[1].fid, 12);
+        if let Some(lnmp_core::LnmpValue::Int(val)) = owned.get_field(12).map(|f| &f.value) {
+            assert_eq!(*val, 14532);
+        } else {
+            panic!("Conversion failed");
+        }
     }
 
     #[test]

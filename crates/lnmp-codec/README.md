@@ -468,6 +468,188 @@ let decoder = BinaryDecoder::with_config(decoder_config);
 - **Decoding Speed**: < 1μs per field for simple types
 - **Round-trip**: < 10μs for typical 10-field record
 
+### Zero-Copy Decoding (v0.5)
+
+The `decode_view()` API enables zero-copy parsing for **high-throughput** scenarios like routing, filtering, and logging. Instead of allocating owned values, it borrows directly from the input buffer.
+
+#### When to Use
+
+| Use Case | API | Reason |
+|----------|-----|--------|
+| **Routing/Filtering** | `decode_view()` | Decision based on field values without full parse |
+| **Logging/Monitoring** | `decode_view()` | Extract trace ID, timestamps without allocation |
+| **Proxying/Forwarding** | `decode_view()` | Inspect headers, forward payload unchanged |
+| **Processing/Storage** | `decode()` | Need to mutate, persist, or own the data |
+
+#### Performance Comparison
+
+Based on `cargo bench --bench zero_copy_bench` (v0.5.15):
+
+| Payload Type | `decode()` | `decode_view()` | Speedup |
+|--------------|------------|-----------------|---------|
+| **Small** (3 fields, ~22 bytes) | ~248 ns | ~92 ns | **2.70x** |
+| **Medium** (strings + ints, ~100 bytes) | ~610 ns | ~164 ns | **3.71x** |
+| **Large** (10KB string + embedding) | ~18.3 μs | ~2.1 μs | **8.91x** |
+
+**Throughput Comparison:**
+
+| Scenario | Standard | Zero-Copy | Improvement |
+|----------|----------|-----------|-------------|
+| Small records | 0.09 GiB/s | 0.24 GiB/s | **+170%** |
+| Medium records | 0.16 GiB/s | 0.59 GiB/s | **+271%** |
+| Large records | 0.12 GiB/s | 1.04 GiB/s | **+791%** |
+
+**Batch Processing (1000 records):**
+- Standard decode: 165 μs
+- Zero-copy view: 55 μs  
+- **3x faster batch throughput**
+
+#### Basic Usage
+
+```rust
+use lnmp_codec::binary::BinaryDecoder;
+use lnmp_core::LnmpValueView;
+
+let decoder = BinaryDecoder::new();
+let bytes = vec![...]; // From network/file
+
+// Create zero-copy view (borrows from 'bytes')
+let view = decoder.decode_view(&bytes).unwrap();
+
+// Access fields without allocation
+for field in view.fields() {
+    match &field.value {
+        LnmpValueView::String(s) => {
+            println!("String: {}", s);  // s is &str (borrowed!)
+        }
+        LnmpValueView::Embedding(raw) => {
+            println!("Embedding: {} bytes", raw.len());  // raw is &[u8]
+        }
+        _ => {}
+    }
+}
+```
+
+#### Example: High-Throughput Router
+
+```rust
+use lnmp_codec::binary::BinaryDecoder;
+use lnmp_core::LnmpValueView;
+
+let decoder = BinaryDecoder::new();
+
+// Process 1M+ messages/sec without allocation
+for payload in incoming_messages {
+    let view = decoder.decode_view(&payload)?;
+    
+    // Zero-copy field inspection
+    if let Some(field) = view.get_field(50) { // F50: status
+        match &field.value {
+            LnmpValueView::String(status) if *status == "critical" => {
+                route_to_llm(&payload)?;
+            }
+            _ => route_locally(&payload)?
+        }
+    }
+}
+```
+
+#### Example: Trace ID Extraction
+
+```rust
+use lnmp_codec::binary::BinaryDecoder;
+use lnmp_core::LnmpValueView;
+
+fn extract_trace_id(bytes: &[u8]) -> Option<&str> {
+    let decoder = BinaryDecoder::new();
+    let view = decoder.decode_view(bytes).ok()?;
+    
+    // Zero-copy trace ID access (F80)
+    if let Some(field) = view.get_field(80) {
+        if let LnmpValueView::String(trace_id) = &field.value {
+            return Some(trace_id);  // Returns &str (zero-copy!)
+        }
+    }
+    None
+}
+
+// Usage in HTTP middleware
+let trace_id = extract_trace_id(&request_body)?;
+println!("Trace-ID: {}", trace_id);  // No allocation
+```
+
+#### Zero-Copy Limitations
+
+| Type | Zero-Copy | Notes |
+|------|-----------|-------|
+| **String** | ✅ Full | Returns `&str` borrowed from input |
+| **StringArray** | ✅ Full | Returns `Vec<&str>` (only refs allocated) |
+| **Embedding** | ✅ Lazy | Returns `&[u8]` raw bytes (parse on demand) |
+| **Int/Float/Bool** | ✅ Natural | Scalars copied (4-8 bytes, negligible) |
+| **IntArray** | ❌ Allocates | VarInt encoding requires parse → `Vec<i64>` |
+| **FloatArray** | ❌ Allocates | VarInt length + values → `Vec<f64>` |
+| **BoolArray** | ❌ Allocates | Byte-per-bool → `Vec<bool>` |
+| **Nested** | ⚠️ Partial | Currently allocates (future: zero-copy traversal) |
+
+**Why IntArray allocates:**  
+VarInt encoding stores integers as variable-length sequences. To access `[1, 2, 3]`, the decoder must parse each VarInt, which requires allocation. Future versions will support packed (fixed-width) arrays for zero-copy access.
+
+#### Advanced: Content-Based Routing
+
+See [`examples/zero_copy_routing.rs`](./examples/zero_copy_routing.rs) for a complete routing example with benchmarks.
+
+```bash
+cargo run -p lnmp-codec --example zero_copy_routing
+```
+
+**Expected Output:**
+```
+=== Zero-Copy Routing Demo ===
+Critical message → ROUTE_TO_LLM
+Normal message → ROUTE_LOCALLY
+
+=== Performance (100k iterations) ===
+Standard decode: 210ms (2.10 μs/iter)
+Zero-copy view:  90ms (0.90 μs/iter)
+Speedup: 2.33x faster
+```
+
+#### Migration Guide
+
+**Before (Standard decode):**
+```rust
+let record = decoder.decode(&bytes)?;
+if let Some(field) = record.get_field(50) {
+    match &field.value {
+        LnmpValue::String(s) => process(s),  // s is String (owned)
+        _ => {}
+    }
+}
+```
+
+**After (Zero-copy view):**
+```rust
+let view = decoder.decode_view(&bytes)?;
+if let Some(field) = view.get_field(50) {
+    match &field.value {
+        LnmpValueView::String(s) => process(s),  // s is &str (borrowed)
+        _ => {}
+    }
+}
+```
+
+**Key Difference:**  
+- `LnmpValue::String(String)` → `LnmpValueView::String(&str)`
+- Must convert to owned if needed: `s.to_string()`
+
+#### Future Enhancements (v0.6+)
+
+- **Sparse array encoding:** Compressed storage for sparse vectors
+- **Nested zero-copy:** Traverse nested structures without allocation
+- **SIMD similarity:** Direct cosine similarity on embedding views
+
+**Use `decode_view()` for maximum throughput. Use `decode()` when you need to own/mutate the data.**
+
 ## v0.5.14 Features
 
 ### Dynamic FID Discovery Protocol

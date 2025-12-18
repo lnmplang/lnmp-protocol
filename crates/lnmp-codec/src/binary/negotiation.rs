@@ -1104,7 +1104,7 @@ mod tests {
         assert!(caps.supports_type(TypeTag::StringArray));
         assert!(caps.supports_type(TypeTag::NestedRecord));
         assert!(caps.supports_type(TypeTag::NestedArray));
-        assert!(!caps.supports_type(TypeTag::Reserved09));
+        assert!(!caps.supports_type(TypeTag::HybridNumericArray));
     }
 
     #[test]

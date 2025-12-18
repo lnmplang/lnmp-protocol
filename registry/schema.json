@@ -36,7 +36,7 @@
       }
     },
     "core": {
-      "description": "Core fields (FID 0-255) - LOCKED stability",
+      "description": "Core fields (FID 0-1023) - LOCKED stability",
       "allOf": [
         {
           "$ref": "#/definitions/fieldList"
@@ -46,7 +46,7 @@
             "properties": {
               "fid": {
                 "minimum": 0,
-                "maximum": 255
+                "maximum": 1023
               }
             }
           }
@@ -54,7 +54,7 @@
       ]
     },
     "standard": {
-      "description": "Standard fields (FID 256-16383) - STABLE",
+      "description": "Standard fields (FID 1024-16383) - STABLE",
       "allOf": [
         {
           "$ref": "#/definitions/fieldList"
@@ -63,7 +63,7 @@
           "items": {
             "properties": {
               "fid": {
-                "minimum": 256,
+                "minimum": 1024,
                 "maximum": 16383
               }
             }

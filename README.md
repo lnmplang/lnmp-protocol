@@ -680,15 +680,24 @@ cd tests/compliance/cpp && make test
 
 ## Performance
 
-- Zero-copy where possible
-- No regex dependencies
-- Hand-written lexer for optimal performance
+**Zero-Copy Decoding (v0.5.15):**
+
+| Payload Size | Standard | Zero-Copy | Speedup |
+|--------------|----------|-----------|---------|
+| Small (3 fields) | 248 ns | 92 ns | **2.70x** |
+| Medium (7 fields) | 610 ns | 164 ns | **3.71x** |
+| Large (embeddings) | 18.3 μs | 2.1 μs | **8.91x** |
+
+**Throughput:**
+- Large records: **1.04 GiB/s** (zero-copy) vs 0.12 GiB/s (standard)
+- Batch processing: **3x faster** (1000 records in 55 μs)
+
+**Other Performance Metrics:**
+- No regex dependencies, hand-written lexer
 - Minimal allocations during parsing
 - SC32 checksum computation: <1μs per field
 - Nested parsing: <10μs for 3-level nesting
 - Token reduction: 7-12× vs JSON (ShortForm mode)
-- Binary nested encoding: <2μs per field (v0.5)
-- Streaming overhead: <5% vs non-streaming (v0.5)
 - Delta encoding savings: >50% for typical updates (v0.5)
 
 ## Roadmap

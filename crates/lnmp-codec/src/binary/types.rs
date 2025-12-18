@@ -1,4 +1,4 @@
-//! Binary type system for LNMP v0.4 protocol.
+//! Binary type system for LNMP v0.5 protocol.
 
 use super::error::BinaryError;
 use lnmp_core::LnmpValue;
@@ -23,8 +23,9 @@ pub enum TypeTag {
     NestedArray = 0x07,
     /// Embedding type (v0.5) - TAG + ENCODED_VECTOR
     Embedding = 0x08,
-    /// Reserved for future use (v0.5+)
-    Reserved09 = 0x09,
+    /// Hybrid numeric array type (v0.5.16) - TAG + FLAGS + COUNT + DATA
+    /// Supports i32/i64/f32/f64 in dense or sparse mode
+    HybridNumericArray = 0x09,
     /// Quantized embedding type (v0.5.2) - TAG + QUANTIZED_VECTOR
     QuantizedEmbedding = 0x0A,
     /// Integer array type (v0.6) - TAG + COUNT + INT entries
@@ -51,7 +52,7 @@ impl TypeTag {
             0x06 => Ok(TypeTag::NestedRecord),
             0x07 => Ok(TypeTag::NestedArray),
             0x08 => Ok(TypeTag::Embedding),
-            0x09 => Ok(TypeTag::Reserved09),
+            0x09 => Ok(TypeTag::HybridNumericArray),
             0x0A => Ok(TypeTag::QuantizedEmbedding),
             0x0B => Ok(TypeTag::IntArray),
             0x0C => Ok(TypeTag::FloatArray),
@@ -75,7 +76,7 @@ impl TypeTag {
                 | TypeTag::NestedArray
                 | TypeTag::Embedding
                 | TypeTag::QuantizedEmbedding
-                | TypeTag::Reserved09
+                | TypeTag::HybridNumericArray
                 | TypeTag::IntArray
                 | TypeTag::FloatArray
                 | TypeTag::BoolArray
@@ -86,10 +87,7 @@ impl TypeTag {
 
     /// Returns true if this is a reserved type tag
     pub fn is_reserved(&self) -> bool {
-        matches!(
-            self,
-            TypeTag::Reserved09 | TypeTag::Reserved0E | TypeTag::Reserved0F
-        )
+        matches!(self, TypeTag::Reserved0E | TypeTag::Reserved0F)
     }
 }
 
@@ -120,6 +118,154 @@ pub enum BinaryValue {
     Embedding(lnmp_embedding::Vector),
     /// Quantized embedding (v0.5.2)
     QuantizedEmbedding(lnmp_quant::QuantizedVector),
+    /// Hybrid numeric array (v0.5.16) - supports i32/i64/f32/f64, dense or sparse
+    HybridNumericArray(HybridArray),
+}
+
+/// Hybrid numeric array supporting multiple data types and encoding modes
+#[derive(Debug, Clone, PartialEq)]
+pub struct HybridArray {
+    /// Data type of elements
+    pub dtype: NumericDType,
+    /// Whether this is sparse encoded
+    pub sparse: bool,
+    /// Total dimension (for sparse arrays, this is the full dimension)
+    pub dim: usize,
+    /// Raw data (for dense: all values; for sparse: indices then values)
+    pub data: Vec<u8>,
+}
+
+/// Numeric data type for HybridNumericArray
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NumericDType {
+    /// 32-bit signed integer
+    I32 = 0,
+    /// 64-bit signed integer
+    I64 = 1,
+    /// 32-bit float
+    F32 = 2,
+    /// 64-bit float
+    F64 = 3,
+}
+
+impl NumericDType {
+    /// Element size in bytes
+    pub fn byte_size(&self) -> usize {
+        match self {
+            NumericDType::I32 | NumericDType::F32 => 4,
+            NumericDType::I64 | NumericDType::F64 => 8,
+        }
+    }
+    
+    /// Parse from flags byte (bits 0-1)
+    pub fn from_flags(flags: u8) -> Self {
+        match flags & 0x03 {
+            0 => NumericDType::I32,
+            1 => NumericDType::I64,
+            2 => NumericDType::F32,
+            _ => NumericDType::F64,
+        }
+    }
+    
+    /// Convert to flags bits
+    pub fn to_flags(&self) -> u8 {
+        *self as u8
+    }
+}
+
+impl HybridArray {
+    /// Create a new dense f32 array
+    pub fn from_f32_dense(values: &[f32]) -> Self {
+        let mut data = Vec::with_capacity(values.len() * 4);
+        for v in values {
+            data.extend_from_slice(&v.to_le_bytes());
+        }
+        Self {
+            dtype: NumericDType::F32,
+            sparse: false,
+            dim: values.len(),
+            data,
+        }
+    }
+    
+    /// Create a new dense f64 array
+    pub fn from_f64_dense(values: &[f64]) -> Self {
+        let mut data = Vec::with_capacity(values.len() * 8);
+        for v in values {
+            data.extend_from_slice(&v.to_le_bytes());
+        }
+        Self {
+            dtype: NumericDType::F64,
+            sparse: false,
+            dim: values.len(),
+            data,
+        }
+    }
+    
+    /// Create a new dense i32 array
+    pub fn from_i32_dense(values: &[i32]) -> Self {
+        let mut data = Vec::with_capacity(values.len() * 4);
+        for v in values {
+            data.extend_from_slice(&v.to_le_bytes());
+        }
+        Self {
+            dtype: NumericDType::I32,
+            sparse: false,
+            dim: values.len(),
+            data,
+        }
+    }
+    
+    /// Create a new dense i64 array
+    pub fn from_i64_dense(values: &[i64]) -> Self {
+        let mut data = Vec::with_capacity(values.len() * 8);
+        for v in values {
+            data.extend_from_slice(&v.to_le_bytes());
+        }
+        Self {
+            dtype: NumericDType::I64,
+            sparse: false,
+            dim: values.len(),
+            data,
+        }
+    }
+    
+    /// Get f32 values (dense mode only)
+    pub fn as_f32_vec(&self) -> Option<Vec<f32>> {
+        if self.dtype != NumericDType::F32 || self.sparse {
+            return None;
+        }
+        let mut result = Vec::with_capacity(self.dim);
+        for chunk in self.data.chunks_exact(4) {
+            result.push(f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]));
+        }
+        Some(result)
+    }
+    
+    /// Get f64 values (dense mode only)
+    pub fn as_f64_vec(&self) -> Option<Vec<f64>> {
+        if self.dtype != NumericDType::F64 || self.sparse {
+            return None;
+        }
+        let mut result = Vec::with_capacity(self.dim);
+        for chunk in self.data.chunks_exact(8) {
+            result.push(f64::from_le_bytes([
+                chunk[0], chunk[1], chunk[2], chunk[3],
+                chunk[4], chunk[5], chunk[6], chunk[7],
+            ]));
+        }
+        Some(result)
+    }
+    
+    /// Encode flags byte
+    pub fn flags(&self) -> u8 {
+        let mut flags = self.dtype.to_flags();
+        if self.sparse {
+            flags |= 0x04; // bit 2
+        }
+        flags
+    }
 }
 
 impl BinaryValue {
@@ -217,6 +363,33 @@ impl BinaryValue {
             BinaryValue::NestedArray(arr) => LnmpValue::NestedArray(arr.clone()),
             BinaryValue::Embedding(vec) => LnmpValue::Embedding(vec.clone()),
             BinaryValue::QuantizedEmbedding(qv) => LnmpValue::QuantizedEmbedding(qv.clone()),
+            BinaryValue::HybridNumericArray(arr) => {
+                // Convert to appropriate LnmpValue based on dtype
+                match arr.dtype {
+                    NumericDType::I32 | NumericDType::I64 => {
+                        // Convert to IntArray
+                        if let Some(vals) = arr.as_f64_vec() {
+                            LnmpValue::IntArray(vals.iter().map(|v| *v as i64).collect())
+                        } else {
+                            LnmpValue::IntArray(vec![])
+                        }
+                    }
+                    NumericDType::F32 => {
+                        if let Some(vals) = arr.as_f32_vec() {
+                            LnmpValue::FloatArray(vals.iter().map(|v| *v as f64).collect())
+                        } else {
+                            LnmpValue::FloatArray(vec![])
+                        }
+                    }
+                    NumericDType::F64 => {
+                        if let Some(vals) = arr.as_f64_vec() {
+                            LnmpValue::FloatArray(vals)
+                        } else {
+                            LnmpValue::FloatArray(vec![])
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -235,6 +408,7 @@ impl BinaryValue {
             BinaryValue::NestedArray(_) => TypeTag::NestedArray,
             BinaryValue::Embedding(_) => TypeTag::Embedding,
             BinaryValue::QuantizedEmbedding(_) => TypeTag::QuantizedEmbedding,
+            BinaryValue::HybridNumericArray(_) => TypeTag::HybridNumericArray,
         }
     }
 }
@@ -272,7 +446,7 @@ mod tests {
     fn test_type_tag_from_u8_reserved() {
         // Reserved types should be valid but marked as reserved
         assert_eq!(TypeTag::from_u8(0x08).unwrap(), TypeTag::Embedding);
-        assert_eq!(TypeTag::from_u8(0x09).unwrap(), TypeTag::Reserved09);
+        assert_eq!(TypeTag::from_u8(0x09).unwrap(), TypeTag::HybridNumericArray);
         assert_eq!(TypeTag::from_u8(0x0A).unwrap(), TypeTag::QuantizedEmbedding);
         assert_eq!(TypeTag::from_u8(0x0B).unwrap(), TypeTag::IntArray);
         assert_eq!(TypeTag::from_u8(0x0C).unwrap(), TypeTag::FloatArray);
@@ -301,7 +475,7 @@ mod tests {
             TypeTag::NestedRecord,
             TypeTag::NestedArray,
             TypeTag::Embedding,
-            TypeTag::Reserved09,
+            TypeTag::HybridNumericArray,
             TypeTag::QuantizedEmbedding,
             TypeTag::IntArray,
             TypeTag::FloatArray,
@@ -330,7 +504,7 @@ mod tests {
         assert!(TypeTag::NestedRecord.is_v0_5_type());
         assert!(TypeTag::NestedArray.is_v0_5_type());
         assert!(TypeTag::Embedding.is_v0_5_type());
-        assert!(TypeTag::Reserved09.is_v0_5_type());
+        assert!(TypeTag::HybridNumericArray.is_v0_5_type());
         assert!(TypeTag::QuantizedEmbedding.is_v0_5_type());
         assert!(TypeTag::IntArray.is_v0_5_type());
         assert!(TypeTag::FloatArray.is_v0_5_type());
@@ -352,7 +526,7 @@ mod tests {
 
         // Reserved types should return true
         assert!(!TypeTag::Embedding.is_reserved());
-        assert!(TypeTag::Reserved09.is_reserved());
+        assert!(!TypeTag::HybridNumericArray.is_reserved());
         assert!(!TypeTag::QuantizedEmbedding.is_reserved());
         assert!(!TypeTag::IntArray.is_reserved());
         assert!(!TypeTag::FloatArray.is_reserved());
@@ -643,5 +817,43 @@ mod tests {
         let neg_inf_val = LnmpValue::Float(f64::NEG_INFINITY);
         let binary_neg_inf = BinaryValue::from_lnmp_value(&neg_inf_val).unwrap();
         assert_eq!(binary_neg_inf, BinaryValue::Float(f64::NEG_INFINITY));
+    }
+    
+    #[test]
+    fn test_hybrid_array_f32_dense() {
+        let values: Vec<f32> = vec![1.0, 2.5, -3.14, 0.0, 100.0];
+        let arr = HybridArray::from_f32_dense(&values);
+        
+        assert_eq!(arr.dtype, NumericDType::F32);
+        assert!(!arr.sparse);
+        assert_eq!(arr.dim, 5);
+        assert_eq!(arr.data.len(), 20); // 5 * 4 bytes
+        
+        // Verify we can get values back
+        let recovered = arr.as_f32_vec().unwrap();
+        assert_eq!(recovered.len(), 5);
+        assert!((recovered[0] - 1.0).abs() < 0.0001);
+        assert!((recovered[1] - 2.5).abs() < 0.0001);
+        assert!((recovered[2] - (-3.14)).abs() < 0.0001);
+    }
+    
+    #[test]
+    fn test_hybrid_array_flags() {
+        let arr_i32 = HybridArray::from_i32_dense(&[1, 2, 3]);
+        assert_eq!(arr_i32.flags(), 0x00); // I32, dense
+        
+        let arr_f32 = HybridArray::from_f32_dense(&[1.0, 2.0]);
+        assert_eq!(arr_f32.flags(), 0x02); // F32, dense
+        
+        let arr_f64 = HybridArray::from_f64_dense(&[1.0, 2.0]);
+        assert_eq!(arr_f64.flags(), 0x03); // F64, dense
+    }
+    
+    #[test]
+    fn test_numeric_dtype_byte_size() {
+        assert_eq!(NumericDType::I32.byte_size(), 4);
+        assert_eq!(NumericDType::I64.byte_size(), 8);
+        assert_eq!(NumericDType::F32.byte_size(), 4);
+        assert_eq!(NumericDType::F64.byte_size(), 8);
     }
 }

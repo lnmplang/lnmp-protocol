@@ -23,9 +23,15 @@ lnmp-sfe = { workspace = true }
 log = { version = "0.4", optional = true }
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = "0.5"
+tokio = { version = "1.0", features = ["full"] }
+bytemuck = "1.16"
 # property tests
 proptest = "1.2"
+
+[[bench]]
+name = "zero_copy_bench"
+harness = false
 
 [[bench]]
 name = "v05_performance"

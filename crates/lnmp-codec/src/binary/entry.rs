@@ -146,14 +146,12 @@ impl BinaryEntry {
             }
             BinaryValue::Embedding(vec) => {
                 // Encode using lnmp-embedding crate
-                // We wrap the result in a Result, but encode() signature returns Vec<u8>
-                // For now, we'll panic on error as this is an in-memory operation that shouldn't fail
-                // unless OOM. Ideally signature should return Result.
                 let encoded = EmbeddingEncoder::encode(vec).expect("Failed to encode embedding");
                 // Write length (VarInt) + encoded data
                 bytes.extend_from_slice(&varint::encode(encoded.len() as i64));
                 bytes.extend_from_slice(&encoded);
             }
+
             BinaryValue::QuantizedEmbedding(qv) => {
                 // Encode quantized embedding: scheme + scale + zero_point + min_val + dim + data
                 bytes.push(qv.scheme as u8);
@@ -163,6 +161,18 @@ impl BinaryEntry {
                 bytes.extend_from_slice(&qv.dim.to_le_bytes());
                 bytes.extend_from_slice(&varint::encode(qv.data.len() as i64));
                 bytes.extend_from_slice(&qv.data);
+            }
+            BinaryValue::HybridNumericArray(arr) => {
+                // Encode hybrid array: flags + count + data
+                bytes.push(arr.flags());
+                bytes.extend_from_slice(&varint::encode(arr.dim as i64));
+                if arr.sparse {
+                    // For sparse: nnz + indices + values (not implemented yet)
+                    panic!("Sparse HybridNumericArray encoding not yet implemented");
+                } else {
+                    // For dense: raw data
+                    bytes.extend_from_slice(&arr.data);
+                }
             }
         }
 
@@ -216,8 +226,57 @@ impl BinaryEntry {
                             .to_string(),
                 });
             }
-            TypeTag::Reserved09
-            | TypeTag::QuantizedEmbedding
+            TypeTag::HybridNumericArray => {
+                // Decode flags byte
+                if bytes.len() < offset + 1 {
+                    return Err(BinaryError::UnexpectedEof {
+                        expected: offset + 1,
+                        found: bytes.len(),
+                    });
+                }
+                let flags = bytes[offset];
+                offset += 1;
+                
+                let dtype = crate::binary::types::NumericDType::from_flags(flags);
+                let sparse = (flags & 0x04) != 0;
+                
+                // Decode count/dimension
+                let (dim, consumed) = varint::decode(&bytes[offset..]).map_err(|_| BinaryError::InvalidValue {
+                    field_id: fid,
+                    type_tag: tag.to_u8(),
+                    reason: "Invalid VarInt for array dimension".to_string(),
+                })?;
+                offset += consumed;
+                let dim = dim as usize;
+                
+                if sparse {
+                    return Err(BinaryError::InvalidValue {
+                        field_id: fid,
+                        type_tag: tag.to_u8(),
+                        reason: "Sparse HybridNumericArray decoding not yet implemented".to_string(),
+                    });
+                }
+                
+                // Dense mode: read raw data
+                let byte_size = dim * dtype.byte_size();
+                if bytes.len() < offset + byte_size {
+                    return Err(BinaryError::UnexpectedEof {
+                        expected: offset + byte_size,
+                        found: bytes.len(),
+                    });
+                }
+                
+                let data = bytes[offset..offset + byte_size].to_vec();
+                offset += byte_size;
+                
+                BinaryValue::HybridNumericArray(crate::binary::types::HybridArray {
+                    dtype,
+                    sparse,
+                    dim,
+                    data,
+                })
+            }
+            TypeTag::QuantizedEmbedding
             | TypeTag::IntArray
             | TypeTag::FloatArray
             | TypeTag::BoolArray
@@ -226,7 +285,7 @@ impl BinaryEntry {
                 return Err(BinaryError::InvalidValue {
                     field_id: fid,
                     type_tag: tag.to_u8(),
-                    reason: format!("Reserved type tag 0x{:02X} cannot be used", tag.to_u8()),
+                    reason: format!("Type tag 0x{:02X} not yet implemented in entry decoder", tag.to_u8()),
                 });
             }
             TypeTag::Int => {

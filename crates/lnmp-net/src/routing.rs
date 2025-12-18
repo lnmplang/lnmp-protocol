@@ -122,6 +122,53 @@ impl RoutingPolicy {
         Ok(RoutingDecision::ProcessLocally)
     }
 
+    /// Decides how to route a message (Zero-Copy View)
+    ///
+    /// # Arguments
+    ///
+    /// * `kind` - Message kind
+    /// * `priority` - Message priority
+    /// * `metadata` - Envelope metadata
+    /// * `expires_at` - Expiration timestamp (if any)
+    /// * `record_view` - The record view (currently unused by default policy but available for extensions)
+    /// * `now_ms` - Current time in epoch milliseconds
+    pub fn decide_view(
+        &self,
+        kind: crate::kind::MessageKind,
+        priority: u8,
+        metadata: &lnmp_envelope::EnvelopeMetadata,
+        expires_at: Option<u64>,
+        _record_view: &lnmp_core::LnmpRecordView,
+        now_ms: u64,
+    ) -> Result<RoutingDecision> {
+        // 1. Check expiry
+        if self.drop_expired {
+            if let Some(exp) = expires_at {
+                if exp <= now_ms {
+                    return Ok(RoutingDecision::Drop);
+                }
+            }
+        }
+
+        // 2. Always route high-priority alerts
+        if self.always_route_alerts && kind.is_alert() && priority > 200 {
+            return Ok(RoutingDecision::SendToLLM);
+        }
+
+        // 3. For Event/State: compute importance and check threshold
+        if kind.is_event() || kind.is_state() {
+            let importance = self.base_importance_view(priority, metadata, now_ms)?;
+            return if importance >= self.llm_threshold {
+                Ok(RoutingDecision::SendToLLM)
+            } else {
+                Ok(RoutingDecision::ProcessLocally)
+            };
+        }
+
+        // 4. Commands and Queries: local processing by default
+        Ok(RoutingDecision::ProcessLocally)
+    }
+
     /// Computes base importance score for a message (0.0-1.0)
     ///
     /// Combines:
@@ -150,6 +197,28 @@ impl RoutingPolicy {
         };
 
         // Combine priority and SFE
+        Ok(priority_score * 0.5 + sfe_score * 0.5)
+    }
+
+    /// Computes base importance score from view data
+    pub fn base_importance_view(
+        &self,
+        priority: u8,
+        metadata: &lnmp_envelope::EnvelopeMetadata,
+        now_ms: u64,
+    ) -> Result<f64> {
+        // Normalize priority to 0.0-1.0
+        let priority_score = priority as f64 / 255.0;
+
+        // Compute SFE score using ContextScorer
+        let sfe_score = if metadata.timestamp.is_some() {
+            let scorer = ContextScorer::with_config(self.scorer_config.clone());
+            let profile = scorer.score_metadata(metadata, now_ms);
+            profile.composite_score()
+        } else {
+            0.5
+        };
+
         Ok(priority_score * 0.5 + sfe_score * 0.5)
     }
 }
@@ -360,5 +429,56 @@ mod tests {
 
         // Should not drop even though expired
         assert_ne!(policy.decide(&msg, 10000).unwrap(), RoutingDecision::Drop);
+    }
+
+    #[test]
+    fn test_decide_view_routing() {
+        use lnmp_core::LnmpRecordView;
+        use lnmp_envelope::EnvelopeMetadata;
+
+        let policy = RoutingPolicy::default();
+
+        // Create metadata representing a high priority alert
+        // We can't easily construct EnvelopeMetadata if fields are private or no builder?
+        // LnmpEnvelope::metadata is pub.
+        // We can create an envelope and take its metadata.
+        // Note: EnvelopeMetadata usually implements Clone or we can construct it if fields are pub.
+        // Let's rely on standard construction via EnvelopeBuilder then extracting.
+
+        let record = sample_record();
+        let envelope = EnvelopeBuilder::new(record)
+            .timestamp(1000)
+            .source("auth-service") // Trusted source logic might apply if configured
+            .build();
+
+        let metadata = envelope.metadata;
+
+        let empty_view = LnmpRecordView::from_fields(vec![]);
+
+        // 1. Alert routing (High Priority)
+        let decision = policy
+            .decide_view(
+                MessageKind::Alert,
+                250, // High priority
+                &metadata,
+                None, // No explicit expiry passed
+                &empty_view,
+                2000,
+            )
+            .unwrap();
+        assert_eq!(decision, RoutingDecision::SendToLLM);
+
+        // 2. Expired view
+        let decision_expired = policy
+            .decide_view(
+                MessageKind::Event,
+                100,
+                &metadata,
+                Some(1500), // Expires at 1500
+                &empty_view,
+                2000, // Now is 2000 -> Expired
+            )
+            .unwrap();
+        assert_eq!(decision_expired, RoutingDecision::Drop);
     }
 }

@@ -2,11 +2,13 @@ pub mod decoder;
 pub mod delta;
 pub mod encoder;
 pub mod vector;
+pub mod view;
 
 pub use decoder::Decoder;
 pub use delta::{DeltaChange, UpdateStrategy, VectorDelta};
 pub use encoder::Encoder;
 pub use vector::{EmbeddingType, SimilarityMetric, Vector};
+pub use view::EmbeddingView;
 
 #[cfg(test)]
 mod tests {

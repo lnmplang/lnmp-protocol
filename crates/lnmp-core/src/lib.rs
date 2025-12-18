@@ -83,5 +83,5 @@ pub use container::{
 };
 pub use limits::{StructuralError, StructuralLimits};
 pub use profile::{LnmpProfile, StrictDeterministicConfig};
-pub use record::{FieldOrderingError, LnmpField, LnmpRecord};
-pub use types::{FieldId, LnmpValue, TypeHint};
+pub use record::{FieldOrderingError, LnmpField, LnmpFieldView, LnmpRecord, LnmpRecordView};
+pub use types::{FieldId, LnmpValue, LnmpValueView, TypeHint};

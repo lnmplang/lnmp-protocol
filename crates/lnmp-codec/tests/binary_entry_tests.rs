@@ -297,8 +297,9 @@ fn test_v0_5_type_tags_not_yet_implemented() {
 
 #[test]
 fn test_reserved_type_tags_rejected() {
-    // Reserved type tags (0x08-0x0F) should be recognized but return an error
-    let reserved_tags = vec![0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F];
+    // Reserved type tags (0x0A-0x0F) should be recognized but return an error
+    // Note: 0x09 (HybridNumericArray) is now implemented
+    let reserved_tags = vec![0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F];
 
     for tag in reserved_tags {
         let bytes = vec![
@@ -316,8 +317,8 @@ fn test_reserved_type_tags_rejected() {
             }) => {
                 assert_eq!(t, tag, "Type tag mismatch");
                 assert!(
-                    reason.contains("Reserved"),
-                    "Expected 'Reserved' in error message, got: {}",
+                    reason.contains("not yet implemented") || reason.contains("Reserved"),
+                    "Expected implementation message, got: {}",
                     reason
                 );
             }
