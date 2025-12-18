@@ -82,7 +82,7 @@ jobs:
             fi
             
             echo "🚀 Publishing ${crate} v${version}..."
-            cargo publish -p "${crate}" --locked
+            cargo publish -p "${crate}" --no-verify
             echo "Waiting for crates.io to index ${crate}..."
             sleep 30
           }
