@@ -4,7 +4,6 @@
 
 use lnmp_codec::binary::{BinaryDecoder, BinaryEncoder};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
-use lnmp_envelope::EnvelopeBuilder;
 use lnmp_net::{ContentAwarePolicy, ContentRule, FieldCondition, MessageKind, RoutingDecision};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

@@ -41,23 +41,19 @@ fn route_message_zerocopy(
 ) -> Result<&'static str, Box<dyn std::error::Error>> {
     // Check status field (F50) without allocation
     if let Some(field) = view.get_field(50) {
-        match &field.value {
-            LnmpValueView::String(status) => {
-                if *status == "critical" {
-                    return Ok("ROUTE_TO_LLM");
-                }
+        if let LnmpValueView::String(status) = &field.value {
+            if *status == "critical" {
+                return Ok("ROUTE_TO_LLM");
             }
-            _ => {}
         }
     }
 
     // Check priority field (F32)
     if let Some(field) = view.get_field(32) {
-        match &field.value {
-            LnmpValueView::Int(priority) if *priority > 200 => {
+        if let LnmpValueView::Int(priority) = &field.value {
+            if *priority > 200 {
                 return Ok("ROUTE_TO_LLM");
             }
-            _ => {}
         }
     }
 
@@ -122,20 +118,18 @@ fn benchmark_routing(
 
 fn route_message_standard(record: &LnmpRecord) -> Result<&'static str, Box<dyn std::error::Error>> {
     if let Some(field) = record.get_field(50) {
-        match &field.value {
-            LnmpValue::String(status) if status == "critical" => {
+        if let LnmpValue::String(status) = &field.value {
+            if status == "critical" {
                 return Ok("ROUTE_TO_LLM");
             }
-            _ => {}
         }
     }
 
     if let Some(field) = record.get_field(32) {
-        match &field.value {
-            LnmpValue::Int(priority) if *priority > 200 => {
+        if let LnmpValue::Int(priority) = &field.value {
+            if *priority > 200 {
                 return Ok("ROUTE_TO_LLM");
             }
-            _ => {}
         }
     }
 

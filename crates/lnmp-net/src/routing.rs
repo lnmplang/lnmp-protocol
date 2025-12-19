@@ -434,7 +434,6 @@ mod tests {
     #[test]
     fn test_decide_view_routing() {
         use lnmp_core::LnmpRecordView;
-        use lnmp_envelope::EnvelopeMetadata;
 
         let policy = RoutingPolicy::default();
 

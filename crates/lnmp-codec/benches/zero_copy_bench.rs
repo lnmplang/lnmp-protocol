@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, Criterion, Throughput};
 use lnmp_codec::binary::{BinaryDecoder, BinaryEncoder};
 use lnmp_core::{LnmpField, LnmpRecord, LnmpValue};
 use lnmp_embedding::{EmbeddingType, Vector};
