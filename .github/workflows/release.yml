@@ -96,7 +96,7 @@ jobs:
           # 1. Base crates with no internal dependencies
           publish lnmp-embedding
           publish lnmp-sanitize
-
+          
           # 2. Quantization (depends on: lnmp-embedding)
           publish lnmp-quant
           
@@ -110,14 +110,16 @@ jobs:
           # 5. SFE (depends on: lnmp-core, lnmp-envelope)
           publish lnmp-sfe
           
-          # 6. Net (depends on: lnmp-core, lnmp-envelope, lnmp-sfe)
-          publish lnmp-net
-          
-          # 7. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding, lnmp-quant, lnmp-sfe)
+          # 6. Codec (depends on: lnmp-core, lnmp-sanitize, lnmp-embedding, lnmp-quant, lnmp-sfe)
+          # MUST come BEFORE lnmp-net (net depends on codec)
           publish lnmp-codec
           
-          # 8. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
+          # 7. LLB (depends on: lnmp-core, lnmp-embedding, lnmp-codec, lnmp-sfe)
           publish lnmp-llb
+          
+          # 8. Net (depends on: lnmp-core, lnmp-envelope, lnmp-sfe, lnmp-codec)
+          # AFTER codec!
+          publish lnmp-net
           
           # 9. Spatial (depends on: lnmp-core, lnmp-embedding)
           publish lnmp-spatial
