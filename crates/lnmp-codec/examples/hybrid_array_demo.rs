@@ -43,7 +43,7 @@ fn main() {
     // Decode back
     let (decoded, _) = BinaryEntry::decode(&encoded).unwrap();
     if let BinaryValue::HybridNumericArray(decoded_arr) = decoded.value {
-        let recovered = decoded_arr.as_f32_vec().unwrap();
+        let recovered = decoded_arr.to_f32_vec().unwrap();
         println!("   Recovered:  {:?}", recovered);
         println!("   ✅ Roundtrip successful!\n");
     }
@@ -76,7 +76,7 @@ fn main() {
 
     let (decoded64, _) = BinaryEntry::decode(&encoded64).unwrap();
     if let BinaryValue::HybridNumericArray(arr) = decoded64.value {
-        let recovered = arr.as_f64_vec().unwrap();
+        let recovered = arr.to_f64_vec().unwrap();
         println!("   Recovered:  {:?}", recovered);
         println!("   ✅ Roundtrip successful!\n");
     }

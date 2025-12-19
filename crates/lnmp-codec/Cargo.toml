@@ -13,6 +13,7 @@ categories = ["encoding", "parser-implementations"]
 [features]
 default = []
 log = ["dep:log"]
+aligned-zerocopy = ["dep:bytemuck"]
 
 [dependencies]
 lnmp-core = { workspace = true }
@@ -21,6 +22,7 @@ lnmp-quant = { workspace = true }
 lnmp-sanitize = { workspace = true }
 lnmp-sfe = { workspace = true }
 log = { version = "0.4", optional = true }
+bytemuck = { version = "1.16", optional = true }
 
 [dev-dependencies]
 criterion = "0.5"

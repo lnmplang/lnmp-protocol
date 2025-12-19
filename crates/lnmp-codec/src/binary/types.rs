@@ -231,30 +231,170 @@ impl HybridArray {
         }
     }
 
-    /// Get f32 values (dense mode only)
-    pub fn as_f32_vec(&self) -> Option<Vec<f32>> {
+    // ============================================================
+    // 3-TIER API for HybridNumericArray Access
+    // ============================================================
+
+    // TIER 1: PRIMARY - Iterator (zero-alloc, always works)
+    // --------------------------------------------------------
+
+    /// Iterate over f32 values (PRIMARY PATH)
+    ///
+    /// Zero-allocation iterator that parses values on-the-fly.
+    /// Works reliably regardless of alignment.
+    ///
+    /// # Example
+    /// ```
+    /// # use lnmp_codec::binary::types::HybridArray;
+    /// let arr = HybridArray::from_f32_dense(&[1.0, 2.5, 3.14]);
+    /// for value in arr.iter_f32().unwrap() {
+    ///     println!("{}", value);
+    /// }
+    /// ```
+    pub fn iter_f32(&self) -> Option<impl Iterator<Item = f32> + '_> {
         if self.dtype != NumericDType::F32 || self.sparse {
             return None;
         }
-        let mut result = Vec::with_capacity(self.dim);
-        for chunk in self.data.chunks_exact(4) {
-            result.push(f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]));
-        }
-        Some(result)
+        Some(
+            self.data
+                .chunks_exact(4)
+                .map(|chunk| f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]])),
+        )
     }
 
-    /// Get f64 values (dense mode only)
-    pub fn as_f64_vec(&self) -> Option<Vec<f64>> {
+    /// Iterate over f64 values (PRIMARY PATH)
+    pub fn iter_f64(&self) -> Option<impl Iterator<Item = f64> + '_> {
         if self.dtype != NumericDType::F64 || self.sparse {
             return None;
         }
-        let mut result = Vec::with_capacity(self.dim);
-        for chunk in self.data.chunks_exact(8) {
-            result.push(f64::from_le_bytes([
+        Some(self.data.chunks_exact(8).map(|chunk| {
+            f64::from_le_bytes([
                 chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],
-            ]));
+            ])
+        }))
+    }
+
+    /// Iterate over i32 values (PRIMARY PATH)
+    pub fn iter_i32(&self) -> Option<impl Iterator<Item = i32> + '_> {
+        if self.dtype != NumericDType::I32 || self.sparse {
+            return None;
         }
-        Some(result)
+        Some(
+            self.data
+                .chunks_exact(4)
+                .map(|chunk| i32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]])),
+        )
+    }
+
+    /// Iterate over i64 values (PRIMARY PATH)
+    pub fn iter_i64(&self) -> Option<impl Iterator<Item = i64> + '_> {
+        if self.dtype != NumericDType::I64 || self.sparse {
+            return None;
+        }
+        Some(self.data.chunks_exact(8).map(|chunk| {
+            i64::from_le_bytes([
+                chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],
+            ])
+        }))
+    }
+
+    // TIER 2: MATERIALIZE - Vec (allocation/copy)
+    // --------------------------------------------------------
+
+    /// Materialize f32 values into Vec (allocates)
+    ///
+    /// Use when you need to store, modify, or pass ownership of data.
+    pub fn to_f32_vec(&self) -> Option<Vec<f32>> {
+        if self.dtype != NumericDType::F32 || self.sparse {
+            return None;
+        }
+        Some(self.iter_f32()?.collect())
+    }
+
+    /// Materialize f64 values into Vec (allocates)
+    pub fn to_f64_vec(&self) -> Option<Vec<f64>> {
+        if self.dtype != NumericDType::F64 || self.sparse {
+            return None;
+        }
+        Some(self.iter_f64()?.collect())
+    }
+
+    /// Materialize i32 values into Vec (allocates)
+    pub fn to_i32_vec(&self) -> Option<Vec<i32>> {
+        if self.dtype != NumericDType::I32 || self.sparse {
+            return None;
+        }
+        Some(self.iter_i32()?.collect())
+    }
+
+    /// Materialize i64 values into Vec (allocates)
+    pub fn to_i64_vec(&self) -> Option<Vec<i64>> {
+        if self.dtype != NumericDType::I64 || self.sparse {
+            return None;
+        }
+        Some(self.iter_i64()?.collect())
+    }
+
+    // TIER 3: BONUS - Slice (aligned-zerocopy feature, best-effort)
+    // --------------------------------------------------------
+
+    /// Get f32 slice (BONUS - requires aligned-zerocopy feature)
+    ///
+    /// Zero-copy typed slice access when data is properly aligned.
+    /// Returns `None` if not aligned (common in decode_view scenarios).
+    ///
+    /// **Alignment rate:** ~100% for direct construction, ~0-10% for network buffers.
+    ///
+    /// # Fallback
+    /// If this returns `None`, use `iter_f32()` (primary) or `to_f32_vec()` (materialize).
+    #[cfg(feature = "aligned-zerocopy")]
+    pub fn as_f32_slice(&self) -> Option<&[f32]> {
+        if self.dtype != NumericDType::F32 || self.sparse {
+            return None;
+        }
+        bytemuck::try_cast_slice(&self.data).ok()
+    }
+
+    /// Get f64 slice (BONUS - requires aligned-zerocopy feature)
+    #[cfg(feature = "aligned-zerocopy")]
+    pub fn as_f64_slice(&self) -> Option<&[f64]> {
+        if self.dtype != NumericDType::F64 || self.sparse {
+            return None;
+        }
+        bytemuck::try_cast_slice(&self.data).ok()
+    }
+
+    /// Get i32 slice (BONUS - requires aligned-zerocopy feature)
+    #[cfg(feature = "aligned-zerocopy")]
+    pub fn as_i32_slice(&self) -> Option<&[i32]> {
+        if self.dtype != NumericDType::I32 || self.sparse {
+            return None;
+        }
+        bytemuck::try_cast_slice(&self.data).ok()
+    }
+
+    /// Get i64 slice (BONUS - requires aligned-zerocopy feature)
+    #[cfg(feature = "aligned-zerocopy")]
+    pub fn as_i64_slice(&self) -> Option<&[i64]> {
+        if self.dtype != NumericDType::I64 || self.sparse {
+            return None;
+        }
+        bytemuck::try_cast_slice(&self.data).ok()
+    }
+
+    // DEPRECATED - For backward compatibility
+    // --------------------------------------------------------
+
+    /// Get f32 values (DEPRECATED - use `to_f32_vec()` or `iter_f32()`)
+    #[deprecated(since = "0.5.16", note = "Use `to_f32_vec()` or `iter_f32()` instead")]
+    pub fn as_f32_vec(&self) -> Option<Vec<f32>> {
+        self.to_f32_vec()
+    }
+
+    /// Get f64 values (DEPRECATED - use `to_f64_vec()` or `iter_f64()`)
+    #[deprecated(since = "0.5.16", note = "Use `to_f64_vec()` or `iter_f64()` instead")]
+    pub fn as_f64_vec(&self) -> Option<Vec<f64>> {
+        self.to_f64_vec()
     }
 
     /// Encode flags byte
@@ -367,21 +507,21 @@ impl BinaryValue {
                 match arr.dtype {
                     NumericDType::I32 | NumericDType::I64 => {
                         // Convert to IntArray
-                        if let Some(vals) = arr.as_f64_vec() {
+                        if let Some(vals) = arr.to_f64_vec() {
                             LnmpValue::IntArray(vals.iter().map(|v| *v as i64).collect())
                         } else {
                             LnmpValue::IntArray(vec![])
                         }
                     }
                     NumericDType::F32 => {
-                        if let Some(vals) = arr.as_f32_vec() {
+                        if let Some(vals) = arr.to_f32_vec() {
                             LnmpValue::FloatArray(vals.iter().map(|v| *v as f64).collect())
                         } else {
                             LnmpValue::FloatArray(vec![])
                         }
                     }
                     NumericDType::F64 => {
-                        if let Some(vals) = arr.as_f64_vec() {
+                        if let Some(vals) = arr.to_f64_vec() {
                             LnmpValue::FloatArray(vals)
                         } else {
                             LnmpValue::FloatArray(vec![])
@@ -829,7 +969,7 @@ mod tests {
         assert_eq!(arr.data.len(), 20); // 5 * 4 bytes
 
         // Verify we can get values back
-        let recovered = arr.as_f32_vec().unwrap();
+        let recovered = arr.to_f32_vec().unwrap();
         assert_eq!(recovered.len(), 5);
         assert!((recovered[0] - 1.0).abs() < 0.0001);
         assert!((recovered[1] - 2.5).abs() < 0.0001);
