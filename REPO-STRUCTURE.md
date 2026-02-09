@@ -2,6 +2,8 @@
 
 This document describes the organization of the `lnmp-protocol` repository, which serves as the **Core Kernel** of the LNMP ecosystem.
 
+Official domain: [lnmp.ai](https://lnmp.ai)
+
 ## 📁 Repository Structure
 
 ```

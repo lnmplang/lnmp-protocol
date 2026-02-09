@@ -8,6 +8,7 @@ LNMP (LLM Native Minimal Protocol) is a minimal, tokenizer-friendly, semantic-ID
 [![Rust](https://img.shields.io/badge/rust-1.91%2B-orange.svg)](https://www.rust-lang.org)
 [![Downloads](https://img.shields.io/crates/d/lnmp.svg)](https://crates.io/crates/lnmp)
 
+**Official domain:** [lnmp.ai](https://lnmp.ai)
 
 > **📋 FID Registry:** All Field IDs have official definitions in [`registry/fids.yaml`](registry/fids.yaml). See [`spec/fid-governance.md`](spec/fid-governance.md) for governance rules.
 
@@ -874,6 +875,11 @@ Contributions are welcome! Please see the following:
 - **Pull Requests**: Submit PRs with tests and documentation
 - **Compliance Tests**: Add test cases to `tests/compliance/test-cases.yaml`
 - **Language Implementations**: Follow the compliance test suite for new languages
+
+## Acknowledgments
+
+LNMP is part of **Cloudflare Project Alexandria**.  
+Cloudflare sponsors the **Cloudflare Pro plan** for the `lnmp.ai` domain under the program.
 
 ## License
 

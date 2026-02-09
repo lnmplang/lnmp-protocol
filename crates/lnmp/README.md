@@ -127,6 +127,7 @@ If you prefer fine-grained control and only need specific functionality, you can
 ## Documentation
 
 - [API Documentation](https://docs.rs/lnmp)
+- [LNMP Website](https://lnmp.ai)
 - [Protocol Specification](https://github.com/lnmplang/lnmp-protocol)
 - [Migration Guide](https://github.com/lnmplang/lnmp-protocol/blob/main/MIGRATION.md)
 

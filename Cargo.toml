@@ -24,7 +24,7 @@ rust-version = "1.91.0"
 authors = ["LNMP Team"]
 license = "MIT"
 repository = "https://github.com/lnmplang/lnmp-protocol"
-homepage = "https://lnmp.io"
+homepage = "https://lnmp.ai"
 
 [workspace.dependencies]
 lnmp = { version = "0.5.16", path = "crates/lnmp" }
@@ -42,4 +42,3 @@ lnmp-transport = { version = "0.5.16", path = "crates/lnmp-transport" }
 
 [profile.bench]
 debug = true
-

@@ -63,7 +63,7 @@
 //! ## Documentation
 //!
 //! For detailed documentation on each module, visit:
-//! - [LNMP Protocol Documentation](https://lnmp.io)
+//! - [LNMP Protocol Documentation](https://lnmp.ai)
 //! - [GitHub Repository](https://github.com/lnmplang/lnmp-protocol)
 
 // Re-export all LNMP modules

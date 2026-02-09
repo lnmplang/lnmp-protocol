@@ -498,6 +498,7 @@ We follow [Semantic Versioning](https://semver.org/):
 
 - **[GitHub Discussions](https://github.com/lnmplang/lnmp-protocol/discussions)** - Ask questions, share ideas
 - **[GitHub Issues](https://github.com/lnmplang/lnmp-protocol/issues)** - Report bugs, request features
+- **[Website](https://lnmp.ai)** - Official LNMP domain
 - **[Documentation](./docs/)** - Read the docs
 
 ### Stuck?
@@ -517,6 +518,12 @@ Contributors are recognized in:
 - Release notes
 
 Thank you for contributing to LNMP! 🎉
+
+---
+
+## ☁️ Sponsorship
+
+LNMP is part of **Cloudflare Project Alexandria**. Cloudflare sponsors the **Cloudflare Pro plan** for `lnmp.ai` under this program.
 
 ---
 
